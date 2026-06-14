@@ -25,6 +25,7 @@ function issueTokenAndRespond(res, user, statusCode = 200, extra = {}) {
   res.status(statusCode).json({
     success: true,
     data: {
+      token,
       user: {
         id: user.id,
         email: user.email,

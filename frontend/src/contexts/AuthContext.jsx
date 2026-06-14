@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
       const { data } = await api.get('/auth/me');
       setUser(data.data.user);
     } catch {
+      localStorage.removeItem('token');
       setUser(null);
     } finally {
       setLoading(false);
@@ -23,13 +24,19 @@ export function AuthProvider({ children }) {
     fetchCurrentUser();
 
     // Listen for 401 events from api interceptor
-    const handler = () => { setUser(null); };
+    const handler = () => {
+      localStorage.removeItem('token');
+      setUser(null);
+    };
     window.addEventListener('auth:unauthorized', handler);
     return () => window.removeEventListener('auth:unauthorized', handler);
   }, [fetchCurrentUser]);
 
   const login = useCallback(async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
+    if (data.data.token) {
+      localStorage.setItem('token', data.data.token);
+    }
     setUser(data.data.user);
     setLoading(false);
     return data.data.user;
@@ -37,6 +44,9 @@ export function AuthProvider({ children }) {
 
   const googleAuth = useCallback(async (googleData) => {
     const { data } = await api.post('/auth/google', googleData);
+    if (data.data.token) {
+      localStorage.setItem('token', data.data.token);
+    }
     setUser(data.data.user);
     setLoading(false);
     return data.data.user;
@@ -44,12 +54,16 @@ export function AuthProvider({ children }) {
 
   const qrBind = useCallback(async (payload) => {
     const { data } = await api.post('/auth/qr-bind', payload);
+    if (data.data.token) {
+      localStorage.setItem('token', data.data.token);
+    }
     setUser(data.data.user);
     return data.data;
   }, []);
 
   const logout = useCallback(async () => {
     try { await api.post('/auth/logout'); } catch { /* ignore */ }
+    localStorage.removeItem('token');
     setUser(null);
   }, []);
 
