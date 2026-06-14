@@ -110,7 +110,17 @@ export default function AuthPage() {
           google_id: userInfo.sub, email: userInfo.email,
           first_name: userInfo.given_name, last_name: userInfo.family_name
         });
-        const dest = from || ROLE_REDIRECTS[user.role] || '/';
+        let dest = ROLE_REDIRECTS[user.role] || '/';
+        if (from) {
+          const roleRoot = ROLE_REDIRECTS[user.role];
+          const adminRoots = ['/admin', '/info-desk']; // Admin has access to both
+          
+          if (user.role === 'admin' && adminRoots.some(r => from.startsWith(r))) {
+            dest = from;
+          } else if (from.startsWith(roleRoot)) {
+            dest = from;
+          }
+        }
         navigate(dest, { replace: true });
       } catch (err) {
         const msg = err.response?.data?.message || 'Google authentication failed.';
@@ -162,7 +172,17 @@ export default function AuthPage() {
     setLoginLoading(true);
     try {
       const user = await login(loginForm.email, loginForm.password);
-      const dest = from || ROLE_REDIRECTS[user.role] || '/';
+      let dest = ROLE_REDIRECTS[user.role] || '/';
+      if (from) {
+        const roleRoot = ROLE_REDIRECTS[user.role];
+        const adminRoots = ['/admin', '/info-desk'];
+        
+        if (user.role === 'admin' && adminRoots.some(r => from.startsWith(r))) {
+          dest = from;
+        } else if (from.startsWith(roleRoot)) {
+          dest = from;
+        }
+      }
       navigate(dest, { replace: true });
     } catch (err) {
       setLoginError(err.response?.data?.message || 'Login failed. Please try again.');
