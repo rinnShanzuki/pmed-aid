@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { sequelize, User } = require('../models');
+const { sequelize, User, Room } = require('../models');
 
 async function migrate() {
   console.log('🔄 Starting Sequelize migration...');
@@ -21,6 +21,23 @@ async function migrate() {
     console.log('  ✅ Default admin seeded → admin@pmed-aid.com / admin123');
   } else {
     console.log('  ℹ️  Admin user already exists, skipping seed');
+  }
+
+  // Seed default rooms if none exist
+  const roomCount = await Room.count();
+  if (roomCount === 0) {
+    const rooms = [
+      { room_number: '101A', room_type: 'ward', price_per_day: 50.00 },
+      { room_number: '101B', room_type: 'ward', price_per_day: 50.00 },
+      { room_number: '201', room_type: 'semi_private', price_per_day: 150.00 },
+      { room_number: '202', room_type: 'semi_private', price_per_day: 150.00 },
+      { room_number: '301', room_type: 'private', price_per_day: 300.00 },
+      { room_number: 'ICU-1', room_type: 'icu', price_per_day: 800.00 },
+    ];
+    await Room.bulkCreate(rooms);
+    console.log('  ✅ Default rooms seeded');
+  } else {
+    console.log('  ℹ️  Rooms already exist, skipping seed');
   }
 
   console.log('\n🎉 Migration complete!');
