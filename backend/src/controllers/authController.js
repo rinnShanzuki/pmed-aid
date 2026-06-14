@@ -5,8 +5,8 @@ const { validationResult } = require('express-validator');
 // Cookie options — httpOnly prevents JS access (XSS protection)
 const COOKIE_OPTIONS = {
   httpOnly: true,
-  sameSite: 'lax',                                     // CSRF protection
-  secure: process.env.NODE_ENV === 'production',       // HTTPS only in prod
+  sameSite: 'none',                                    // MUST be 'none' for cross-domain requests (Vercel -> Render)
+  secure: true,                                        // MUST be true when sameSite is 'none'
   maxAge: 24 * 60 * 60 * 1000,                        // 24 hours in ms
 };
 
@@ -257,8 +257,8 @@ exports.getMe = async (req, res, next) => {
 exports.logout = (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none',
+    secure: true,
   });
   res.json({ success: true, message: 'Logged out successfully.' });
 };
