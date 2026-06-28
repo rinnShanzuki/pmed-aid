@@ -1,5 +1,6 @@
 const { Prescription, PrescriptionItem, MedicationSchedule, Patient, User, AuditLog, QrCode } = require('../models');
 const { generateSchedulesForItems } = require('../utils/scheduleGenerator');
+const { generateQRDataURL } = require('../utils/qrGenerator');
 const { validationResult } = require('express-validator');
 const { notifyInfoDesk } = require('../utils/notificationHelper');
 
@@ -8,14 +9,24 @@ exports.create = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-    const { admission_id, patient_id, doctor_id, type, notes, items } = req.body;
+    const { admission_id, patient_id, doctor_id, type, notes, items, status } = req.body;
 
     const prescription = await Prescription.create({
       admission_id, patient_id,
       doctor_id: doctor_id || req.user.id,
       type: type || 'in_hospital',
+      status: status || 'active',
       notes,
     });
+
+    if (status === 'pending_encoding' || !items || items.length === 0) {
+      // Skip item and QR generation if handed over without items
+      return res.status(201).json({
+        success: true,
+        data: prescription,
+        meta: { schedules_generated: 0 },
+      });
+    }
 
     const createdItems = await PrescriptionItem.bulkCreate(
       items.map(item => ({ ...item, prescription_id: prescription.id }))
@@ -64,10 +75,13 @@ exports.create = async (req, res, next) => {
       type: type || 'in_hospital',
     });
 
+    const qrImage = await generateQRDataURL(qrCode.code);
+
     res.status(201).json({
       success: true,
       data: full,
       qr_code: qrCode.code,
+      qr_image: qrImage,
       meta: { schedules_generated: scheduleEntries.length },
     });
   } catch (error) { next(error); }
@@ -131,11 +145,13 @@ exports.update = async (req, res, next) => {
 
 exports.addItems = async (req, res, next) => {
   try {
-    const { items } = req.body;
+    const { items, notes } = req.body;
     if (!items?.length) return res.status(400).json({ success: false, message: 'Items array required.' });
 
     const prescription = await Prescription.findByPk(req.params.id);
     if (!prescription) return res.status(404).json({ success: false, message: 'Prescription not found.' });
+
+    if (notes) await prescription.update({ notes });
 
     const createdItems = await PrescriptionItem.bulkCreate(
       items.map(i => ({ ...i, prescription_id: prescription.id }))
@@ -151,6 +167,19 @@ exports.addItems = async (req, res, next) => {
     );
     if (scheduleEntries.length > 0) await MedicationSchedule.bulkCreate(scheduleEntries);
 
+    let qrCodeCode = null;
+    if (prescription.status === 'pending_encoding') {
+      await prescription.update({ status: 'active' });
+      // Generate QR since it wasn't generated during handover
+      const qrCode = await QrCode.create({
+        patient_id: prescription.patient_id,
+        admission_id: prescription.admission_id,
+        prescription_id: prescription.id,
+        type: prescription.type || 'in_hospital',
+      });
+      qrCodeCode = qrCode.code;
+    }
+
     const patient = await Patient.findByPk(prescription.patient_id, { attributes: ['first_name', 'last_name'] });
     await notifyInfoDesk({
       type: 'alert',
@@ -161,10 +190,15 @@ exports.addItems = async (req, res, next) => {
       related_admission_id: prescription.admission_id,
     });
 
+    let qrImage = null;
+    if (qrCodeCode) {
+      qrImage = await generateQRDataURL(qrCodeCode);
+    }
+
     const full = await Prescription.findByPk(prescription.id, {
       include: [{ model: PrescriptionItem, as: 'items' }],
     });
-    res.status(201).json({ success: true, data: full, meta: { schedules_generated: scheduleEntries.length } });
+    res.status(201).json({ success: true, data: full, qr_code: qrCodeCode, qr_image: qrImage, meta: { schedules_generated: scheduleEntries.length } });
   } catch (error) { next(error); }
 };
 

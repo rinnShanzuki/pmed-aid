@@ -56,34 +56,51 @@ function generateSchedule(item, startDate = new Date()) {
   dosesPerDay = Math.max(1, Math.ceil(dosesPerDay));
 
   // Calculate times for each dose within a day
-  // Distribute evenly between 6:00 AM and 10:00 PM (16 hours)
-  const startHour = 6;   // 6:00 AM
-  const endHour = 22;    // 10:00 PM
-  const wakingHours = endHour - startHour;
-
-  const doseTimes = [];
-  if (dosesPerDay === 1) {
-    doseTimes.push(8); // Single dose at 8:00 AM
-  } else if (dosesPerDay === 2) {
-    doseTimes.push(8, 20); // 8:00 AM and 8:00 PM
-  } else if (dosesPerDay === 3) {
-    doseTimes.push(8, 14, 20); // 8 AM, 2 PM, 8 PM
-  } else if (dosesPerDay === 4) {
-    doseTimes.push(6, 12, 18, 22); // 6 AM, 12 PM, 6 PM, 10 PM
-  } else {
-    // Evenly distribute
-    const interval = wakingHours / dosesPerDay;
+  const doseTimes = []; // Elements will be objects: { hour, minute }
+  
+  if (item.start_time) {
+    const [startHourStr, startMinStr] = item.start_time.split(':');
+    let currentHour = parseInt(startHourStr, 10);
+    let currentMinute = parseInt(startMinStr, 10);
+    const intervalHrs = item.interval_hours ? parseFloat(item.interval_hours) : (24 / dosesPerDay);
+    
     for (let i = 0; i < dosesPerDay; i++) {
-      doseTimes.push(Math.round(startHour + (interval * i)));
+      doseTimes.push({ hour: currentHour, minute: currentMinute });
+      
+      // Calculate next time
+      const totalMinutes = currentMinute + (intervalHrs * 60);
+      currentHour = (currentHour + Math.floor(totalMinutes / 60)) % 24;
+      currentMinute = Math.round(totalMinutes % 60);
+    }
+  } else {
+    // Legacy fallback: Distribute evenly between 6:00 AM and 10:00 PM (16 hours)
+    const startHour = 6;   // 6:00 AM
+    const endHour = 22;    // 10:00 PM
+    const wakingHours = endHour - startHour;
+    
+    if (dosesPerDay === 1) {
+      doseTimes.push({ hour: 8, minute: 0 }); // Single dose at 8:00 AM
+    } else if (dosesPerDay === 2) {
+      doseTimes.push({ hour: 8, minute: 0 }, { hour: 20, minute: 0 }); // 8:00 AM and 8:00 PM
+    } else if (dosesPerDay === 3) {
+      doseTimes.push({ hour: 8, minute: 0 }, { hour: 14, minute: 0 }, { hour: 20, minute: 0 }); // 8 AM, 2 PM, 8 PM
+    } else if (dosesPerDay === 4) {
+      doseTimes.push({ hour: 6, minute: 0 }, { hour: 12, minute: 0 }, { hour: 18, minute: 0 }, { hour: 22, minute: 0 }); // 6 AM, 12 PM, 6 PM, 10 PM
+    } else {
+      // Evenly distribute
+      const interval = wakingHours / dosesPerDay;
+      for (let i = 0; i < dosesPerDay; i++) {
+        doseTimes.push({ hour: Math.round(startHour + (interval * i)), minute: 0 });
+      }
     }
   }
 
   // Generate entries for each day
   for (let day = 0; day < totalDays; day++) {
-    for (const hour of doseTimes) {
+    for (const time of doseTimes) {
       const scheduledTime = new Date(startDate);
       scheduledTime.setDate(scheduledTime.getDate() + day);
-      scheduledTime.setHours(hour, 0, 0, 0);
+      scheduledTime.setHours(time.hour, time.minute, 0, 0);
 
       // Skip if the scheduled time is in the past
       if (scheduledTime <= new Date()) continue;

@@ -14,7 +14,7 @@ export default function AuthPage() {
   const location = useLocation();
   const [searchParams] = useSearchParams();
 
-  const qrCode = searchParams.get('code');
+  const qrCode = searchParams.get('code') || searchParams.get('qr');
 
   // Determine initial mode from route
   const isRegisterRoute = location.pathname === '/register';

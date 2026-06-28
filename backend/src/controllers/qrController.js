@@ -37,7 +37,7 @@ exports.getAll = async (req, res, next) => {
 exports.generate = async (req, res, next) => {
   try {
     const { patient_id, admission_id, type } = req.body;
-    
+
     // Invalidate existing active QR codes for this admission
     if (admission_id) {
       await QrCode.update(

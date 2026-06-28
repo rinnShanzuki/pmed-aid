@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { BedDouble, Users, FileSignature, Clock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 export default function InfoDeskDashboard() {
-  const [stats, setStats] = useState({ newAdmissions: 0, activePatients: 0, recentPrescriptions: 0, pendingRegistrations: 0 });
+  const [stats, setStats] = useState({ newAdmissions: 0, activePatients: 0, recentPrescriptions: 0, pendingRegistrations: 0, dischargedPatients: 0, admissionTrend: [] });
 
   useEffect(() => {
     api.get('/info-desk/dashboard')
@@ -17,6 +18,24 @@ export default function InfoDeskDashboard() {
     { label: 'Recent Prescriptions', value: stats.recentPrescriptions, sub: 'Encoded in the last 7 days', icon: <FileSignature size={24} />, bg: '#f0fdf4', color: '#22c55e' },
     { label: 'Pending Registrations', value: stats.pendingRegistrations, sub: 'Require profile completion', icon: <Clock size={24} />, bg: '#fff7ed', color: '#f97316' },
   ];
+
+  const admissionTrendData = stats.admissionTrend && stats.admissionTrend.length > 0 
+    ? stats.admissionTrend 
+    : [
+        { day: 'Mon', admissions: 0 },
+        { day: 'Tue', admissions: 0 },
+        { day: 'Wed', admissions: 0 },
+        { day: 'Thu', admissions: 0 },
+        { day: 'Fri', admissions: 0 },
+      ];
+
+  const patientStatusData = [
+    { name: 'Admitted', value: stats.activePatients },
+    { name: 'Discharged', value: stats.dischargedPatients },
+    { name: 'Pending Registration', value: stats.pendingRegistrations },
+  ];
+
+  const COLORS = ['#3b82f6', '#22c55e', '#f97316'];
 
   return (
     <div>
@@ -42,16 +61,52 @@ export default function InfoDeskDashboard() {
         ))}
       </div>
 
-      <div style={{ marginTop: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginTop: '32px' }}>
         <div className="id-card">
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#0f172a' }}>Quick Actions</h3>
-          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-            <button className="action-btn primary" onClick={() => window.location.href = '/info-desk/registration'}>+ Register New Patient</button>
-            <button className="action-btn outline" onClick={() => window.location.href = '/info-desk/admissions'}>View Admissions</button>
-            <button className="action-btn outline" onClick={() => window.location.href = '/info-desk/qr-codes'}>Generate QR Code</button>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#0f172a' }}>Admission Trend</h3>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: 24 }}>Track patient admissions over the week.</p>
+          <div style={{ width: '100%', height: 300 }}>
+            <ResponsiveContainer>
+              <BarChart data={admissionTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <Tooltip cursor={{ fill: '#f1f5f9' }} contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                <Bar dataKey="admissions" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="id-card">
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#0f172a' }}>Patient Status Distribution</h3>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: 24 }}>Quick overview of patient current states.</p>
+          <div style={{ width: '100%', height: 300, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={patientStatusData}
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={70}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="value"
+                  stroke="none"
+                >
+                  {patientStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '0.85rem', paddingTop: '20px' }} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
+
+
     </div>
   );
 }

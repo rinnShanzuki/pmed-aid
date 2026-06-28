@@ -15,10 +15,11 @@ Prescription.init(
       defaultValue: 'in_hospital',
     },
     status: {
-      type: DataTypes.ENUM('active', 'completed', 'cancelled'),
+      type: DataTypes.ENUM('active', 'completed', 'cancelled', 'pending_encoding'),
       allowNull: false,
       defaultValue: 'active',
     },
+    prescribed_time: { type: DataTypes.TIME, allowNull: true },
     notes: { type: DataTypes.TEXT, allowNull: true },
   },
   {

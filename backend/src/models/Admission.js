@@ -10,6 +10,7 @@ Admission.init(
     room_id: { type: DataTypes.INTEGER, allowNull: false },
     admitted_by: { type: DataTypes.INTEGER, allowNull: false },
     attending_doctor_id: { type: DataTypes.INTEGER, allowNull: false },
+    assigned_nurse_id: { type: DataTypes.INTEGER, allowNull: true },
     admission_date: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     discharge_date: { type: DataTypes.DATE, allowNull: true },
     diagnosis: { type: DataTypes.TEXT, allowNull: true },

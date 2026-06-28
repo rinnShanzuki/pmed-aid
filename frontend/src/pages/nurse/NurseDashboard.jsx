@@ -12,23 +12,22 @@ export default function NurseDashboard() {
   useEffect(() => {
     Promise.all([
       api.get('/dashboard/overview'),
-      api.get('/admissions', { params: { status: 'admitted' } }),
+      api.get('/admissions', { params: { status: 'admitted', assigned_nurse_id: user?.id } }),
       api.get('/dashboard/medication-status'),
     ]).then(([ovRes, admRes, medRes]) => {
       setStats(ovRes.data.data);
       setPatients(admRes.data.data || []);
       setSchedules(medRes.data.data || []);
     }).catch(console.error);
-  }, []);
+  }, [user]);
 
-  // Filter patients (Nurse might see all admitted patients for their ward, but we'll show all for now)
   const myPatients = patients;
 
   const statCards = [
     { label: 'Assigned Patients', value: myPatients.length, icon: <Users size={22} />, bg: '#fff7ed', color: '#ea580c' },
-    { label: 'Upcoming Meds', value: stats?.active_prescriptions || 0, icon: <Clock size={22} />, bg: '#f0fdf4', color: '#22c55e' },
+    { label: 'Upcoming Meds', value: stats?.today?.pending || 0, icon: <Clock size={22} />, bg: '#f0fdf4', color: '#22c55e' },
     { label: 'Missed Doses', value: stats?.overdue_count || 0, icon: <AlertTriangle size={22} />, bg: '#fef2f2', color: '#ef4444' },
-    { label: 'Completed Meds', value: stats?.completed_count || 0, icon: <Pill size={22} />, bg: '#f0f9ff', color: '#0ea5e9' },
+    { label: 'Completed Meds', value: stats?.today?.completed || 0, icon: <Pill size={22} />, bg: '#f0f9ff', color: '#0ea5e9' },
   ];
 
   return (
@@ -70,7 +69,7 @@ export default function NurseDashboard() {
                       <td><strong>{a.patient?.first_name} {a.patient?.last_name}</strong></td>
                       <td>{a.room?.room_number || 'N/A'}</td>
                       <td style={{ fontSize: '0.85rem', color: '#64748b' }}>{new Date(a.admission_date).toLocaleDateString()}</td>
-                      <td>{a.attending_doctor ? `Dr. ${a.attending_doctor.last_name}` : 'N/A'}</td>
+                      <td>{a.doctor ? `Dr. ${a.doctor.last_name}` : 'N/A'}</td>
                     </tr>
                   ))}
                 </tbody>

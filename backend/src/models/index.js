@@ -44,6 +44,10 @@ Admission.belongsTo(User, { foreignKey: 'admitted_by', as: 'admittedBy' });
 User.hasMany(Admission, { foreignKey: 'attending_doctor_id', as: 'doctorAdmissions' });
 Admission.belongsTo(User, { foreignKey: 'attending_doctor_id', as: 'doctor' });
 
+// User (nurse) ↔ Admission.assigned_nurse_id
+User.hasMany(Admission, { foreignKey: 'assigned_nurse_id', as: 'assignedAdmissions' });
+Admission.belongsTo(User, { foreignKey: 'assigned_nurse_id', as: 'assignedNurse' });
+
 // User (doctor) -> Admission.discharge_requested_by
 User.hasMany(Admission, { foreignKey: 'discharge_requested_by', as: 'requestedDischarges' });
 Admission.belongsTo(User, { foreignKey: 'discharge_requested_by', as: 'dischargeRequestedBy' });

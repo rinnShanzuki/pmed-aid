@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { Search, BedDouble, User as UserIcon } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function AssignedPatients() {
+  const { user } = useAuth();
   const [admissions, setAdmissions] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAdmissions();
-  }, [search]);
+    if (user?.id) fetchAdmissions();
+  }, [search, user]);
 
   async function fetchAdmissions() {
     try {
       setLoading(true);
-      const { data } = await api.get('/admissions', { params: { status: 'admitted', search } });
+      const { data } = await api.get('/admissions', { params: { status: 'admitted', search, assigned_nurse_id: user?.id } });
       setAdmissions(data.data);
     } catch (err) {
       console.error(err);
@@ -74,7 +76,7 @@ export default function AssignedPatients() {
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{adm.room?.type?.replace('_', ' ')}</div>
                   </td>
                   <td style={{ color: '#64748b' }}>{new Date(adm.admission_date).toLocaleString()}</td>
-                  <td>{adm.attending_doctor ? `Dr. ${adm.attending_doctor.last_name}` : 'Not assigned'}</td>
+                  <td>{adm.doctor ? `Dr. ${adm.doctor.last_name}` : 'Not assigned'}</td>
                   <td><span className="badge active">{adm.status}</span></td>
                 </tr>
               ))}

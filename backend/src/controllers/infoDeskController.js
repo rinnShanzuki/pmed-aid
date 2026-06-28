@@ -19,6 +19,22 @@ exports.getDashboardStats = async (req, res, next) => {
       where: { status: 'admitted' }
     });
 
+    // Discharged Patients
+    const dischargedPatientsCount = await Admission.count({
+      where: { status: 'discharged' }
+    });
+
+    // Pending Registrations (patients missing contact info)
+    const pendingRegistrationsCount = await Patient.count({
+      where: {
+        [Op.or]: [
+          { contact_number: null },
+          { address: null },
+          { emergency_contact_name: null }
+        ]
+      }
+    });
+
     // Recent prescriptions (last 7 days)
     const lastWeek = new Date(today);
     lastWeek.setDate(lastWeek.getDate() - 7);
@@ -36,13 +52,52 @@ exports.getDashboardStats = async (req, res, next) => {
       }
     });
 
+    // Admission Trend (Last 7 days)
+    const trendStartDate = new Date();
+    trendStartDate.setDate(trendStartDate.getDate() - 6);
+    trendStartDate.setHours(0, 0, 0, 0);
+
+    const admissionsList = await Admission.findAll({
+      where: {
+        admission_date: { [Op.gte]: trendStartDate }
+      },
+      attributes: ['admission_date']
+    });
+
+    const trendMap = {};
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(trendStartDate);
+      d.setDate(d.getDate() + i);
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayNum = d.getDate();
+      trendMap[`${dayName} ${dayNum}`] = 0;
+    }
+
+    admissionsList.forEach(adm => {
+      const d = new Date(adm.admission_date);
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+      const dayNum = d.getDate();
+      const key = `${dayName} ${dayNum}`;
+      if (trendMap[key] !== undefined) {
+        trendMap[key]++;
+      }
+    });
+
+    const admissionTrend = Object.keys(trendMap).map(key => ({
+      day: key,
+      admissions: trendMap[key]
+    }));
+
     res.json({
       success: true,
       data: {
         newAdmissions,
         activePatients: activePatientsCount,
+        dischargedPatients: dischargedPatientsCount,
+        pendingRegistrations: pendingRegistrationsCount,
         recentPrescriptions,
-        pendingDischargeRequests
+        pendingDischargeRequests,
+        admissionTrend
       }
     });
   } catch (error) {

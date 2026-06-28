@@ -6,17 +6,28 @@ exports.overview = async (req, res, next) => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 
+    const admWhere = { status: 'admitted' };
+    if (req.user.role === 'nurse') admWhere.assigned_nurse_id = req.user.id;
+
+    const scheduleInclude = req.user.role === 'nurse' ? [{
+      model: Admission,
+      as: 'admission',
+      where: { assigned_nurse_id: req.user.id },
+      attributes: [],
+    }] : [];
+
     const [activeAdmissions, totalPatients, activePrescriptions, todayStats, overdue] = await Promise.all([
-      Admission.count({ where: { status: 'admitted' } }),
+      Admission.count({ where: admWhere }),
       Patient.count(),
       Prescription.count({ where: { status: 'active' } }),
       MedicationSchedule.findAll({
         where: { scheduled_time: { [Op.gte]: today, [Op.lt]: tomorrow } },
+        include: scheduleInclude,
         attributes: [
-          'status',
-          [fn('COUNT', col('id')), 'count'],
+          'MedicationSchedule.status',
+          [fn('COUNT', col('MedicationSchedule.id')), 'count'],
         ],
-        group: ['status'],
+        group: ['MedicationSchedule.status'],
         raw: true,
       }),
       MedicationSchedule.count({
@@ -24,6 +35,7 @@ exports.overview = async (req, res, next) => {
           status: 'pending',
           scheduled_time: { [Op.lt]: new Date() },
         },
+        include: scheduleInclude,
       }),
     ]);
 
@@ -56,16 +68,21 @@ exports.medicationStatus = async (req, res, next) => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 
+    const admissionInclude = {
+      model: Admission, as: 'admission',
+      attributes: ['id'],
+      include: [{ model: Room, as: 'room', attributes: ['room_number'] }],
+    };
+    if (req.user.role === 'nurse') {
+      admissionInclude.where = { assigned_nurse_id: req.user.id };
+    }
+
     const schedules = await MedicationSchedule.findAll({
       where: { scheduled_time: { [Op.gte]: today, [Op.lt]: tomorrow } },
       include: [
         { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'dosage_unit', 'route'] },
         { model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] },
-        {
-          model: Admission, as: 'admission',
-          attributes: ['id'],
-          include: [{ model: Room, as: 'room', attributes: ['room_number'] }],
-        },
+        admissionInclude,
         { model: User, as: 'administeredBy', attributes: ['first_name', 'last_name'] },
       ],
       order: [['scheduled_time', 'ASC']],
@@ -112,6 +129,7 @@ exports.alerts = async (req, res, next) => {
         {
           model: Admission, as: 'admission',
           attributes: [],
+          where: req.user.role === 'nurse' ? { assigned_nurse_id: req.user.id } : undefined,
           include: [{ model: Room, as: 'room', attributes: ['room_number'] }],
         },
       ],

@@ -117,6 +117,7 @@ router.get ('/admissions',              auth, roleGuard(['info_desk', 'doctor', 
 router.get ('/admissions/:id',          auth, roleGuard(['info_desk', 'doctor', 'nurse', 'admin']), idParam, admissionController.getById);
 router.put ('/admissions/:id',          auth, roleGuard(['info_desk', 'doctor', 'admin']),          idParam, admissionController.update);
 router.post('/admissions/:id/request-discharge', auth, roleGuard(['doctor', 'admin']),              idParam, admissionController.requestDischarge);
+router.post('/admissions/:id/handover',          auth, roleGuard(['doctor', 'admin']),              idParam, admissionController.handoverPrescription);
 router.post('/admissions/:id/discharge',auth, roleGuard(['info_desk', 'doctor', 'admin']),          idParam, admissionController.discharge);
 
 // ============================================================
@@ -152,9 +153,9 @@ router.get ('/qr-codes/patient/:patientId', auth, roleGuard(['info_desk', 'docto
 // DASHBOARD  —  /api/dashboard
 // ============================================================
 router.get('/dashboard/overview',            auth, roleGuard(['admin', 'info_desk', 'doctor', 'nurse']),   dashboardController.overview);
-router.get('/dashboard/medication-status',   auth, roleGuard(['doctor', 'nurse', 'admin']),                dashboardController.medicationStatus);
-router.get('/dashboard/alerts',              auth, roleGuard(['doctor', 'nurse', 'admin']),                dashboardController.alerts);
-router.get('/dashboard/patient/:patientId',  auth, roleGuard(['doctor', 'nurse', 'admin']), patientIdParam, dashboardController.patientTimeline);
+router.get('/dashboard/medication-status',   auth, roleGuard(['doctor', 'nurse', 'info_desk', 'admin']),                dashboardController.medicationStatus);
+router.get('/dashboard/alerts',              auth, roleGuard(['doctor', 'nurse', 'info_desk', 'admin']),                dashboardController.alerts);
+router.get('/dashboard/patient/:patientId',  auth, roleGuard(['doctor', 'nurse', 'info_desk', 'admin']), patientIdParam, dashboardController.patientTimeline);
 
 // ============================================================
 // NOTIFICATIONS  —  /api/notifications

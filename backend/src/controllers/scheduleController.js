@@ -20,9 +20,21 @@ exports.getAll = async (req, res, next) => {
       where.scheduled_time = { [Op.gte]: d, [Op.lt]: next };
     }
 
+    let scheduleIncludes = [...SCHEDULE_INCLUDES];
+    
+    if (req.user.role === 'nurse') {
+      const { Admission } = require('../models');
+      scheduleIncludes.push({
+        model: Admission,
+        as: 'admission',
+        where: { assigned_nurse_id: req.user.id },
+        attributes: ['id', 'assigned_nurse_id']
+      });
+    }
+
     const schedules = await MedicationSchedule.findAll({
       where,
-      include: SCHEDULE_INCLUDES,
+      include: scheduleIncludes,
       order: [['scheduled_time', 'ASC']],
     });
     res.json({ success: true, data: schedules });

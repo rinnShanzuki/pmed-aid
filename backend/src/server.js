@@ -10,8 +10,8 @@ async function startServer() {
     await sequelize.authenticate();
     console.log('✅ MySQL database connected');
 
-    // Sync models (creates/updates tables)
-    await sequelize.sync({ alter: true });
+    // Sync models (creates/updates tables clean and ready)
+    await sequelize.sync();
     console.log('✅ Database models synced');
 
     app.listen(PORT, () => {

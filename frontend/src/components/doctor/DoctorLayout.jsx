@@ -20,10 +20,10 @@ export default function DoctorLayout() {
   };
 
   const navItems = [
-    { path: '/doctor', label: 'DoctorDashboard', icon: <LayoutDashboard size={20} />, exact: true },
-    { path: '/doctor/consultations', label: 'Consultation Module', icon: <Stethoscope size={20} /> },
-    { path: '/doctor/patients', label: 'Patient Monitoring', icon: <Activity size={20} /> },
-    { path: '/doctor/prescriptions', label: 'Prescription Management', icon: <FileSignature size={20} /> },
+    { path: '/doctor', label: 'Dashboard', icon: <LayoutDashboard size={20} />, exact: true },
+    { path: '/doctor/consultations', label: 'Consultations', icon: <Stethoscope size={20} /> },
+    { path: '/doctor/patients', label: 'My Patients', icon: <Activity size={20} /> },
+    { path: '/doctor/prescriptions', label: 'Prescriptions', icon: <FileSignature size={20} /> },
   ];
 
   const getPageTitle = () => {

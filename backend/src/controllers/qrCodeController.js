@@ -29,7 +29,7 @@ exports.scan = async (req, res, next) => {
       include: [{ model: Patient, as: 'patient' }],
     });
     if (!qrCode) return res.status(404).json({ success: false, message: 'QR code not found.' });
-    if (!qrCode.is_active) return res.status(400).json({ success: false, message: 'QR code is no longer active.' });
+    if (qrCode.status !== 'active') return res.status(400).json({ success: false, message: 'QR code is no longer active.' });
 
     // Get today's pending/upcoming schedules
     const today = new Date();
@@ -66,8 +66,10 @@ exports.verify = async (req, res, next) => {
       data: {
         code: qrCode.code,
         type: qrCode.type,
-        is_bound: qrCode.is_bound,
-        is_active: qrCode.is_active,
+        patient_id: qrCode.patient_id,
+        admission_id: qrCode.admission_id,
+        is_bound: qrCode.status === 'bound',
+        is_active: qrCode.status === 'active',
         patient_name: `${qrCode.patient.first_name} ${qrCode.patient.last_name}`,
         patient: {
           first_name: qrCode.patient.first_name,

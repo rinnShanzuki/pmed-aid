@@ -23,6 +23,8 @@ PrescriptionItem.init(
       defaultValue: 'days',
     },
     route: { type: DataTypes.STRING(50), allowNull: false, defaultValue: 'oral' },
+    start_time: { type: DataTypes.TIME, allowNull: true },
+    interval_hours: { type: DataTypes.FLOAT, allowNull: true },
     instructions: { type: DataTypes.TEXT, allowNull: true },
   },
   {

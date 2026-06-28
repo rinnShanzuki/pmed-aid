@@ -195,10 +195,10 @@ exports.qrBind = async (req, res, next) => {
     if (!qrCode) {
       return res.status(404).json({ success: false, message: 'QR code not found.' });
     }
-    if (!qrCode.is_active) {
+    if (qrCode.status === 'inactive') {
       return res.status(400).json({ success: false, message: 'This QR code is no longer active.' });
     }
-    if (qrCode.is_bound) {
+    if (qrCode.status === 'bound') {
       return res.status(400).json({
         success: false,
         message: 'This QR code has already been bound to an account. Each QR code can only be used once.',
@@ -223,7 +223,7 @@ exports.qrBind = async (req, res, next) => {
     // One-time bind: lock QR to this account
     await qrCode.update({
       bound_user_id: user.id,
-      is_bound: true,
+      status: 'bound',
       bound_at: new Date(),
     });
 

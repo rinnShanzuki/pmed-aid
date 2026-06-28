@@ -51,8 +51,20 @@ exports.create = async (req, res, next) => {
 exports.getAll = async (req, res, next) => {
   try {
     const where = {};
-    if (req.query.status) where.status = req.query.status;
+    if (req.query.status) {
+      if (req.query.status === 'awaiting_discharge') {
+        where.status = 'admitted';
+        where.discharge_requested = true;
+      } else if (req.query.status === 'admitted') {
+        where.status = 'admitted';
+        where.discharge_requested = false;
+      } else {
+        where.status = req.query.status;
+      }
+    }
     if (req.query.attending_doctor_id) where.attending_doctor_id = req.query.attending_doctor_id;
+    if (req.query.assigned_nurse_id) where.assigned_nurse_id = req.query.assigned_nurse_id;
+    if (req.user && req.user.role === 'nurse') where.assigned_nurse_id = req.user.id;
 
     const admissions = await Admission.findAll({
       where,
@@ -60,6 +72,7 @@ exports.getAll = async (req, res, next) => {
         { model: Patient, as: 'patient' },
         { model: Room, as: 'room' },
         { model: User, as: 'doctor', attributes: ['id', 'first_name', 'last_name'] },
+        { model: User, as: 'assignedNurse', attributes: ['id', 'first_name', 'last_name'] },
         { model: User, as: 'admittedBy', attributes: ['id', 'first_name', 'last_name'] },
         { model: User, as: 'dischargeRequestedBy', attributes: ['id', 'first_name', 'last_name'] },
       ],
@@ -76,6 +89,7 @@ exports.getById = async (req, res, next) => {
         { model: Patient, as: 'patient' },
         { model: Room, as: 'room' },
         { model: User, as: 'doctor', attributes: ['id', 'first_name', 'last_name'] },
+        { model: User, as: 'assignedNurse', attributes: ['id', 'first_name', 'last_name'] },
         { model: User, as: 'admittedBy', attributes: ['id', 'first_name', 'last_name'] },
         { model: User, as: 'dischargeRequestedBy', attributes: ['id', 'first_name', 'last_name'] },
       ],
@@ -176,3 +190,50 @@ exports.discharge = async (req, res, next) => {
     });
   } catch (error) { next(error); }
 };
+
+exports.handoverPrescription = async (req, res, next) => {
+  try {
+    const admission = await Admission.findByPk(req.params.id, {
+      include: [{ model: Patient, as: 'patient' }],
+    });
+    if (!admission) return res.status(404).json({ success: false, message: 'Admission not found.' });
+
+    // Update admission to save diagnosis, notes, and set consultation_status to completed
+    await admission.update({
+      diagnosis: req.body.diagnosis || admission.diagnosis,
+      consultation_notes: req.body.notes || admission.consultation_notes,
+      consultation_status: 'completed',
+    });
+
+    // Create a pending_encoding prescription
+    const prescription = await Prescription.create({
+      admission_id: admission.id,
+      patient_id: admission.patient_id,
+      doctor_id: req.user.id,
+      type: 'in_hospital',
+      status: 'pending_encoding',
+      notes: req.body.notes, // Pass doctor's notes to the prescription draft
+    });
+
+    await notifyInfoDesk({
+      type: 'alert',
+      title: 'Prescription Handover',
+      message: `Dr. has handed over a prescription for ${admission.patient?.first_name || 'a patient'} ${admission.patient?.last_name || ''}. Ready for encoding.`,
+      priority: 'high',
+      related_prescription_id: prescription.id,
+      related_admission_id: admission.id,
+    });
+
+    await AuditLog.create({
+      user_id: req.user.id,
+      action: 'prescription_handed_over',
+      entity_type: 'admission',
+      entity_id: admission.id,
+      details: { patient_id: admission.patient_id, prescription_id: prescription.id },
+      ip_address: req.ip,
+    });
+
+    res.json({ success: true, message: 'Consultation completed and handed over to Info Desk.', data: admission });
+  } catch (error) { next(error); }
+};
+

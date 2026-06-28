@@ -1,9 +1,9 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  UserPlus, 
-  BedDouble, 
-  FileSignature, 
+import {
+  LayoutDashboard,
+  UserPlus,
+  BedDouble,
+  FileSignature,
   Activity,
   Receipt,
   LogOut
@@ -22,7 +22,7 @@ export default function InfoDeskLayout() {
   };
 
   const navItems = [
-    { path: '/info-desk', label: 'InfoDeskDashboard', icon: <LayoutDashboard size={20} />, exact: true },
+    { path: '/info-desk', label: 'Dashboard', icon: <LayoutDashboard size={20} />, exact: true },
     { path: '/info-desk/admissions', label: 'Admission Management', icon: <BedDouble size={20} /> },
     { path: '/info-desk/monitoring', label: 'Patient Monitoring', icon: <Activity size={20} /> },
     { path: '/info-desk/registration', label: 'Patient Records', icon: <UserPlus size={20} /> },
@@ -31,7 +31,7 @@ export default function InfoDeskLayout() {
   ];
 
   const getPageTitle = () => {
-    const current = navItems.find(item => 
+    const current = navItems.find(item =>
       item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path)
     );
     return current ? current.label : 'Information Desk Portal';
@@ -44,7 +44,7 @@ export default function InfoDeskLayout() {
         <div className="sidebar-header">
           <span style={{ color: '#38bdf8', marginRight: '8px' }}>+</span> PMed-Aid
         </div>
-        
+
         <nav className="sidebar-nav">
           {navItems.map((item) => (
             <NavLink
