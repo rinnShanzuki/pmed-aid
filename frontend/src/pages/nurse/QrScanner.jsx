@@ -83,7 +83,7 @@ export default function QrScanner() {
   return (
     <div style={{ maxWidth: 800, margin: '0 auto' }}>
       <div className="id-card" style={{ textAlign: 'center', padding: '40px 20px' }}>
-        <div style={{ width: 80, height: 80, background: '#fff7ed', color: '#ea580c', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+        <div style={{ width: 80, height: 80, background: '#e0f2fe', color: '#0284c7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
           <Camera size={40} />
         </div>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 8px' }}>Scan Patient Wristband</h2>
@@ -109,7 +109,7 @@ export default function QrScanner() {
             onChange={e => setCode(e.target.value)}
             disabled={loading}
           />
-          <button type="submit" className="btn-primary" disabled={loading} style={{ background: '#ea580c' }}>
+          <button type="submit" className="btn-primary" disabled={loading} style={{ background: '#3b82f6' }}>
             {loading ? 'Verifying...' : 'Verify'}
           </button>
         </form>
@@ -141,7 +141,7 @@ export default function QrScanner() {
                       <div style={{ color: '#64748b', fontSize: '0.9rem', marginTop: 4 }}>
                         {s.prescriptionItem?.dosage} {s.prescriptionItem?.dosage_unit} — {s.prescriptionItem?.route?.replace('_', ' ')}
                       </div>
-                      <div style={{ color: '#ea580c', fontSize: '0.85rem', marginTop: 4, fontWeight: 500 }}>
+                      <div style={{ color: '#0284c7', fontSize: '0.85rem', marginTop: 4, fontWeight: 500 }}>
                         Scheduled for: {new Date(s.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>

@@ -24,7 +24,7 @@ export default function NurseDashboard() {
   const myPatients = patients;
 
   const statCards = [
-    { label: 'Assigned Patients', value: myPatients.length, icon: <Users size={22} />, bg: '#fff7ed', color: '#ea580c' },
+    { label: 'Assigned Patients', value: myPatients.length, icon: <Users size={22} />, bg: '#e0f2fe', color: '#0284c7' },
     { label: 'Upcoming Meds', value: stats?.today?.pending || 0, icon: <Clock size={22} />, bg: '#f0fdf4', color: '#22c55e' },
     { label: 'Missed Doses', value: stats?.overdue_count || 0, icon: <AlertTriangle size={22} />, bg: '#fef2f2', color: '#ef4444' },
     { label: 'Completed Meds', value: stats?.today?.completed || 0, icon: <Pill size={22} />, bg: '#f0f9ff', color: '#0ea5e9' },

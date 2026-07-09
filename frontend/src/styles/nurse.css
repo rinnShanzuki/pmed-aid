@@ -1,34 +1,42 @@
-/* nurse.css */
+/* Nurse Portal — styled with exact info-desk modern dark slate & blue theme */
 .nurse-layout {
   display: flex;
   height: 100vh;
-  background: #f8fafc;
-  font-family: 'Inter', sans-serif;
+  width: 100vw;
+  background-color: #f8fafc;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
 }
 
 .nurse-sidebar {
-  width: 260px;
-  background: #ffffff;
-  border-right: 1px solid #e2e8f0;
+  width: 280px;
+  background-color: #1e293b;
+  color: white;
   display: flex;
   flex-direction: column;
+  transition: all 0.3s ease;
+  z-index: 10;
 }
 
 .nurse-sidebar .sidebar-header {
-  padding: 24px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
   font-size: 1.25rem;
   font-weight: 700;
-  color: #0f172a;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  letter-spacing: 0.5px;
+  color: white;
 }
 
 .nurse-sidebar .sidebar-nav {
-  padding: 16px;
+  flex: 1;
+  padding: 24px 16px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  flex: 1;
-  overflow-y: auto;
 }
 
 .nurse-sidebar .nav-item {
@@ -36,43 +44,67 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border-radius: 8px;
-  color: #64748b;
+  color: #94a3b8;
   text-decoration: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
   font-weight: 500;
   transition: all 0.2s;
 }
 
 .nurse-sidebar .nav-item:hover {
-  background: #fff7ed;
-  color: #ea580c;
+  background-color: rgba(255,255,255,0.05);
+  color: white;
 }
 
 .nurse-sidebar .nav-item.active {
-  background: #ea580c;
+  background-color: #3b82f6;
   color: white;
 }
 
 .nurse-sidebar .sidebar-footer {
-  padding: 16px;
-  border-top: 1px solid #f1f5f9;
+  padding: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.nurse-sidebar .logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nurse-sidebar .logout-btn:hover {
+  background-color: #ef4444;
+  color: white;
 }
 
 .nurse-main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100vh;
   overflow: hidden;
 }
 
 .nurse-main .topbar {
   height: 70px;
-  background: #ffffff;
+  background-color: white;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   padding: 0 32px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .nurse-main .topbar h1 {
@@ -83,15 +115,16 @@
 }
 
 .nurse-avatar {
-  background: #ea580c;
-  color: white;
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  background-color: #e0f2fe;
+  color: #0284c7;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.1rem;
 }
 
 .nurse-stat-grid {
@@ -109,6 +142,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .nurse-stat-icon {

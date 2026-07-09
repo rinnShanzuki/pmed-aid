@@ -37,7 +37,7 @@ export default function NurseLayout() {
     <div className="nurse-layout">
       <aside className="nurse-sidebar">
         <div className="sidebar-header">
-          <span style={{ color: '#ea580c', marginRight: '8px' }}>+</span> PMed-Aid
+          <span style={{ color: '#38bdf8', marginRight: '8px' }}>+</span> PMed-Aid
         </div>
         <nav className="sidebar-nav">
           {navItems.map((item) => (

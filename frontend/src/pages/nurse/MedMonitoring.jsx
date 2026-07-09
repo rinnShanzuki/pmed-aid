@@ -41,7 +41,7 @@ export default function MedMonitoring() {
   return (
     <div>
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 48, height: 48, background: '#ea580c', color: 'white', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 48, height: 48, background: '#3b82f6', color: 'white', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Activity size={24} />
         </div>
         <div>
