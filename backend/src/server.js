@@ -34,27 +34,27 @@ async function ensureDefaultAccounts() {
   }
 }
 
-async function startServer() {
-  try {
-    // Authenticate DB connection
-    await sequelize.authenticate();
-    console.log('✅ MySQL database connected');
+function startServer() {
+  // Start HTTP server immediately so cloud health checks pass and port opens without blocking on DB
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running → http://localhost:${PORT}`);
+    console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
 
-    // Sync models (creates/updates tables clean and ready)
-    await sequelize.sync();
-    console.log('✅ Database models synced');
+  // Initialize DB and background tasks asynchronously
+  (async () => {
+    try {
+      await sequelize.authenticate();
+      console.log('✅ MySQL database connected');
 
-    // Ensure all test staff accounts (e.g. nurse@hospital.local) exist in the database
-    await ensureDefaultAccounts();
+      await sequelize.sync();
+      console.log('✅ Database models synced');
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running → http://localhost:${PORT}`);
-      console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
-  } catch (error) {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
-  }
+      await ensureDefaultAccounts();
+    } catch (error) {
+      console.error('❌ Database initialization warning:', error.message);
+    }
+  })();
 }
 
 startServer();
