@@ -1,6 +1,6 @@
 require('dotenv').config();
 const app = require('./app');
-const { sequelize, User } = require('./models');
+const { sequelize, User, Patient, Admission, Prescription, PrescriptionItem, MedicationSchedule, QrCode } = require('./models');
 
 const PORT = process.env.PORT || 5000;
 
@@ -11,13 +11,14 @@ async function ensureDefaultAccounts() {
       { email: 'infodesk@hospital.local', password: 'infodesk123', first_name: 'Rinn', last_name: 'Espinosa', role: 'info_desk' },
       { email: 'doctor@hospital.local', password: 'doctor123', first_name: 'Dr. Ruiz', last_name: 'Cruz', role: 'doctor' },
       { email: 'nurse@hospital.local', password: 'nurse123', first_name: 'Maria', last_name: 'Santos', role: 'nurse' },
-      { email: 'patient@test.com', password: 'patient123', first_name: 'John', last_name: 'Doe', role: 'patient' }
+      { email: 'patient@hospital.local', password: 'patient123', first_name: 'John', last_name: 'Doe', role: 'patient' },
+      { email: 'patient@test.com', password: 'patient123', first_name: 'Jane', last_name: 'Smith', role: 'patient' }
     ];
 
     for (const account of testAccounts) {
-      const existing = await User.scope('withPassword').findOne({ where: { email: account.email } });
+      let existing = await User.scope('withPassword').findOne({ where: { email: account.email } });
       if (!existing) {
-        await User.create({ ...account, is_active: true });
+        existing = await User.create({ ...account, is_active: true });
         console.log(`✅ Auto-created account: ${account.email}`);
       } else {
         const isMatch = await existing.comparePassword(account.password);
@@ -26,6 +27,103 @@ async function ensureDefaultAccounts() {
           existing.is_active = true;
           await existing.save();
           console.log(`✅ Auto-synced credentials for: ${account.email}`);
+        }
+      }
+
+      // Auto-seed patient profile and active medications/schedules for patient test accounts
+      if (account.role === 'patient' && existing) {
+        let patientProfile = await Patient.findOne({ where: { user_id: existing.id } });
+        if (!patientProfile) {
+          patientProfile = await Patient.findOne({ where: { first_name: account.first_name, last_name: account.last_name } });
+          if (patientProfile) {
+            patientProfile.user_id = existing.id;
+            await patientProfile.save();
+          } else {
+            patientProfile = await Patient.create({
+              user_id: existing.id,
+              first_name: account.first_name,
+              last_name: account.last_name,
+              date_of_birth: '1988-05-14',
+              gender: account.first_name === 'Jane' ? 'female' : 'male',
+              contact_number: '+63 912 345 6789',
+              address: '123 Health Ave, Medical City',
+              blood_type: 'O+',
+              allergies: 'None'
+            });
+          }
+          console.log(`✅ Auto-linked Patient profile for: ${account.email}`);
+        }
+
+        // Check if this patient has any prescriptions
+        if (patientProfile) {
+          const rxCount = await Prescription.count({ where: { patient_id: patientProfile.id } });
+          if (rxCount === 0) {
+            // Find or create an admission
+            let admission = await Admission.findOne({ where: { patient_id: patientProfile.id } });
+            if (!admission) {
+              const doctorUser = await User.findOne({ where: { role: 'doctor' } });
+              admission = await Admission.create({
+                patient_id: patientProfile.id,
+                room_id: null,
+                admission_date: new Date(),
+                status: 'admitted',
+                chief_complaint: 'Routine monitoring and post-op recovery',
+                diagnosis: 'Hypertension & Vitamin D deficiency',
+                attending_doctor_id: doctorUser ? doctorUser.id : null
+              });
+            }
+
+            // Create prescription
+            const rx = await Prescription.create({
+              admission_id: admission.id,
+              patient_id: patientProfile.id,
+              prescribed_by: admission.attending_doctor_id || existing.id,
+              type: 'take_home',
+              status: 'active',
+              notes: 'Take with plenty of water after meals'
+            });
+
+            const item1 = await PrescriptionItem.create({
+              prescription_id: rx.id,
+              medication_name: 'Amoxicillin 500mg',
+              dosage: '500mg',
+              frequency: 'every_8_hours',
+              route: 'Oral',
+              duration_days: 7,
+              instructions: 'Take 1 capsule every 8 hours after food',
+              total_doses: 21
+            });
+
+            const item2 = await PrescriptionItem.create({
+              prescription_id: rx.id,
+              medication_name: 'Paracetamol 500mg',
+              dosage: '500mg',
+              frequency: 'twice_daily',
+              route: 'Oral',
+              duration_days: 5,
+              instructions: 'Take for fever or pain as needed',
+              total_doses: 10
+            });
+
+            // Create schedules for today & tomorrow
+            const now = new Date();
+            const schedulesToCreate = [];
+            [-4, -1, 2, 6, 12, 24].forEach((hoursOffset, idx) => {
+              const time = new Date(now.getTime() + hoursOffset * 60 * 60 * 1000);
+              const isPast = hoursOffset < 0;
+              schedulesToCreate.push({
+                prescription_id: rx.id,
+                prescription_item_id: idx % 2 === 0 ? item1.id : item2.id,
+                patient_id: patientProfile.id,
+                scheduled_time: time,
+                status: isPast ? 'administered' : 'pending',
+                dose_number: idx + 1
+              });
+            });
+
+            await MedicationSchedule.bulkCreate(schedulesToCreate);
+            console.log(`✅ Auto-seeded prescription and schedules for: ${account.email}`);
+          }
         }
       }
     }

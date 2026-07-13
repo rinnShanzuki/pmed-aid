@@ -43,10 +43,17 @@ async function seedTestAccounts() {
         role: 'nurse'
       },
       {
-        email: 'patient@test.com',
+        email: 'patient@hospital.local',
         password: 'patient123',
         first_name: 'John',
         last_name: 'Doe',
+        role: 'patient'
+      },
+      {
+        email: 'patient@test.com',
+        password: 'patient123',
+        first_name: 'Jane',
+        last_name: 'Smith',
         role: 'patient'
       }
     ];
@@ -80,7 +87,10 @@ async function seedTestAccounts() {
     console.log('💉 NURSE:');
     console.log('   Email: nurse@hospital.local');
     console.log('   Password: nurse123\n');
-    console.log('👤 PATIENT:');
+    console.log('👤 PATIENT 1:');
+    console.log('   Email: patient@hospital.local');
+    console.log('   Password: patient123\n');
+    console.log('👤 PATIENT 2:');
     console.log('   Email: patient@test.com');
     console.log('   Password: patient123\n');
     console.log('='.repeat(60));
