@@ -81,7 +81,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Stat Cards ── */}
-      <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+      <div className="stats-grid">
         {statCards.map((card) => (
           <div className="stat-card" key={card.label} style={{ flexDirection: 'column', padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
@@ -103,7 +103,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* ── Charts Grid ── */}
-      <div className="charts-grid" style={{ gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div className="charts-grid" style={{ gap: '24px' }}>
         
         {/* 1. Monthly Medication Adherence Trend */}
         <div className="chart-card">
