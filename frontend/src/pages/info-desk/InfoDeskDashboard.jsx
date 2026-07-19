@@ -44,14 +44,14 @@ export default function InfoDeskDashboard() {
         <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>Welcome to the Information Desk Portal.</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '24px', minWidth: 0 }}>
         {statCards.map((card) => (
           <div className="id-card" key={card.label} style={{ marginBottom: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
               <div style={{ background: card.bg, color: card.color, width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {card.icon}
               </div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <label style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>{card.label}</label>
                 <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#1e293b', lineHeight: 1.1 }}>{card.value}</div>
               </div>
@@ -61,7 +61,7 @@ export default function InfoDeskDashboard() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginTop: '32px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 450px), 1fr))', gap: '24px', marginTop: '32px', minWidth: 0 }}>
         <div className="id-card">
           <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#0f172a' }}>Admission Trend</h3>
           <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: 24 }}>Track patient admissions over the week.</p>

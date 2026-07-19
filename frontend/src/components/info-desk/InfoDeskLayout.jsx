@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -6,7 +7,9 @@ import {
   FileSignature,
   Activity,
   Receipt,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import '../../styles/infoDesk.css';
@@ -15,6 +18,7 @@ export default function InfoDeskLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -37,12 +41,24 @@ export default function InfoDeskLayout() {
     return current ? current.label : 'Information Desk Portal';
   };
 
+  const closeSidebar = () => setIsSidebarOpen(false);
+
   return (
     <div className="info-desk-layout">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div className="info-desk-sidebar-overlay" onClick={closeSidebar} />
+      )}
+
       {/* Sidebar */}
-      <aside className="info-desk-sidebar">
-        <div className="sidebar-header">
-          <span style={{ color: '#38bdf8', marginRight: '8px' }}>+</span> PMed-Aid
+      <aside className={`info-desk-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ color: '#38bdf8', marginRight: '8px' }}>+</span> PMed-Aid
+          </div>
+          <button className="sidebar-close-btn" onClick={closeSidebar}>
+            <X size={24} />
+          </button>
         </div>
 
         <nav className="sidebar-nav">
@@ -51,6 +67,7 @@ export default function InfoDeskLayout() {
               key={item.path}
               to={item.path}
               end={item.exact}
+              onClick={closeSidebar}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
             >
               {item.icon}
@@ -70,7 +87,10 @@ export default function InfoDeskLayout() {
       {/* Main Content */}
       <main className="info-desk-main">
         <header className="topbar">
-          <div className="topbar-left">
+          <div className="topbar-left" style={{ display: 'flex', alignItems: 'center' }}>
+            <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
+              <Menu size={24} />
+            </button>
             <h1>{getPageTitle()}</h1>
           </div>
           <div className="topbar-right">
