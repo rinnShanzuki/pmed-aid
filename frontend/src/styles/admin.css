@@ -883,15 +883,53 @@
 .admin-alert-success { background: #dcfce7; color: #16a34a; border: 1px solid #bbf7d0; }
 .admin-alert-error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 
-/* ─── Responsive ──────────────────────────────────────────── */
+/* ─── Responsive & Mobile Sidebar ─────────────────────────── */
+.mobile-menu-btn {
+  display: none;
+}
+
+.admin-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 90;
+}
+
+.sidebar-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--admin-sidebar-text);
+  cursor: pointer;
+  padding: 4px;
+}
+
 @media (max-width: 1024px) {
   .charts-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 768px) {
-  .admin-sidebar { display: none; }
+  .mobile-menu-btn { display: flex; }
+  .sidebar-close-btn { display: flex; }
+  
+  .admin-sidebar { 
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .admin-sidebar.open {
+    transform: translateX(0);
+  }
+
+  .admin-sidebar-overlay { display: block; }
+  
   .admin-main { margin-left: 0; }
   .admin-content { padding: 16px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .stats-grid { grid-template-columns: 1fr; }
   .modal-form-row { grid-template-columns: 1fr; }
+  
+  .logout-text { display: none; }
+  .btn-logout { padding: 8px; }
 }

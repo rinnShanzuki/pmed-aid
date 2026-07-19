@@ -1,8 +1,9 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
   LayoutDashboard, Users, UserCog, Pill, BarChart3,
-  Settings, LogOut, Activity
+  Settings, LogOut, Activity, Menu, X
 } from 'lucide-react';
 import '../../styles/admin.css';
 
@@ -22,6 +23,8 @@ const navItems = [
 export default function AdminLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const initials = user
     ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()
@@ -32,10 +35,23 @@ export default function AdminLayout() {
     navigate('/login', { replace: true });
   }
 
+  // Close sidebar on route change for mobile
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
   return (
     <div className="admin-layout">
+      {/* ── Mobile Sidebar Overlay ── */}
+      {isSidebarOpen && (
+        <div 
+          className="admin-sidebar-overlay" 
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* ── Sidebar ── */}
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <div className="sidebar-brand-icon">
             <Activity />
@@ -44,6 +60,12 @@ export default function AdminLayout() {
             <h1>PMed-Aid</h1>
             <span>Admin Panel</span>
           </div>
+          <button 
+            className="sidebar-close-btn" 
+            onClick={() => setIsSidebarOpen(false)}
+          >
+            <X size={20} />
+          </button>
         </div>
 
         <nav className="sidebar-nav">
@@ -81,12 +103,18 @@ export default function AdminLayout() {
       <main className="admin-main">
         <header className="admin-topbar">
           <div className="admin-topbar-left">
+            <button 
+              className="topbar-icon-btn mobile-menu-btn" 
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu size={20} />
+            </button>
             {/* Page title injected by child routes if needed */}
           </div>
           <div className="admin-topbar-right">
             <button className="btn-logout" onClick={handleLogout}>
               <LogOut size={16} />
-              Log Out
+              <span className="logout-text">Log Out</span>
             </button>
           </div>
         </header>
