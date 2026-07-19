@@ -105,7 +105,7 @@ export default function ReportsAnalytics() {
       </div>
 
       {/* Staff Distribution Pie */}
-      <div className="charts-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+      <div className="charts-grid">
         <div className="chart-card">
           <h3>Staff & Patient Distribution</h3>
           {staffDistribution.length === 0 ? (
