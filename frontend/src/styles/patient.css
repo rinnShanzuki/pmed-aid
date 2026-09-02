@@ -6,6 +6,7 @@
   font-family: 'Inter', sans-serif;
 }
 
+/* ─── Desktop Sidebar ─── */
 .patient-sidebar {
   width: 260px;
   background: #ffffff;
@@ -58,6 +59,7 @@
   border-top: 1px solid #f1f5f9;
 }
 
+/* ─── Main Content ─── */
 .patient-main {
   flex: 1;
   display: flex;
@@ -73,6 +75,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 32px;
+  flex-shrink: 0;
 }
 
 .patient-main .topbar h1 {
@@ -94,6 +97,7 @@
   font-weight: 600;
 }
 
+/* ─── Dashboard Stat Grid ─── */
 .patient-stat-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -131,4 +135,187 @@
   font-size: 0.875rem;
   color: #64748b;
   margin: 0;
+}
+
+/* ─── Mobile Bottom Nav (hidden on desktop) ─── */
+.patient-bottom-nav {
+  display: none;
+}
+
+/* ─── Sidebar close & overlay (used on tablet breakpoint) ─── */
+.sidebar-close-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.patient-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 40;
+  backdrop-filter: blur(2px);
+}
+
+/* ════════════════════════════════════════════════════
+   TABLET  (max-width: 1024px)
+   ════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .patient-main .topbar h1 { font-size: 1.1rem; }
+  .patient-stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   MOBILE  (max-width: 768px)
+   ════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Hide the desktop sidebar entirely */
+  .patient-sidebar {
+    display: none !important;
+  }
+  .patient-sidebar-overlay {
+    display: none !important;
+  }
+
+  /* Adjust main layout for bottom nav */
+  .patient-layout {
+    flex-direction: column;
+  }
+
+  .patient-main {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 72px; /* Space for bottom nav */
+  }
+
+  .patient-main .topbar {
+    padding: 0 16px;
+    height: 60px;
+  }
+
+  .patient-main .topbar h1 {
+    font-size: 1rem;
+  }
+
+  .patient-main .content-area {
+    padding: 16px;
+  }
+
+  /* Hide user name, keep avatar */
+  .user-info { display: none; }
+
+  /* Stack stat cards */
+  .patient-stat-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .patient-stat-card {
+    padding: 16px;
+  }
+
+  /* Stack the Adherence Progress / Upcoming Reminders boxes */
+  .patient-bottom-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* ─── Show Bottom Navigation Bar ─── */
+  .patient-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: #ffffff;
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+    z-index: 100;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-decoration: none;
+    color: #94a3b8;
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 6px 4px;
+    border-radius: 8px;
+    transition: color 0.2s, background 0.2s;
+    background: none;
+    border: none;
+    cursor: pointer;
+    min-width: 52px;
+  }
+
+  .bottom-nav-item:hover {
+    color: #10b981;
+  }
+
+  .bottom-nav-item.active {
+    color: #10b981;
+    font-weight: 600;
+  }
+
+  .bottom-nav-item.active svg {
+    filter: drop-shadow(0 1px 3px rgba(16, 185, 129, 0.3));
+  }
+
+  .bottom-nav-logout {
+    color: #ef4444;
+  }
+
+  .bottom-nav-logout:hover {
+    color: #dc2626;
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   SMALL MOBILE  (max-width: 480px)
+   ════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .patient-main .topbar {
+    padding: 0 12px;
+    height: 52px;
+  }
+
+  .patient-main .topbar h1 {
+    font-size: 0.9rem;
+  }
+
+  .patient-main .content-area {
+    padding: 12px;
+  }
+
+  .patient-stat-card {
+    padding: 14px;
+  }
+
+  .patient-stat-content h3 {
+    font-size: 1.25rem;
+  }
+
+  .patient-bottom-nav {
+    height: 60px;
+  }
+
+  .bottom-nav-item {
+    font-size: 0.6rem;
+    min-width: 44px;
+  }
 }

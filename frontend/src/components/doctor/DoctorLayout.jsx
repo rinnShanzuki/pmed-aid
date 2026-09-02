@@ -11,7 +11,7 @@ import '../../styles/doctor.css';
 
 export default function DoctorLayout() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const navigate = useNavigate();k
   const location = useLocation();
 
   const handleLogout = async () => {

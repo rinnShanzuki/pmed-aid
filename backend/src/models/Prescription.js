@@ -6,11 +6,12 @@ class Prescription extends Model {}
 Prescription.init(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    admission_id: { type: DataTypes.INTEGER, allowNull: false },
+    admission_id: { type: DataTypes.INTEGER, allowNull: true },
+    consultation_id: { type: DataTypes.INTEGER, allowNull: true },
     patient_id: { type: DataTypes.INTEGER, allowNull: false },
     doctor_id: { type: DataTypes.INTEGER, allowNull: false },
     type: {
-      type: DataTypes.ENUM('in_hospital', 'discharge'),
+      type: DataTypes.ENUM('outpatient', 'in_hospital', 'discharge'),
       allowNull: false,
       defaultValue: 'in_hospital',
     },
@@ -29,6 +30,7 @@ Prescription.init(
     indexes: [
       { fields: ['patient_id'] },
       { fields: ['admission_id'] },
+      { fields: ['consultation_id'] },
       { fields: ['status'] },
       { fields: ['type'] },
     ],

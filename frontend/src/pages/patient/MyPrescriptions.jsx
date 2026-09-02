@@ -49,7 +49,7 @@ export default function MyPrescriptions() {
                       <span className="badge active">Active</span>
                       <span style={{ fontSize: '0.85rem', color: '#64748b' }}><Calendar size={12} style={{ display: 'inline', marginRight: 4 }}/> {new Date(p.created_at).toLocaleDateString()}</span>
                     </div>
-                    <div style={{ color: '#0f172a', fontWeight: 600, marginBottom: 4 }}>Prescribed by: Dr. {p.doctor?.last_name}</div>
+                    <div style={{ color: '#0f172a', fontWeight: 600, marginBottom: 4 }}>Prescribed by: {p.doctor?.last_name}</div>
                     {p.notes && <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: 12 }}>"{p.notes}"</div>}
                     
                     <div style={{ background: '#f8fafc', padding: 12, borderRadius: 6 }}>
@@ -76,7 +76,7 @@ export default function MyPrescriptions() {
                 {past.map(p => (
                   <div key={p.id} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
                     <div>
-                      <div style={{ fontWeight: 500, color: '#334155' }}>Dr. {p.doctor?.last_name}</div>
+                      <div style={{ fontWeight: 500, color: '#334155' }}>{p.doctor?.last_name}</div>
                       <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{p.items?.length || 0} medications</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>

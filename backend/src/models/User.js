@@ -24,12 +24,13 @@ User.init(
     first_name: { type: DataTypes.STRING(100), allowNull: false },
     last_name: { type: DataTypes.STRING(100), allowNull: false },
     role: {
-      type: DataTypes.ENUM('admin', 'info_desk', 'doctor', 'nurse', 'patient'),
+      type: DataTypes.ENUM('admin', 'info_desk', 'doctor', 'nurse', 'patient', 'pharmacy'),
       allowNull: false,
       defaultValue: 'patient',
     },
     google_id: { type: DataTypes.STRING(255), allowNull: true },
     is_active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+    last_login: { type: DataTypes.DATE, allowNull: true },
   },
   {
     sequelize,

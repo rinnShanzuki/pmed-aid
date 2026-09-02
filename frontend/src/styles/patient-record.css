@@ -1,0 +1,277 @@
+/* patient-record.css */
+.patient-record-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #f8fafc;
+}
+
+.pr-header {
+  padding: 20px 32px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pr-header-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.pr-patient-name {
+  margin: 0 0 4px 0;
+  color: #0f172a;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.pr-patient-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.pr-patient-meta .dot {
+  color: #cbd5e1;
+}
+
+.pr-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.pr-sidebar {
+  width: 280px;
+  background: white;
+  border-right: 1px solid #e2e8f0;
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.pr-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  border-radius: 8px;
+  color: #64748b;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.pr-tab-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.pr-tab-btn.active {
+  background: #eff6ff;
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.pr-content {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+.pr-content-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 32px;
+  min-height: 100%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.pr-section-title {
+  margin: 0 0 24px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Info Grid */
+.pr-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px;
+}
+
+.info-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.info-group p {
+  margin: 0;
+  font-size: 1rem;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+/* History Cards */
+.pr-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pr-history-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pr-card-header {
+  background: #f8fafc;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pr-card-header h4 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.05rem;
+}
+
+.pr-date {
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.pr-card-body {
+  padding: 20px;
+}
+
+.pr-card-body p {
+  margin: 0 0 8px 0;
+  color: #334155;
+}
+
+/* Nested Table */
+.pr-nested-table {
+  margin-top: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.pr-nested-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.pr-nested-table th {
+  background: #f8fafc;
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pr-nested-table td {
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  color: #0f172a;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pr-nested-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Timeline */
+.pr-timeline {
+  position: relative;
+  padding-left: 32px;
+}
+
+.pr-timeline::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 32px;
+}
+
+.timeline-icon {
+  position: absolute;
+  left: -32px;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 0 0 4px white;
+  transform: translateX(-50%);
+}
+
+.timeline-icon.consultation { background: #8b5cf6; }
+.timeline-icon.admission { background: #3b82f6; }
+.timeline-icon.discharge { background: #10b981; }
+.timeline-icon.prescription { background: #f59e0b; }
+.timeline-icon.administration { background: #ec4899; }
+
+.timeline-content {
+  background: #f8fafc;
+  padding: 16px 20px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.timeline-date {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.timeline-content h4 {
+  margin: 0 0 4px 0;
+  color: #0f172a;
+  font-size: 1.05rem;
+}
+
+.timeline-content p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.95rem;
+}

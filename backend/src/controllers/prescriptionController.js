@@ -9,10 +9,12 @@ exports.create = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-    const { admission_id, patient_id, doctor_id, type, notes, items, status } = req.body;
+    const { admission_id, consultation_id, patient_id, doctor_id, type, notes, items, status } = req.body;
 
     const prescription = await Prescription.create({
-      admission_id, patient_id,
+      admission_id: admission_id || null,
+      consultation_id: consultation_id || null,
+      patient_id,
       doctor_id: doctor_id || req.user.id,
       type: type || 'in_hospital',
       status: status || 'active',
@@ -70,7 +72,8 @@ exports.create = async (req, res, next) => {
 
     const qrCode = await QrCode.create({
       patient_id,
-      admission_id,
+      admission_id: admission_id || null,
+      consultation_id: consultation_id || null,
       prescription_id: prescription.id,
       type: type || 'in_hospital',
     });
@@ -92,6 +95,7 @@ exports.getAll = async (req, res, next) => {
     const where = {};
     if (req.query.patient_id) where.patient_id = req.query.patient_id;
     if (req.query.admission_id) where.admission_id = req.query.admission_id;
+    if (req.query.consultation_id) where.consultation_id = req.query.consultation_id;
     if (req.query.status) where.status = req.query.status;
     if (req.query.type) where.type = req.query.type;
 

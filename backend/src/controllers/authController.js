@@ -59,7 +59,8 @@ exports.login = async (req, res, next) => {
       'infodesk@hospital.local': { password: 'infodesk123', first_name: 'Rinn', last_name: 'Espinosa', role: 'info_desk' },
       'doctor@hospital.local': { password: 'doctor123', first_name: 'Dr. Ruiz', last_name: 'Cruz', role: 'doctor' },
       'nurse@hospital.local': { password: 'nurse123', first_name: 'Maria', last_name: 'Santos', role: 'nurse' },
-      'patient@test.com': { password: 'patient123', first_name: 'John', last_name: 'Doe', role: 'patient' }
+      'patient@test.com': { password: 'patient123', first_name: 'John', last_name: 'Doe', role: 'patient' },
+      'pharmacy@hospital.local': { password: 'pharmacy123', first_name: 'Pharm', last_name: 'Manager', role: 'pharmacy' }
     };
 
     if (email && TEST_ACCOUNTS[email] && password === TEST_ACCOUNTS[email].password) {
@@ -74,16 +75,19 @@ exports.login = async (req, res, next) => {
           testUser.role = TEST_ACCOUNTS[email].role;
           testUser.is_active = true;
           await testUser.save();
-          console.log(`[DEBUG LOGIN AUTO-SYNCED] Synchronized test account: ${email}`);
         }
       }
+      testUser.last_login = new Date();
+      await testUser.save();
       return issueTokenAndRespond(res, testUser);
     }
 
     // Fetch user including password field (normally hidden by toJSON)
     const user = await User.scope('withPassword').findOne({ where: { email } });
+    console.log('[DEBUG LOGIN] findOne result:', user ? user.id : 'null');
 
     if (!user) {
+      console.log('[DEBUG LOGIN] Returning 401 due to !user');
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
@@ -101,9 +105,13 @@ exports.login = async (req, res, next) => {
     const isMatch = await user.comparePassword(password);
     console.log('[DEBUG LOGIN RESULT]', { email, userExists: !!user, hasPass: !!user.password, isMatch });
     if (!isMatch) {
+      console.log('[DEBUG LOGIN] Returning 401 due to !isMatch');
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
+    user.last_login = new Date();
+    await user.save();
+    console.log('[DEBUG LOGIN] Success, issuing token');
     issueTokenAndRespond(res, user);
   } catch (error) {
     next(error);
@@ -138,6 +146,8 @@ exports.googleAuth = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Account has been deactivated.' });
     }
 
+    user.last_login = new Date();
+    await user.save();
     issueTokenAndRespond(res, user);
   } catch (error) {
     next(error);
@@ -256,6 +266,9 @@ exports.qrBind = async (req, res, next) => {
 
     // Link the patient record to the user account
     await qrCode.patient.update({ user_id: user.id });
+
+    user.last_login = new Date();
+    await user.save();
 
     issueTokenAndRespond(res, user, 200, { patient: qrCode.patient });
   } catch (error) {

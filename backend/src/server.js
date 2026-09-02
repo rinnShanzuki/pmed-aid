@@ -1,6 +1,6 @@
 require('dotenv').config();
 const app = require('./app');
-const { sequelize, User, Patient, Admission, Prescription, PrescriptionItem, MedicationSchedule, QrCode } = require('./models');
+const { sequelize, User, Patient, Room, Admission, Prescription, PrescriptionItem, MedicationSchedule, QrCode } = require('./models');
 
 const PORT = process.env.PORT || 5000;
 
@@ -12,7 +12,8 @@ async function ensureDefaultAccounts() {
       { email: 'doctor@hospital.local', password: 'doctor123', first_name: 'Dr. Ruiz', last_name: 'Cruz', role: 'doctor' },
       { email: 'nurse@hospital.local', password: 'nurse123', first_name: 'Maria', last_name: 'Santos', role: 'nurse' },
       { email: 'patient@hospital.local', password: 'patient123', first_name: 'John', last_name: 'Doe', role: 'patient' },
-      { email: 'patient@test.com', password: 'patient123', first_name: 'Jane', last_name: 'Smith', role: 'patient' }
+      { email: 'patient@test.com', password: 'patient123', first_name: 'Jane', last_name: 'Smith', role: 'patient' },
+      { email: 'pharmacy@hospital.local', password: 'pharmacy123', first_name: 'Pharm', last_name: 'Manager', role: 'pharmacy' }
     ];
 
     for (const account of testAccounts) {
@@ -62,12 +63,16 @@ async function ensureDefaultAccounts() {
             let admission = await Admission.findOne({ where: { patient_id: patientProfile.id } });
             if (!admission) {
               const doctorUser = await User.findOne({ where: { role: 'doctor' } });
+              const infoDeskUser = await User.findOne({ where: { role: 'info_desk' } });
+              const room = await Room.findOne({ where: { is_occupied: false } });
+              
               admission = await Admission.create({
                 patient_id: patientProfile.id,
-                room_id: null,
+                room_id: room ? room.id : 1,
+                admitted_by: infoDeskUser ? infoDeskUser.id : 1,
                 admission_date: new Date(),
                 status: 'admitted',
-                chief_complaint: 'Routine monitoring and post-op recovery',
+                notes: 'Routine monitoring and post-op recovery',
                 diagnosis: 'Hypertension & Vitamin D deficiency',
                 attending_doctor_id: doctorUser ? doctorUser.id : null
               });
@@ -77,8 +82,8 @@ async function ensureDefaultAccounts() {
             const rx = await Prescription.create({
               admission_id: admission.id,
               patient_id: patientProfile.id,
-              prescribed_by: admission.attending_doctor_id || existing.id,
-              type: 'take_home',
+              doctor_id: admission.attending_doctor_id || existing.id,
+              type: 'in_hospital',
               status: 'active',
               notes: 'Take with plenty of water after meals'
             });
@@ -86,23 +91,29 @@ async function ensureDefaultAccounts() {
             const item1 = await PrescriptionItem.create({
               prescription_id: rx.id,
               medication_name: 'Amoxicillin 500mg',
-              dosage: '500mg',
-              frequency: 'every_8_hours',
-              route: 'Oral',
-              duration_days: 7,
+              dosage: '500',
+              dosage_unit: 'mg',
+              frequency: 3,
+              frequency_unit: 'daily',
+              interval_hours: 8,
+              route: 'oral',
+              duration: 7,
+              duration_unit: 'days',
               instructions: 'Take 1 capsule every 8 hours after food',
-              total_doses: 21
             });
 
             const item2 = await PrescriptionItem.create({
               prescription_id: rx.id,
               medication_name: 'Paracetamol 500mg',
-              dosage: '500mg',
-              frequency: 'twice_daily',
-              route: 'Oral',
-              duration_days: 5,
+              dosage: '500',
+              dosage_unit: 'mg',
+              frequency: 2,
+              frequency_unit: 'daily',
+              interval_hours: 12,
+              route: 'oral',
+              duration: 5,
+              duration_unit: 'days',
               instructions: 'Take for fever or pain as needed',
-              total_doses: 10
             });
 
             // Create schedules for today & tomorrow
@@ -114,10 +125,12 @@ async function ensureDefaultAccounts() {
               schedulesToCreate.push({
                 prescription_id: rx.id,
                 prescription_item_id: idx % 2 === 0 ? item1.id : item2.id,
+                admission_id: admission.id,
                 patient_id: patientProfile.id,
                 scheduled_time: time,
-                status: isPast ? 'administered' : 'pending',
-                dose_number: idx + 1
+                status: isPast ? 'completed' : 'pending',
+                administered_by: isPast ? (admission.attending_doctor_id || 1) : null,
+                administered_at: isPast ? time : null,
               });
             });
 

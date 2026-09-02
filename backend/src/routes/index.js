@@ -19,6 +19,9 @@ const billingController = require('../controllers/billingController');
 const infoDeskController = require('../controllers/infoDeskController');
 const qrController = require('../controllers/qrController');
 
+// Routes
+const consultationsRoutes = require('./consultations');
+
 // Middleware & Validators
 const auth = require('../middlewares/auth');
 const roleGuard = require('../middlewares/roleGuard');
@@ -76,15 +79,16 @@ router.delete('/medications/:id', auth, roleGuard(['admin']), idParam, medicatio
 // ============================================================
 // BILLING  —  /api/billing  (admin & info_desk)
 // ============================================================
-router.get  ('/billing',            auth, roleGuard(['admin', 'info_desk']), billingController.getAll);
-router.post ('/billing/generate',   auth, roleGuard(['admin', 'info_desk']), billingController.generateBill);
-router.get  ('/billing/:id',        auth, roleGuard(['admin', 'info_desk']), idParam, billingController.getById);
-router.patch('/billing/:id/status', auth, roleGuard(['admin', 'info_desk']), idParam, billingController.updateStatus);
+// router.get  ('/billing',            auth, roleGuard(['admin', 'info_desk']), billingController.getAll);
+// router.post ('/billing/generate',   auth, roleGuard(['admin', 'info_desk']), billingController.generateBill);
+// router.get  ('/billing/:id',        auth, roleGuard(['admin', 'info_desk']), idParam, billingController.getById);
+// router.patch('/billing/:id/status', auth, roleGuard(['admin', 'info_desk']), idParam, billingController.updateStatus);
 
 // ============================================================
 // INFO DESK  —  /api/info-desk
 // ============================================================
 router.get('/info-desk/dashboard', auth, roleGuard(['info_desk', 'admin']), infoDeskController.getDashboardStats);
+router.get('/info-desk/medication-dashboard', auth, roleGuard(['info_desk', 'admin']), infoDeskController.getMedicationDashboard);
 router.get('/info-desk/pending-discharges', auth, roleGuard(['info_desk', 'admin']), infoDeskController.getPendingDischarges);
 router.post('/info-desk/discharges/:id/confirm', auth, roleGuard(['info_desk', 'admin']), idParam, infoDeskController.confirmDischarge);
 router.get('/info-desk/patients/:patientId/discharge-qr', auth, roleGuard(['info_desk', 'admin']), patientIdParam, infoDeskController.getDischargeQrCodes);
@@ -123,6 +127,7 @@ router.post('/admissions/:id/discharge',auth, roleGuard(['info_desk', 'doctor', 
 // ============================================================
 // PRESCRIPTIONS  —  /api/prescriptions
 // ============================================================
+router.use('/consultations', consultationsRoutes);
 router.post('/prescriptions',              auth, roleGuard(['doctor', 'info_desk', 'admin']),                       prescriptionValidator, prescriptionController.create);
 router.get ('/prescriptions',              auth, roleGuard(['doctor', 'nurse', 'info_desk', 'patient', 'admin']),    prescriptionController.getAll);
 router.get ('/prescriptions/:id',          auth, roleGuard(['doctor', 'nurse', 'info_desk', 'patient', 'admin']), idParam, prescriptionController.getById);
@@ -136,7 +141,7 @@ router.put ('/prescriptions/items/:id',    auth, roleGuard(['doctor', 'info_desk
 router.get ('/schedules',                        auth, roleGuard(['doctor', 'nurse', 'admin']),                    scheduleController.getAll);
 router.get ('/schedules/patient/:patientId',     auth, roleGuard(['doctor', 'nurse', 'patient', 'admin']), patientIdParam, scheduleController.getByPatient);
 router.get ('/schedules/:id',                    auth, roleGuard(['doctor', 'nurse', 'admin']),             idParam,        scheduleController.getById);
-router.post('/schedules/:id/administer',         auth, roleGuard(['nurse', 'admin']),                      idParam,        scheduleController.administer);
+router.post('/schedules/:id/administer',         auth, roleGuard(['nurse', 'admin', 'info_desk']),            idParam,        scheduleController.administer);
 router.post('/schedules/:id/confirm',            auth, roleGuard(['patient']),                              idParam,        scheduleController.confirm);
 router.post('/schedules/:id/unconfirm',          auth, roleGuard(['patient']),                              idParam,        scheduleController.unconfirm);
 router.put ('/schedules/:id/skip',               auth, roleGuard(['doctor', 'nurse', 'admin']),             idParam,        scheduleController.skip);
@@ -170,5 +175,15 @@ router.put('/notifications/:id/read', auth, idParam, notificationController.mark
 router.get('/analytics/adherence',         auth, roleGuard(['admin', 'doctor']), analyticsController.adherence);
 router.get('/analytics/medication-trends', auth, roleGuard(['admin', 'doctor']), analyticsController.medicationTrends);
 router.get('/analytics/staff-performance', auth, roleGuard(['admin']),           analyticsController.staffPerformance);
+
+const pharmacyController = require('../controllers/pharmacyController');
+
+// ============================================================
+// PHARMACY  —  /api/pharmacy
+// ============================================================
+router.get ('/pharmacy/inventory',           auth, roleGuard(['pharmacy']), pharmacyController.getInventory);
+router.get ('/pharmacy/pending-pickups',     auth, roleGuard(['pharmacy']), pharmacyController.getPendingPickups);
+router.post('/pharmacy/dispense',            auth, roleGuard(['pharmacy']), pharmacyController.dispenseMedication);
+router.post('/pharmacy/restock/:id',         auth, roleGuard(['pharmacy']), idParam, pharmacyController.restockMedication);
 
 module.exports = router;

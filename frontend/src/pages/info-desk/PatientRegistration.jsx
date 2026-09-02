@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { Search, Plus, Pencil, X, UserPlus } from 'lucide-react';
+import { Search, Plus, Pencil, X, UserPlus, Eye } from 'lucide-react';
 
 const INITIAL_FORM = {
   first_name: '', last_name: '', date_of_birth: '', gender: 'male',
-  contact_number: '', address: '', emergency_contact_name: '',
+  civil_status: 'single', contact_number: '', address: '', emergency_contact_name: '',
   emergency_contact_number: '', blood_type: '', allergies: ''
 };
 
 export default function PatientRegistration() {
+  const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ export default function PatientRegistration() {
     setForm({
       first_name: p.first_name, last_name: p.last_name,
       date_of_birth: p.date_of_birth?.split('T')[0] || '',
-      gender: p.gender, contact_number: p.contact_number,
+      gender: p.gender, civil_status: p.civil_status || 'single', contact_number: p.contact_number,
       address: p.address || '', emergency_contact_name: p.emergency_contact_name || '',
       emergency_contact_number: p.emergency_contact_number || '',
       blood_type: p.blood_type || '', allergies: p.allergies || ''
@@ -76,7 +78,7 @@ export default function PatientRegistration() {
 
         <div className="id-table-container">
           <table className="id-table">
-            <thead><tr><th>Patient</th><th>DOB</th><th>Gender</th><th>Contact</th><th>Blood Type</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Patient</th><th>Age/DOB</th><th>Gender</th><th>Contact</th><th>Blood Type</th><th>Actions</th></tr></thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan="6" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
@@ -85,11 +87,15 @@ export default function PatientRegistration() {
               ) : patients.map(p => (
                 <tr key={p.id}>
                   <td><strong>{p.first_name} {p.last_name}</strong></td>
-                  <td>{p.date_of_birth}</td>
+                  <td>{p.age ? `${p.age} yrs` : p.date_of_birth}</td>
                   <td><span className={`badge ${p.gender === 'male' ? 'active' : 'pending'}`}>{p.gender}</span></td>
                   <td>{p.contact_number}</td>
                   <td>{p.blood_type || '—'}</td>
-                  <td><button className="action-btn outline" onClick={() => openEdit(p)}><Pencil size={14} /> Edit</button></td>
+                  <td>
+                    <button className="action-btn outline" onClick={() => navigate(`/info-desk/patients/${p.id}`)}>
+                      <Eye size={14} /> View Record
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -114,6 +120,10 @@ export default function PatientRegistration() {
                   <div><label style={lbl}>Gender *</label>
                     <select style={inp} value={form.gender} onChange={e => setForm({...form, gender: e.target.value})}>
                       <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+                    </select></div>
+                  <div><label style={lbl}>Civil Status *</label>
+                    <select style={inp} value={form.civil_status} onChange={e => setForm({...form, civil_status: e.target.value})}>
+                      <option value="single">Single</option><option value="married">Married</option><option value="divorced">Divorced</option><option value="widowed">Widowed</option>
                     </select></div>
                   <div><label style={lbl}>Contact Number *</label><input style={inp} value={form.contact_number} onChange={e => setForm({...form, contact_number: e.target.value})} required /></div>
                   <div><label style={lbl}>Blood Type</label>

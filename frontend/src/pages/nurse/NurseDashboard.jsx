@@ -69,7 +69,7 @@ export default function NurseDashboard() {
                       <td><strong>{a.patient?.first_name} {a.patient?.last_name}</strong></td>
                       <td>{a.room?.room_number || 'N/A'}</td>
                       <td style={{ fontSize: '0.85rem', color: '#64748b' }}>{new Date(a.admission_date).toLocaleDateString()}</td>
-                      <td>{a.doctor ? `Dr. ${a.doctor.last_name}` : 'N/A'}</td>
+                      <td>{a.doctor ? `${a.doctor.last_name}` : 'N/A'}</td>
                     </tr>
                   ))}
                 </tbody>

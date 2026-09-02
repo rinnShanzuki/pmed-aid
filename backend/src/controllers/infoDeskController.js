@@ -1,6 +1,196 @@
-const { Admission, Prescription, Patient, User, QrCode, AuditLog, Room, MedicationSchedule } = require('../models');
+const { Admission, Prescription, Patient, User, QrCode, AuditLog, Room, MedicationSchedule, PrescriptionItem } = require('../models');
 const { Op } = require('sequelize');
 const { notifyInfoDesk, createNotification } = require('../utils/notificationHelper');
+
+// ─── Comprehensive Medication Dashboard (all 6 sections) ───────────────
+exports.getMedicationDashboard = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+    // ── 1. Fetch all admitted admissions with joins ──
+    const admissions = await Admission.findAll({
+      where: { status: 'admitted' },
+      include: [
+        { model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] },
+        { model: Room, as: 'room', attributes: ['id', 'room_number'] },
+        { model: User, as: 'doctor', attributes: ['id', 'first_name', 'last_name'] },
+        { model: User, as: 'assignedNurse', attributes: ['id', 'first_name', 'last_name'] },
+      ],
+      order: [['admission_date', 'DESC']],
+    });
+
+    // ── 2. Fetch today's medication schedules ──
+    const schedules = await MedicationSchedule.findAll({
+      where: {
+        scheduled_time: { [Op.gte]: today, [Op.lt]: tomorrow },
+      },
+      include: [
+        { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'dosage_unit', 'route'] },
+        { model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] },
+        { model: User, as: 'administeredBy', attributes: ['id', 'first_name', 'last_name'] },
+        {
+          model: Admission, as: 'admission', attributes: ['id', 'assigned_nurse_id'],
+          include: [
+            { model: Room, as: 'room', attributes: ['room_number'] },
+            { model: User, as: 'assignedNurse', attributes: ['id', 'first_name', 'last_name'] },
+          ],
+        },
+      ],
+      order: [['scheduled_time', 'ASC']],
+    });
+
+    // ── 3. Classify schedules ──
+    let givenOnTime = 0;
+    let overdueMissed = 0;
+    let pendingCount = 0;
+    let inProgressCount = 0; // administered status = nurse mid-flow
+    const pendingScheduleList = [];
+    const overdueScheduleList = [];
+
+    for (const s of schedules) {
+      const sTime = new Date(s.scheduled_time);
+      const medName = s.prescriptionItem
+        ? `${s.prescriptionItem.medication_name} ${s.prescriptionItem.dosage}${s.prescriptionItem.dosage_unit}`
+        : 'Unknown';
+      const nurseName = s.admission?.assignedNurse
+        ? `${s.admission.assignedNurse.first_name} ${s.admission.assignedNurse.last_name}`
+        : (s.administeredBy ? `${s.administeredBy.first_name} ${s.administeredBy.last_name}` : 'Unassigned');
+      const roomNum = s.admission?.room?.room_number || 'N/A';
+      const patientName = s.patient ? `${s.patient.first_name} ${s.patient.last_name}` : 'Unknown';
+
+      if (s.status === 'completed' || s.status === 'administered') {
+        // If administered before or within a reasonable window → on time
+        givenOnTime++;
+      } else if (s.status === 'missed') {
+        overdueMissed++;
+        overdueScheduleList.push({
+          scheduleId: s.id,
+          patientName,
+          roomNumber: roomNum,
+          medicationName: medName,
+          scheduledTime: s.scheduled_time,
+          minutesOverdue: Math.round((now - sTime) / 60000),
+          assignedNurse: nurseName,
+        });
+      } else if (s.status === 'pending') {
+        if (sTime < now) {
+          // Past due but still pending → overdue
+          overdueMissed++;
+          overdueScheduleList.push({
+            scheduleId: s.id,
+            patientName,
+            roomNumber: roomNum,
+            medicationName: medName,
+            scheduledTime: s.scheduled_time,
+            minutesOverdue: Math.round((now - sTime) / 60000),
+            assignedNurse: nurseName,
+          });
+        } else {
+          pendingCount++;
+          // Determine sub-status
+          let subStatus = 'pending';
+          if (sTime <= oneHourFromNow) subStatus = 'due_now';
+
+          pendingScheduleList.push({
+            scheduleId: s.id,
+            patientName,
+            roomNumber: roomNum,
+            medicationName: medName,
+            scheduledTime: s.scheduled_time,
+            assignedNurse: nurseName,
+            status: subStatus,
+          });
+        }
+      } else if (s.status === 'skipped') {
+        // skipped doesn't count toward on-time or overdue
+      } else if (s.status === 'refused') {
+        overdueMissed++;
+      }
+    }
+
+    const totalDoses = givenOnTime + overdueMissed + pendingCount;
+    const givenPct = totalDoses > 0 ? Math.round((givenOnTime / totalDoses) * 100) : 0;
+    const overduePct = totalDoses > 0 ? Math.round((overdueMissed / totalDoses) * 100) : 0;
+
+    // ── 4. Build ward overview per admitted patient ──
+    // Build a map of patient_id → next pending schedule
+    const patientNextMed = {};
+    for (const s of schedules) {
+      if (s.status === 'pending' && new Date(s.scheduled_time) >= now) {
+        if (!patientNextMed[s.patient_id] || new Date(s.scheduled_time) < new Date(patientNextMed[s.patient_id].time)) {
+          patientNextMed[s.patient_id] = {
+            time: s.scheduled_time,
+            name: s.prescriptionItem
+              ? `${s.prescriptionItem.medication_name} ${s.prescriptionItem.dosage}${s.prescriptionItem.dosage_unit}`
+              : 'Unknown',
+          };
+        }
+      }
+    }
+
+    // Determine status per patient
+    const patientOverdue = {};
+    const patientInProgress = {};
+    for (const s of schedules) {
+      if (s.status === 'pending' && new Date(s.scheduled_time) < now) {
+        patientOverdue[s.patient_id] = true;
+      }
+      if (s.status === 'administered') {
+        patientInProgress[s.patient_id] = true;
+      }
+    }
+
+    const wardOverview = admissions.map(adm => {
+      const pid = adm.patient_id;
+      let statusBadge = 'not_yet_due';
+      if (patientOverdue[pid]) statusBadge = 'overdue';
+      else if (patientInProgress[pid]) statusBadge = 'in_progress';
+      else if (patientNextMed[pid]) statusBadge = 'on_track';
+
+      return {
+        admissionId: adm.id,
+        patientName: adm.patient ? `${adm.patient.first_name} ${adm.patient.last_name}` : 'Unknown',
+        roomNumber: adm.room?.room_number || 'N/A',
+        attendingPhysician: adm.doctor ? `Dr. ${adm.doctor.first_name} ${adm.doctor.last_name}` : 'N/A',
+        assignedNurse: adm.assignedNurse ? `${adm.assignedNurse.first_name} ${adm.assignedNurse.last_name}` : 'Unassigned',
+        admissionDate: adm.admission_date,
+        statusBadge,
+        nextMedDue: patientNextMed[pid]?.time || null,
+        nextMedName: patientNextMed[pid]?.name || null,
+      };
+    });
+
+    // ── 5. Response ──
+    res.json({
+      success: true,
+      data: {
+        summary: {
+          totalConfined: admissions.length,
+          givenOnTime: { count: givenOnTime, pct: givenPct },
+          overdueMissed: { count: overdueMissed, pct: overduePct },
+          pendingUpcoming: pendingCount,
+          inProgress: inProgressCount,
+        },
+        wardOverview,
+        medicationStatus: {
+          given: givenOnTime,
+          overdue: overdueScheduleList.length,
+          missed: schedules.filter(s => s.status === 'missed').length,
+          pending: pendingCount,
+        },
+        pendingSchedule: pendingScheduleList,
+        overdueList: overdueScheduleList,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 exports.getDashboardStats = async (req, res, next) => {
   try {
@@ -88,6 +278,52 @@ exports.getDashboardStats = async (req, res, next) => {
       admissions: trendMap[key]
     }));
 
+    // Medication Adherence Trend (Last 7 days)
+    const adherenceStartDate = new Date();
+    adherenceStartDate.setDate(adherenceStartDate.getDate() - 6);
+    adherenceStartDate.setHours(0, 0, 0, 0);
+
+    const allSchedules = await MedicationSchedule.findAll({
+      where: {
+        scheduled_time: { [Op.gte]: adherenceStartDate },
+      },
+      attributes: ['scheduled_time', 'status'],
+    });
+
+    // Build a map: date string → { given, overdue, total }
+    const adherenceMap = {};
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(adherenceStartDate);
+      d.setDate(d.getDate() + i);
+      const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      adherenceMap[key] = { given: 0, overdue: 0, total: 0 };
+    }
+
+    const now = new Date();
+    allSchedules.forEach(sched => {
+      const d = new Date(sched.scheduled_time);
+      const key = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      if (adherenceMap[key] === undefined) return;
+      adherenceMap[key].total++;
+      if (sched.status === 'completed' || sched.status === 'administered') {
+        adherenceMap[key].given++;
+      } else if (sched.status === 'missed' || sched.status === 'refused') {
+        adherenceMap[key].overdue++;
+      } else if (sched.status === 'pending' && d < now) {
+        // pending but past due → overdue
+        adherenceMap[key].overdue++;
+      }
+    });
+
+    const adherenceTrend = Object.keys(adherenceMap).map(date => {
+      const entry = adherenceMap[date];
+      return {
+        date,
+        givenPct: entry.total > 0 ? Math.round((entry.given / entry.total) * 100) : 0,
+        overduePct: entry.total > 0 ? Math.round((entry.overdue / entry.total) * 100) : 0,
+      };
+    });
+
     res.json({
       success: true,
       data: {
@@ -97,7 +333,8 @@ exports.getDashboardStats = async (req, res, next) => {
         pendingRegistrations: pendingRegistrationsCount,
         recentPrescriptions,
         pendingDischargeRequests,
-        admissionTrend
+        admissionTrend,
+        adherenceTrend
       }
     });
   } catch (error) {

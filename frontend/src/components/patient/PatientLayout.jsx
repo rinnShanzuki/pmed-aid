@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileText,
   Calendar,
   Activity,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import '../../styles/patient.css';
@@ -13,6 +16,7 @@ export default function PatientLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -20,10 +24,10 @@ export default function PatientLayout() {
   };
 
   const navItems = [
-    { path: '/patient', label: 'Patient Dashboard', icon: <LayoutDashboard size={20} />, exact: true },
-    { path: '/patient/schedule', label: 'Medication Schedule', icon: <Calendar size={20} /> },
-    { path: '/patient/prescriptions', label: 'Prescription List View', icon: <FileText size={20} /> },
-    { path: '/patient/history', label: 'Adherence History', icon: <Activity size={20} /> },
+    { path: '/patient', label: 'Dashboard', mobileLabel: 'Home', icon: <LayoutDashboard size={20} />, exact: true },
+    { path: '/patient/schedule', label: 'Medication Schedule', mobileLabel: 'Meds', icon: <Calendar size={20} /> },
+    { path: '/patient/prescriptions', label: 'Prescription List View', mobileLabel: 'Rx', icon: <FileText size={20} /> },
+    { path: '/patient/history', label: 'Adherence History', mobileLabel: 'History', icon: <Activity size={20} /> },
   ];
 
   const getPageTitle = () => {
@@ -33,15 +37,29 @@ export default function PatientLayout() {
     return current ? current.label : 'Patient Portal';
   };
 
+  const closeSidebar = () => setIsSidebarOpen(false);
+
   return (
     <div className="patient-layout">
-      <aside className="patient-sidebar">
-        <div className="sidebar-header">
-          <span style={{ color: '#10b981', marginRight: '8px' }}>+</span> PMed-Aid
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div className="patient-sidebar-overlay" onClick={closeSidebar} />
+      )}
+
+      {/* Desktop Sidebar */}
+      <aside className={`patient-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ color: '#10b981', marginRight: '8px' }}>+</span> PMed-Aid
+          </div>
+          <button className="sidebar-close-btn" onClick={closeSidebar}>
+            <X size={24} />
+          </button>
         </div>
         <nav className="sidebar-nav">
           {navItems.map((item) => (
             <NavLink key={item.path} to={item.path} end={item.exact}
+              onClick={closeSidebar}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
               {item.icon}{item.label}
             </NavLink>
@@ -53,9 +71,12 @@ export default function PatientLayout() {
           </button>
         </div>
       </aside>
+      
       <main className="patient-main">
         <header className="topbar">
-          <div className="topbar-left"><h1>{getPageTitle()}</h1></div>
+          <div className="topbar-left" style={{ display: 'flex', alignItems: 'center' }}>
+            <h1>{getPageTitle()}</h1>
+          </div>
           <div className="topbar-right">
             <div className="user-profile">
               <div className="user-avatar patient-avatar">
@@ -72,6 +93,25 @@ export default function PatientLayout() {
           <Outlet />
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="patient-bottom-nav">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.exact}
+            className={({ isActive }) => `bottom-nav-item ${isActive ? 'active' : ''}`}
+          >
+            {item.icon}
+            <span>{item.mobileLabel}</span>
+          </NavLink>
+        ))}
+        <button className="bottom-nav-item bottom-nav-logout" onClick={handleLogout}>
+          <LogOut size={20} />
+          <span>Out</span>
+        </button>
+      </nav>
     </div>
   );
 }

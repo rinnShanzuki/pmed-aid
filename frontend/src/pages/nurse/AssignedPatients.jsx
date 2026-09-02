@@ -76,7 +76,7 @@ export default function AssignedPatients() {
                     <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{adm.room?.type?.replace('_', ' ')}</div>
                   </td>
                   <td style={{ color: '#64748b' }}>{new Date(adm.admission_date).toLocaleString()}</td>
-                  <td>{adm.doctor ? `Dr. ${adm.doctor.last_name}` : 'Not assigned'}</td>
+                  <td>{adm.doctor ? `${adm.doctor.last_name}` : 'Not assigned'}</td>
                   <td><span className="badge active">{adm.status}</span></td>
                 </tr>
               ))}

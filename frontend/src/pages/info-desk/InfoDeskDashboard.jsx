@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { BedDouble, Users, FileSignature, Clock } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 export default function InfoDeskDashboard() {
-  const [stats, setStats] = useState({ newAdmissions: 0, activePatients: 0, recentPrescriptions: 0, pendingRegistrations: 0, dischargedPatients: 0, admissionTrend: [] });
+  const [stats, setStats] = useState({ newAdmissions: 0, activePatients: 0, recentPrescriptions: 0, pendingRegistrations: 0, dischargedPatients: 0, admissionTrend: [], adherenceTrend: [] });
 
   useEffect(() => {
     api.get('/info-desk/dashboard')
@@ -61,6 +61,32 @@ export default function InfoDeskDashboard() {
         ))}
       </div>
 
+      {/* ── Medication Adherence Trend (Line Chart) ── */}
+      <div className="id-card" style={{ marginTop: 32 }}>
+        <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#0f172a' }}>Medication Adherence Trend</h3>
+        <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: 24 }}>7-day movement of medication adherence — given on time vs. overdue / missed doses.</p>
+        <div style={{ width: '100%', height: 320 }}>
+          <ResponsiveContainer>
+            <LineChart data={stats.adherenceTrend.length > 0 ? stats.adherenceTrend : [{ date: '—', givenPct: 0, overduePct: 0 }]} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+              <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} tickFormatter={(v) => `${v}%`} />
+              <Tooltip
+                contentStyle={{ borderRadius: 8, border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                formatter={(value, name) => [`${value}%`, name === 'givenPct' ? 'Given On Time' : 'Overdue / Missed']}
+              />
+              <Legend
+                iconType="circle"
+                wrapperStyle={{ fontSize: '0.85rem', paddingTop: '16px' }}
+                formatter={(value) => value === 'givenPct' ? 'Given / Administered' : 'Overdue / Missed'}
+              />
+              <Line type="monotone" dataKey="givenPct" stroke="#22c55e" strokeWidth={3} dot={{ r: 5, fill: '#22c55e', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 7 }} />
+              <Line type="monotone" dataKey="overduePct" stroke="#ef4444" strokeWidth={3} dot={{ r: 5, fill: '#ef4444', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 7 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 450px), 1fr))', gap: '24px', marginTop: '32px', minWidth: 0 }}>
         <div className="id-card">
           <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#0f172a' }}>Admission Trend</h3>
@@ -105,8 +131,6 @@ export default function InfoDeskDashboard() {
           </div>
         </div>
       </div>
-
-
     </div>
   );
 }

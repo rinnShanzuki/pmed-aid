@@ -32,7 +32,13 @@ exports.scan = async (req, res, next) => {
     if (qrCode.status !== 'active') return res.status(400).json({ success: false, message: 'QR code is no longer active.' });
 
     // Get today's pending/upcoming schedules
-    const today = new Date();
+    const now = new Date();
+    const updateData = { last_scan_date: now };
+    if (!qrCode.first_scan_date) updateData.first_scan_date = now;
+    
+    await qrCode.update(updateData);
+
+    const today = new Date(now);
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 

@@ -22,7 +22,11 @@ import AdmissionManagement from './pages/info-desk/AdmissionManagement';
 import PatientMonitoring from './pages/info-desk/PatientMonitoring';
 import PrescriptionManagement from './pages/info-desk/PrescriptionManagement';
 import QrCodeManagement from './pages/info-desk/QrCodeManagement';
-import BillingExpenses from './pages/info-desk/BillingExpenses';
+import PatientRecord from './pages/info-desk/PatientRecord';
+// import BillingExpenses from './pages/info-desk/BillingExpenses';
+
+// Pharmacy
+import PharmacyLayout from './components/pharmacy/PharmacyLayout';
 
 // Doctor
 import DoctorLayout from './components/doctor/DoctorLayout';
@@ -123,6 +127,12 @@ function PlaceholderDash({ role }) {
   );
 }
 
+// General (cross-role, no sidebar)
+import GeneralDashboard from './pages/general/GeneralDashboard';
+
+// Pharmacy
+import PharmacyDashboard from './pages/pharmacy/PharmacyDashboard';
+
 // ─── Main App ──────────────────────────────────────────────────────
 export default function App() {
   return (
@@ -133,6 +143,13 @@ export default function App() {
           <Route path="/login"        element={<AuthPage />} />
           <Route path="/register"     element={<AuthPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+
+          {/* ── General Dashboard (no sidebar, shared by admin & info_desk) ── */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute allowedRoles={['admin', 'info_desk']}>
+              <GeneralDashboard />
+            </ProtectedRoute>
+          } />
 
           {/* ── Admin (nested) ── */}
           <Route path="/admin" element={
@@ -160,7 +177,17 @@ export default function App() {
             <Route path="monitoring"   element={<PatientMonitoring />} />
             <Route path="prescriptions" element={<PrescriptionManagement />} />
             <Route path="qr-codes"     element={<QrCodeManagement />} />
-            <Route path="billing"      element={<BillingExpenses />} />
+            <Route path="patients/:id" element={<PatientRecord />} />
+            {/* <Route path="billing"      element={<BillingExpenses />} /> */}
+          </Route>
+
+          {/* ── Pharmacy (standalone portal) ── */}
+          <Route path="/pharmacy" element={
+            <ProtectedRoute allowedRoles={['pharmacy']}>
+              <PharmacyLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<PharmacyDashboard />} />
           </Route>
 
           {/* ── Doctor (nested) ── */}

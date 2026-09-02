@@ -74,6 +74,7 @@ export function AuthProvider({ children }) {
     doctor:     '/doctor',
     nurse:      '/nurse',
     patient:    '/patient',
+    pharmacy:   '/pharmacy',
   };
 
   return (

@@ -85,7 +85,7 @@ export default function PatientDashboard() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div className="patient-bottom-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
         {/* Today's Progress */}
         <div className="id-card">
           <div className="id-section-header">

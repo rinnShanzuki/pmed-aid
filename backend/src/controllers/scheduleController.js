@@ -65,13 +65,47 @@ exports.administer = async (req, res, next) => {
   try {
     const schedule = await MedicationSchedule.findByPk(req.params.id);
     if (!schedule) return res.status(404).json({ success: false, message: 'Schedule not found.' });
-    if (schedule.status === 'completed') return res.status(400).json({ success: false, message: 'Already administered.' });
+    if (schedule.status === 'administered') return res.status(400).json({ success: false, message: 'Already administered.' });
+
+    const newStatus = req.body.status || 'administered'; // could be 'refused' or 'pending'
+    
+    const administered_by = req.body.administered_by || req.user.id;
+
+    if (newStatus === 'pending') {
+      await schedule.update({
+        status: 'pending',
+        scheduled_time: req.body.scheduled_time || schedule.scheduled_time,
+        administered_by: administered_by, // Temporary storage for assigned nurse
+        notes: req.body.notes,
+      });
+
+      const fullSchedule = await MedicationSchedule.findByPk(schedule.id, {
+        include: [
+          { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name'] },
+          { model: Patient, as: 'patient', attributes: ['first_name', 'last_name'] },
+        ],
+      });
+
+      await createNotification({
+        user_id: administered_by,
+        type: 'alert',
+        title: 'Dose Rescheduled & Assigned',
+        message: `You have been assigned to administer ${fullSchedule?.prescriptionItem?.medication_name || 'a medication'} for ${fullSchedule?.patient?.first_name} ${fullSchedule?.patient?.last_name}.`,
+        priority: 'high',
+        related_schedule_id: schedule.id,
+      });
+
+      return res.json({ success: true, message: 'Dose rescheduled.', data: schedule });
+    }
+
+    const administered_at = req.body.administered_at ? new Date(req.body.administered_at) : new Date();
 
     await schedule.update({
-      status: 'completed',
-      administered_by: req.user.id,
-      administered_at: new Date(),
+      status: newStatus,
+      administered_by,
+      administered_at,
       notes: req.body.notes,
+      qr_scan_reference: req.body.qr_scan_reference || null,
     });
 
     await MedicationLog.create({

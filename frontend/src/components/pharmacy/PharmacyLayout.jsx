@@ -2,20 +2,15 @@ import { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  UserPlus,
-  BedDouble,
-  FileSignature,
-  Activity,
-  Receipt,
   LogOut,
   Menu,
   X,
   Pill
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
-import '../../styles/infoDesk.css';
+import '../../styles/infoDesk.css'; // Reusing info desk styles for consistency
 
-export default function InfoDeskLayout() {
+export default function PharmacyLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,19 +22,14 @@ export default function InfoDeskLayout() {
   };
 
   const navItems = [
-    { path: '/info-desk', label: 'Dashboard', icon: <LayoutDashboard size={20} />, exact: true },
-    { path: '/info-desk/admissions', label: 'Admission Management', icon: <BedDouble size={20} /> },
-    { path: '/info-desk/monitoring', label: 'Patient Monitoring', icon: <Activity size={20} /> },
-    { path: '/info-desk/registration', label: 'Patient Records', icon: <UserPlus size={20} /> },
-    { path: '/info-desk/prescriptions', label: 'Prescription Management', icon: <FileSignature size={20} /> },
-    // { path: '/info-desk/billing', label: 'Billing Management', icon: <Receipt size={20} /> },
+    { path: '/pharmacy', label: 'Inventory & Dispensing', icon: <Pill size={20} />, exact: true },
   ];
 
   const getPageTitle = () => {
     const current = navItems.find(item =>
       item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path)
     );
-    return current ? current.label : 'Information Desk Portal';
+    return current ? current.label : 'Pharmacy Portal';
   };
 
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -55,7 +45,7 @@ export default function InfoDeskLayout() {
       <aside className={`info-desk-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <span style={{ color: '#38bdf8', marginRight: '8px' }}>+</span> PMed-Aid
+            <span style={{ color: '#8b5cf6', marginRight: '8px' }}>+</span> PMed-Aid Pharmacy
           </div>
           <button className="sidebar-close-btn" onClick={closeSidebar}>
             <X size={24} />
@@ -96,12 +86,12 @@ export default function InfoDeskLayout() {
           </div>
           <div className="topbar-right">
             <div className="user-profile">
-              <div className="user-avatar">
+              <div className="user-avatar" style={{ background: '#8b5cf6' }}>
                 {user?.first_name?.[0]}{user?.last_name?.[0]}
               </div>
               <div className="user-info">
                 <span className="user-name">{user?.first_name} {user?.last_name}</span>
-                <span className="user-role">Information Desk</span>
+                <span className="user-role">Pharmacy</span>
               </div>
             </div>
           </div>

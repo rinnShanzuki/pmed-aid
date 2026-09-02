@@ -10,6 +10,7 @@ const User = require('./User');
 const Patient = require('./Patient');
 const Room = require('./Room');
 const Admission = require('./Admission');
+const Consultation = require('./Consultation');
 const Prescription = require('./Prescription');
 const PrescriptionItem = require('./PrescriptionItem');
 const MedicationSchedule = require('./MedicationSchedule');
@@ -35,6 +36,26 @@ Admission.belongsTo(Patient, { foreignKey: 'patient_id', as: 'patient' });
 // Room ↔ Admission
 Room.hasMany(Admission, { foreignKey: 'room_id', as: 'admissions' });
 Admission.belongsTo(Room, { foreignKey: 'room_id', as: 'room' });
+
+// Patient ↔ Consultation
+Patient.hasMany(Consultation, { foreignKey: 'patient_id', as: 'consultations', onDelete: 'CASCADE' });
+Consultation.belongsTo(Patient, { foreignKey: 'patient_id', as: 'patient' });
+
+// User (Doctor) ↔ Consultation
+User.hasMany(Consultation, { foreignKey: 'doctor_id', as: 'consultations' });
+Consultation.belongsTo(User, { foreignKey: 'doctor_id', as: 'doctor' });
+
+// Consultation ↔ Admission
+Consultation.belongsTo(Admission, { foreignKey: 'admission_id', as: 'admission', onDelete: 'SET NULL' });
+Admission.hasOne(Consultation, { foreignKey: 'admission_id', as: 'consultation' });
+
+// Consultation ↔ Prescription
+Consultation.hasMany(Prescription, { foreignKey: 'consultation_id', as: 'prescriptions', onDelete: 'CASCADE' });
+Prescription.belongsTo(Consultation, { foreignKey: 'consultation_id', as: 'consultation' });
+
+// Consultation ↔ QrCode
+Consultation.hasMany(QrCode, { foreignKey: 'consultation_id', as: 'qrCodes', onDelete: 'CASCADE' });
+QrCode.belongsTo(Consultation, { foreignKey: 'consultation_id', as: 'consultation' });
 
 // User (info_desk) ↔ Admission.admitted_by
 User.hasMany(Admission, { foreignKey: 'admitted_by', as: 'admittedAdmissions' });
@@ -153,6 +174,7 @@ module.exports = {
   Patient,
   Room,
   Admission,
+  Consultation,
   Prescription,
   PrescriptionItem,
   MedicationSchedule,

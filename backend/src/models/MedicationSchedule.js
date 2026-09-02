@@ -12,10 +12,11 @@ MedicationSchedule.init(
     patient_id: { type: DataTypes.INTEGER, allowNull: false },
     scheduled_time: { type: DataTypes.DATE, allowNull: false },
     status: {
-      type: DataTypes.ENUM('pending', 'completed', 'missed', 'skipped'),
+      type: DataTypes.ENUM('pending', 'completed', 'missed', 'skipped', 'administered', 'refused'),
       allowNull: false,
       defaultValue: 'pending',
     },
+    qr_scan_reference: { type: DataTypes.STRING(255), allowNull: true },
     administered_by: { type: DataTypes.INTEGER, allowNull: true },
     administered_at: { type: DataTypes.DATE, allowNull: true },
     notes: { type: DataTypes.TEXT, allowNull: true },

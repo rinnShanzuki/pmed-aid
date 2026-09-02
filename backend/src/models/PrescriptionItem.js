@@ -26,6 +26,13 @@ PrescriptionItem.init(
     start_time: { type: DataTypes.TIME, allowNull: true },
     interval_hours: { type: DataTypes.FLOAT, allowNull: true },
     instructions: { type: DataTypes.TEXT, allowNull: true },
+    start_date: { type: DataTypes.DATE, allowNull: true },
+    end_date: { type: DataTypes.DATE, allowNull: true },
+    status: {
+      type: DataTypes.ENUM('active', 'completed', 'discontinued'),
+      allowNull: false,
+      defaultValue: 'active',
+    },
   },
   {
     sequelize,

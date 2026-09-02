@@ -17,11 +17,23 @@ Patient.init(
     emergency_contact_number: { type: DataTypes.STRING(20), allowNull: true },
     blood_type: { type: DataTypes.STRING(5), allowNull: true },
     allergies: { type: DataTypes.TEXT, allowNull: true },
+    civil_status: { type: DataTypes.ENUM('single', 'married', 'divorced', 'widowed'), allowNull: true },
+    age: { type: DataTypes.INTEGER, allowNull: true },
   },
   {
     sequelize,
     modelName: 'Patient',
     tableName: 'patients',
+    hooks: {
+      beforeSave: (patient) => {
+        if (patient.date_of_birth) {
+          const dob = new Date(patient.date_of_birth);
+          const diff_ms = Date.now() - dob.getTime();
+          const age_dt = new Date(diff_ms); 
+          patient.age = Math.abs(age_dt.getUTCFullYear() - 1970);
+        }
+      }
+    },
     indexes: [
       { fields: ['user_id'] },
       { fields: ['last_name', 'first_name'] },

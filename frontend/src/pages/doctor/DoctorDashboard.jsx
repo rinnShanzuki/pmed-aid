@@ -34,7 +34,7 @@ export default function DoctorDashboard() {
     <div>
       <div style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-          Welcome, Dr. {user?.last_name}
+          Welcome, {user?.last_name}
         </h2>
         <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>Here's your overview for today.</p>
       </div>

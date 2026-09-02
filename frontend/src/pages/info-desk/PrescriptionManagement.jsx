@@ -2,6 +2,44 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { Search, Plus, Printer, X, FileSignature, Eye, QrCode, ArrowLeft, Send, Stethoscope, Clock, User } from 'lucide-react';
 
+const PRESCRIPTION_CSS = `
+/* --- Screen preview wrapper --- */
+.rx-doc-wrapper { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px; background: #eef1f5; min-height: 100vh; font-family: "Segoe UI", Roboto, -apple-system, sans-serif; }
+.rx-doc-status { padding: 40px; text-align: center; color: #445; font-family: "Segoe UI", Roboto, sans-serif; }
+.rx-doc-status--error { color: #b02a2a; }
+.rx-doc-toolbar { width: 100%; max-width: 720px; display: flex; justify-content: flex-end; }
+.rx-doc-print-btn { background: #12213a; color: #fff; border: none; border-radius: 6px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; letter-spacing: 0.02em; }
+.rx-doc-print-btn:hover { background: #1c3358; }
+/* --- The printable page itself (A4-proportioned) --- */
+.rx-doc-page { width: 720px; max-width: 100%; background: #fff; box-shadow: 0 2px 16px rgba(18, 33, 58, 0.12); padding: 48px 56px 40px; color: #17233a; box-sizing: border-box; }
+.rx-doc-header { text-align: center; border-bottom: 2px solid #12213a; padding-bottom: 14px; margin-bottom: 20px; }
+.rx-doc-hospital-name { font-family: Georgia, "Times New Roman", serif; font-size: 24px; font-weight: 700; letter-spacing: 0.02em; color: #12213a; }
+.rx-doc-hospital-meta { font-size: 12px; color: #5a6478; margin-top: 4px; }
+.rx-doc-patient-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; margin-bottom: 26px; font-size: 13.5px; }
+.rx-doc-label { display: block; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.06em; color: #8892a3; margin-bottom: 2px; }
+.rx-doc-value { display: block; font-weight: 600; color: #17233a; }
+.rx-doc-section-title { font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; color: #12213a; border-bottom: 1px solid #d7dce5; padding-bottom: 6px; margin: 0 0 12px; }
+.rx-doc-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 30px; }
+.rx-doc-table th { text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: #5a6478; border-bottom: 1px solid #12213a; padding: 6px 8px; }
+.rx-doc-table td { padding: 9px 8px; border-bottom: 1px solid #e7eaf0; vertical-align: top; }
+.rx-doc-med-name { font-weight: 700; }
+/* --- QR block: appears directly below the prescription list --- */
+.rx-doc-qr-section { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 22px 20px; border: 1px dashed #b9c1d0; border-radius: 8px; margin-bottom: 28px; }
+.rx-doc-qr-img { width: 160px; height: 160px; image-rendering: pixelated; }
+.rx-doc-qr-caption { max-width: 360px; font-size: 12px; color: #5a6478; margin-top: 12px; line-height: 1.5; }
+.rx-doc-footer { display: flex; justify-content: flex-end; }
+.rx-doc-signature-line { display: flex; flex-direction: column; align-items: center; border-top: 1px solid #17233a; padding-top: 6px; width: 220px; font-size: 13px; font-weight: 600; }
+.rx-doc-signature-label { font-size: 10.5px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em; color: #8892a3; margin-top: 2px; }
+/* --- Print rules: only the document prints, sized to A4 --- */
+@media print {
+  body { background: #fff; margin: 0; padding: 0; }
+  .rx-doc-toolbar { display: none; }
+  .rx-doc-wrapper { background: #fff; padding: 0; min-height: 0; display: block; }
+  .rx-doc-page { box-shadow: none; width: 100%; padding: 0; margin: 0; }
+  @page { size: A4; margin: 14mm; }
+}
+`;
+
 export default function PrescriptionManagement() {
   const [prescriptions, setPrescriptions] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -10,6 +48,7 @@ export default function PrescriptionManagement() {
   const [admissions, setAdmissions] = useState([]);
   const [nurses, setNurses] = useState([]);
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState('outpatient');
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // 'add' | 'view' | 'handover' | null
   const [encodeStep, setEncodeStep] = useState(1); // 1: Form, 2: Review, 3: QR
@@ -127,49 +166,127 @@ export default function PrescriptionManagement() {
     setEncodeStep(2);
   }
 
-  function handlePrint(rx) {
-    const printWin = window.open('', '_blank');
-    const itemsHtml = (rx.items || []).map((it, i) => `
-      <tr><td>${i + 1}</td><td>${it.medication_name}</td><td>${it.dosage} ${it.dosage_unit}</td>
-      <td>${it.frequency}x ${it.frequency_unit}</td><td>${it.duration} ${it.duration_unit}</td><td>${it.route}</td></tr>
-    `).join('');
-    printWin.document.write(`<html><head><title>Prescription #${rx.id}</title>
-      <style>body{font-family:Arial;padding:40px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f5f5f5}</style></head>
-      <body><h2>PMed-Aid Prescription</h2>
-      <p><strong>Patient:</strong> ${rx.patient?.first_name} ${rx.patient?.last_name}</p>
-      <p><strong>Doctor:</strong> Dr. ${rx.doctor?.first_name} ${rx.doctor?.last_name}</p>
-      <p><strong>Date:</strong> ${new Date(rx.created_at || rx.createdAt).toLocaleDateString()}</p>
-      <p><strong>Type:</strong> ${rx.type?.replace('_', ' ')}</p>
-      <table><thead><tr><th>#</th><th>Medication</th><th>Dosage</th><th>Frequency</th><th>Duration</th><th>Route</th></tr></thead><tbody>${itemsHtml}</tbody></table>
-      ${rx.notes ? `<p style="margin-top:20px"><strong>Notes:</strong> ${rx.notes}</p>` : ''}
-      </body></html>`);
-    printWin.document.close();
-    printWin.print();
+  async function handlePrintOutpatient(rx) {
+    try {
+      const { data: qrRes } = await api.get(`/qr-codes/patient/${rx.patient_id}`);
+      const qr = qrRes.data.find(q => String(q.prescription_id) === String(rx.id) && q.type === 'outpatient');
+
+      const printWindow = window.open('', '', 'width=800,height=800');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Outpatient Prescription & QR</title>
+            <style>${PRESCRIPTION_CSS}</style>
+          </head>
+          <body>
+            <div class="rx-doc-wrapper">
+              <div class="rx-doc-page" id="prescription-print-area">
+                <header class="rx-doc-header">
+                  <div class="rx-doc-hospital-name">PMed-Aid General Hospital</div>
+                  <div class="rx-doc-hospital-meta">
+                    Metro City &nbsp;•&nbsp; www.pmed-aid.com
+                  </div>
+                </header>
+
+                <section class="rx-doc-patient-info">
+                  <div>
+                    <span class="rx-doc-label">Patient</span>
+                    <span class="rx-doc-value">${rx.patient?.first_name} ${rx.patient?.last_name}</span>
+                  </div>
+                  <div>
+                    <span class="rx-doc-label">MRN</span>
+                    <span class="rx-doc-value">MRN-${rx.patient_id.toString().padStart(5, '0')}</span>
+                  </div>
+                  <div>
+                    <span class="rx-doc-label">Attending Physician</span>
+                    <span class="rx-doc-value">${rx.doctor?.first_name || 'N/A'} ${rx.doctor?.last_name || ''}</span>
+                  </div>
+                  <div>
+                    <span class="rx-doc-label">Date Issued</span>
+                    <span class="rx-doc-value">
+                      ${new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+                    </span>
+                  </div>
+                </section>
+
+                <section class="rx-doc-rx-section">
+                  <h2 class="rx-doc-section-title">Outpatient Medications</h2>
+                  ${rx.items && rx.items.length > 0 ? `
+                    <table class="rx-doc-table">
+                      <thead>
+                        <tr><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Instructions</th></tr>
+                      </thead>
+                      <tbody>
+                        ${rx.items.map(item => `
+                          <tr>
+                            <td class="rx-doc-med-name">${item.medication_name}</td>
+                            <td>${item.dosage} ${item.dosage_unit}</td>
+                            <td>${item.frequency}x ${item.frequency_unit}</td>
+                            <td>${item.instructions || '-'}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  ` : '<p style="text-align: center; color: #5a6478; margin-bottom: 30px;">No medications prescribed.</p>'}
+                </section>
+
+                <section class="rx-doc-qr-section">
+                  ${qr ? `<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${qr.code}" class="rx-doc-qr-img" />` : '<p>No QR Code generated</p>'}
+                  <p class="rx-doc-qr-caption">
+                    Scan this code to link your records and view your prescriptions in the patient portal.
+                  </p>
+                  <p style="font-family: monospace; font-size: 10px; margin-top: 5px;">${qr ? qr.code : ''}</p>
+                </section>
+
+                <footer class="rx-doc-footer">
+                  <div class="rx-doc-signature-line">
+                    <span>${rx.doctor?.first_name || 'N/A'} ${rx.doctor?.last_name || ''}</span>
+                    <span class="rx-doc-signature-label">Physician's Signature</span>
+                  </div>
+                </footer>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close(); printWindow.focus();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+    } catch (err) {
+      alert('Failed to print outpatient prescription.');
+    }
   }
 
-  async function handlePrintQR(rx) {
+  async function handlePrintWristband(rx) {
     try {
-      const { data } = await api.get(`/qr-codes/patient/${rx.patient_id}`);
-      const qr = data.data.find(q => String(q.prescription_id) === String(rx.id));
-      if (qr && qr.qr_image) {
-        const pw = window.open('', '', 'width=600,height=600');
-        pw.document.write(`
-          <html><head><title>Prescription QR</title></head>
-          <body style="text-align:center; padding: 50px; font-family: sans-serif;">
-            <h3 style="color:#475569; margin-bottom:8px">PMed-Aid</h3>
-            <img src="${qr.qr_image}" style="width:250px;height:250px" />
-            <p style="margin-top:16px; font-size:0.9rem; color:#64748b">${rx.patient?.first_name} ${rx.patient?.last_name}</p>
-            <p style="font-size:0.8rem; color:#94a3b8; word-break:break-all">${qr.code}</p>
-            <script>setTimeout(function(){window.print()},300);</script>
-          </body></html>
-        `);
-        pw.document.close();
-      } else {
-        alert('QR code not found for this prescription.');
-      }
-    } catch (err) {
-      alert('Failed to fetch QR code.');
-    }
+      const { data: qrRes } = await api.get(`/qr-codes/patient/${rx.patient_id}`);
+      let qr = qrRes.data.find(q => String(q.prescription_id) === String(rx.id) && q.type === 'in_hospital');
+      
+      const printWindow = window.open('', '', 'width=400,height=300');
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Admission Wristband</title>
+            <style>
+              body { font-family: sans-serif; padding: 20px; margin: 0; text-align: center; }
+              .wristband { border: 2px dashed #ccc; padding: 20px; display: inline-block; }
+              .qr-img { width: 150px; height: 150px; }
+              h2 { margin: 10px 0 5px; font-size: 1.2rem; }
+              p { margin: 0; font-size: 0.9rem; color: #555; }
+            </style>
+          </head>
+          <body>
+            <div class="wristband">
+              <h2>${rx.patient?.first_name} ${rx.patient?.last_name}</h2>
+              <p>Room: ${rx.admission?.room?.room_number || 'N/A'}</p>
+              ${qr ? `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qr.code}" class="qr-img" />
+              <p style="font-size: 0.7rem; margin-top: 5px;">${qr.code}</p>` : '<p>No QR Code generated</p>'}
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close(); printWindow.focus();
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+    } catch (err) { alert('Failed to generate wristband QR.'); }
   }
 
   async function handleAssignNurse(nurseId) {
@@ -196,6 +313,8 @@ export default function PrescriptionManagement() {
 
   const filtered = prescriptions.filter(rx => {
     if (rx.status === 'pending_encoding') return false;
+    if (activeTab === 'outpatient' && rx.type !== 'outpatient') return false;
+    if (activeTab === 'inpatient' && rx.type === 'outpatient') return false;
     if (!search) return true;
     const name = `${rx.patient?.first_name} ${rx.patient?.last_name}`.toLowerCase();
     return name.includes(search.toLowerCase());
@@ -218,12 +337,15 @@ export default function PrescriptionManagement() {
               <div style={{ color: '#64748b', fontSize: '0.9rem' }}>Record ID: {viewData.id} • Generated on {new Date(viewData.created_at || viewData.createdAt).toLocaleDateString()}</div>
             </div>
             <div style={{ display: 'flex', gap: 12 }}>
-              <button className="action-btn outline" onClick={() => handlePrintQR(viewData)} style={{ border: '1px solid #cbd5e1', background: '#fff', color: '#0f172a' }}>
-                <QrCode size={16} /> Print QR Code
-              </button>
-              <button className="action-btn primary" onClick={() => handlePrint(viewData)} style={{ background: '#0f172a' }}>
-                <Printer size={16} /> Print Document
-              </button>
+              {viewData.type === 'outpatient' ? (
+                <button className="action-btn" onClick={() => handlePrintOutpatient(viewData)} style={{ background: '#10b981', color: '#fff' }}>
+                  Print Prescription / QR
+                </button>
+              ) : (
+                <button className="action-btn outline" onClick={() => handlePrintWristband(viewData)} style={{ border: '1px solid #cbd5e1', background: '#fff', color: '#0f172a' }}>
+                  <QrCode size={16} /> Print QR Code
+                </button>
+              )}
             </div>
           </div>
 
@@ -236,7 +358,7 @@ export default function PrescriptionManagement() {
               </div>
               <div>
                 <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Physician Details</div>
-                <div style={{ fontSize: '1.1rem', color: '#0f172a', fontWeight: 600 }}>Dr. {viewData.doctor?.first_name} {viewData.doctor?.last_name}</div>
+                <div style={{ fontSize: '1.1rem', color: '#0f172a', fontWeight: 600 }}>{viewData.doctor?.first_name} {viewData.doctor?.last_name}</div>
                 <div style={{ color: '#475569', fontSize: '0.9rem', marginTop: 4 }}>Status: {viewData.status === 'active' ? 'Active' : viewData.status} | Type: {viewData.type?.replace('_', ' ')}</div>
               </div>
               <div>
@@ -345,7 +467,7 @@ export default function PrescriptionManagement() {
                               {rx.patient?.first_name} {rx.patient?.last_name}
                             </div>
                             <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                              Prescribed by Dr. {rx.doctor?.first_name} {rx.doctor?.last_name}
+                              Prescribed by {rx.doctor?.first_name} {rx.doctor?.last_name}
                             </div>
                           </div>
                         </div>
@@ -416,6 +538,33 @@ export default function PrescriptionManagement() {
           </div>
         </div>
 
+        <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', gap: '4px', width: 'fit-content', margin: '0 24px 16px' }}>
+          <button
+            onClick={() => setActiveTab('outpatient')}
+            style={{
+              padding: '6px 16px', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+              background: activeTab === 'outpatient' ? '#fff' : 'transparent',
+              color: activeTab === 'outpatient' ? '#0f172a' : '#64748b',
+              boxShadow: activeTab === 'outpatient' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            Outpatient
+          </button>
+          <button
+            onClick={() => setActiveTab('inpatient')}
+            style={{
+              padding: '6px 16px', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+              background: activeTab === 'inpatient' ? '#fff' : 'transparent',
+              color: activeTab === 'inpatient' ? '#0f172a' : '#64748b',
+              boxShadow: activeTab === 'inpatient' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            Admitted
+          </button>
+        </div>
+
         <div className="id-table-container">
           <table className="id-table">
             <thead><tr><th>Patient</th><th>Doctor</th><th>Type</th><th>Items</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
@@ -427,7 +576,7 @@ export default function PrescriptionManagement() {
               ) : filtered.map(rx => (
                 <tr key={rx.id}>
                   <td><strong>{rx.patient?.first_name} {rx.patient?.last_name}</strong></td>
-                  <td>Dr. {rx.doctor?.first_name} {rx.doctor?.last_name}</td>
+                  <td>{rx.doctor?.first_name} {rx.doctor?.last_name}</td>
                   <td><span className={`badge ${rx.type === 'discharge' ? 'discharged' : 'active'}`}>{rx.type?.replace('_', ' ')}</span></td>
                   <td>{rx.items?.length || 0} items</td>
                   <td><span className={`badge ${rx.status === 'pending_encoding' ? 'pending' : rx.status}`}>{rx.status === 'pending_encoding' ? 'Pending Encoding' : rx.status}</span></td>
@@ -480,7 +629,7 @@ export default function PrescriptionManagement() {
                       <div><label style={lbl}>Prescribing Doctor *</label>
                         <select style={inp} value={form.doctor_id} onChange={e => setForm({ ...form, doctor_id: e.target.value })} required disabled={!!encodingPrescriptionId}>
                           <option value="">Select Doctor</option>
-                          {doctors.map(d => <option key={d.id} value={d.id}>Dr. {d.first_name} {d.last_name}</option>)}
+                          {doctors.map(d => <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>)}
                         </select></div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -548,7 +697,7 @@ export default function PrescriptionManagement() {
                       </div>
                       <div>
                         <span style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', marginBottom: 4 }}>Prescribing Doctor</span>
-                        <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>Dr. {doctors.find(d => String(d.id) === String(form.doctor_id))?.last_name}</strong>
+                        <strong style={{ fontSize: '1.05rem', color: '#0f172a' }}>{doctors.find(d => String(d.id) === String(form.doctor_id))?.last_name}</strong>
                       </div>
                       <div>
                         <span style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', marginBottom: 4 }}>Prescription Type</span>

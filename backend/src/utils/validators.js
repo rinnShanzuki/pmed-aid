@@ -70,9 +70,10 @@ const admissionValidator = [
 // Prescription Validators
 // ==========================================
 const prescriptionValidator = [
-  body('admission_id').isInt().withMessage('Valid admission ID is required'),
+  body('admission_id').optional().isInt().withMessage('Valid admission ID is required'),
+  body('consultation_id').optional().isInt().withMessage('Valid consultation ID is required'),
   body('patient_id').isInt().withMessage('Valid patient ID is required'),
-  body('type').optional().isIn(['in_hospital', 'discharge']).withMessage('Valid type is required'),
+  body('type').optional().isIn(['in_hospital', 'discharge', 'outpatient']).withMessage('Valid type is required'),
   body('items').isArray({ min: 1 }).withMessage('At least one medication item is required'),
   body('items.*.medication_name').notEmpty().withMessage('Medication name is required'),
   body('items.*.dosage').notEmpty().withMessage('Dosage is required'),

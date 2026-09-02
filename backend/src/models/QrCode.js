@@ -8,7 +8,8 @@ QrCode.init(
   {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     patient_id: { type: DataTypes.INTEGER, allowNull: false },
-    admission_id: { type: DataTypes.INTEGER, allowNull: false },
+    admission_id: { type: DataTypes.INTEGER, allowNull: true },
+    consultation_id: { type: DataTypes.INTEGER, allowNull: true },
     prescription_id: { type: DataTypes.INTEGER, allowNull: true },
     code: {
       type: DataTypes.STRING(255),
@@ -16,10 +17,13 @@ QrCode.init(
       unique: true,
       defaultValue: () => `PMED-${uuidv4()}`
     },
-    type: { type: DataTypes.ENUM('in_hospital', 'discharge'), allowNull: false },
+    type: { type: DataTypes.ENUM('outpatient', 'in_hospital', 'discharge'), allowNull: false },
     status: { type: DataTypes.ENUM('active', 'bound', 'inactive'), allowNull: false, defaultValue: 'active' },
     bound_user_id: { type: DataTypes.INTEGER, allowNull: true },
     bound_at: { type: DataTypes.DATE, allowNull: true },
+    expiration_date: { type: DataTypes.DATE, allowNull: true },
+    first_scan_date: { type: DataTypes.DATE, allowNull: true },
+    last_scan_date: { type: DataTypes.DATE, allowNull: true },
   },
   {
     sequelize,
@@ -35,6 +39,8 @@ QrCode.init(
     indexes: [
       { fields: ['code'] },
       { fields: ['patient_id'] },
+      { fields: ['admission_id'] },
+      { fields: ['consultation_id'] },
       { fields: ['prescription_id'] },
       { fields: ['status'] },
     ],
