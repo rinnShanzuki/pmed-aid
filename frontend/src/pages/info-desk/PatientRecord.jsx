@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { 
-  ArrowLeft, User, Stethoscope, Bed, Pill, 
-  FileText, Syringe, QrCode, Clock, Activity 
+import {
+  ArrowLeft, User, Stethoscope, Bed, Pill,
+  FileText, Syringe, QrCode, Clock, Activity
 } from 'lucide-react';
 import '../../styles/patient-record.css'; // Will create this
 
@@ -88,8 +88,8 @@ export default function PatientRecord() {
       {/* Header */}
       <div className="pr-header">
         <div className="pr-header-left">
-          <button className="action-btn outline back-btn" onClick={() => navigate('/info-desk/registration')}>
-            <ArrowLeft size={16} /> Back to List
+          <button className="pr-back-icon" onClick={() => navigate('/info-desk/registration')} title="Back to List">
+            <ArrowLeft size={20} />
           </button>
           <div>
             <h2 className="pr-patient-name">{patient.first_name} {patient.last_name}</h2>
@@ -132,12 +132,12 @@ export default function PatientRecord() {
             {activeTab === 'discharges' && <TabDischarges admissions={admissions} />}
             {activeTab === 'qrcodes' && <TabQrCodes qrCodes={qrCodes} />}
             {activeTab === 'timeline' && (
-              <TabTimeline 
-                consultations={consultations} 
-                admissions={admissions} 
-                prescriptions={prescriptions} 
+              <TabTimeline
+                consultations={consultations}
+                admissions={admissions}
+                prescriptions={prescriptions}
                 schedules={schedules}
-                qrCodes={qrCodes} 
+                qrCodes={qrCodes}
               />
             )}
           </div>
@@ -165,10 +165,10 @@ function TabInformation({ patient }) {
         <div className="info-group"><label>Contact Number</label><p>{patient.contact_number}</p></div>
         <div className="info-group"><label>Email Address</label><p>{patient.user?.email || 'No online account'}</p></div>
         <div className="info-group" style={{ gridColumn: '1 / -1' }}><label>Address</label><p>{patient.address || '—'}</p></div>
-        
+
         <div className="info-group"><label>Emergency Contact Name</label><p>{patient.emergency_contact_name || '—'}</p></div>
         <div className="info-group"><label>Emergency Contact Number</label><p>{patient.emergency_contact_number || '—'}</p></div>
-        
+
         <div className="info-group" style={{ gridColumn: '1 / -1' }}><label>Allergies</label><p>{patient.allergies || 'None recorded'}</p></div>
       </div>
     </div>
@@ -185,7 +185,7 @@ function TabConsultations({ consultations }) {
           <div key={c.id} className="pr-history-card">
             <div className="pr-card-header">
               <h4>Consultation #{String(c.id).padStart(4, '0')}</h4>
-              <span className="pr-date">{new Date(c.created_at).toLocaleString()}</span>
+              <span className="pr-date">{new Date(c.status === 'completed' || c.status === 'admitted' ? c.updated_at : c.created_at).toLocaleString()}</span>
             </div>
             <div className="pr-card-body">
               <p><strong>Doctor:</strong> Dr. {c.doctor?.first_name} {c.doctor?.last_name}</p>
@@ -248,7 +248,7 @@ function TabPrescriptions({ prescriptions }) {
                     {p.items?.map(item => (
                       <tr key={item.id}>
                         <td>{item.medication_name}</td>
-                        <td>{item.dosage} {item.dosage_unit}</td>
+                        <td>{item.dosage}</td>
                         <td>{item.frequency}</td>
                       </tr>
                     ))}
@@ -266,7 +266,7 @@ function TabPrescriptions({ prescriptions }) {
 function TabMedications({ prescriptions }) {
   // Extract all items from all prescriptions
   const allMeds = prescriptions.flatMap(p => p.items?.map(i => ({ ...i, prescription: p })) || []);
-  
+
   if (allMeds.length === 0) return <EmptyState title="No Medication History" />;
   return (
     <div>
@@ -287,7 +287,7 @@ function TabMedications({ prescriptions }) {
             <tr key={m.id}>
               <td>{new Date(m.prescription.created_at).toLocaleDateString()}</td>
               <td><strong>{m.medication_name}</strong></td>
-              <td>{m.dosage} {m.dosage_unit}</td>
+              <td>{m.dosage}</td>
               <td>{m.frequency}</td>
               <td>Dr. {m.prescription.doctor?.last_name}</td>
               <td><span className={`badge ${m.status === 'active' ? 'active' : 'completed'}`}>{m.status}</span></td>

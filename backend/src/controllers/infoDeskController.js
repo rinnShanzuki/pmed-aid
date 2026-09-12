@@ -30,7 +30,7 @@ exports.getMedicationDashboard = async (req, res, next) => {
         scheduled_time: { [Op.gte]: today, [Op.lt]: tomorrow },
       },
       include: [
-        { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'dosage_unit', 'route'] },
+        { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'route'] },
         { model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] },
         { model: User, as: 'administeredBy', attributes: ['id', 'first_name', 'last_name'] },
         {
@@ -55,7 +55,7 @@ exports.getMedicationDashboard = async (req, res, next) => {
     for (const s of schedules) {
       const sTime = new Date(s.scheduled_time);
       const medName = s.prescriptionItem
-        ? `${s.prescriptionItem.medication_name} ${s.prescriptionItem.dosage}${s.prescriptionItem.dosage_unit}`
+        ? `${s.prescriptionItem.medication_name} ${s.prescriptionItem.dosage}`
         : 'Unknown';
       const nurseName = s.admission?.assignedNurse
         ? `${s.admission.assignedNurse.first_name} ${s.admission.assignedNurse.last_name}`
@@ -126,7 +126,7 @@ exports.getMedicationDashboard = async (req, res, next) => {
           patientNextMed[s.patient_id] = {
             time: s.scheduled_time,
             name: s.prescriptionItem
-              ? `${s.prescriptionItem.medication_name} ${s.prescriptionItem.dosage}${s.prescriptionItem.dosage_unit}`
+              ? `${s.prescriptionItem.medication_name} ${s.prescriptionItem.dosage}`
               : 'Unknown',
           };
         }

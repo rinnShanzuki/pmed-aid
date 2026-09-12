@@ -12,7 +12,9 @@ import {
   X,
   Pill
 } from 'lucide-react';
+import NotificationBell from '../common/NotificationBell';
 import { useAuth } from '../../hooks/useAuth';
+import '../../styles/admin.css';
 import '../../styles/infoDesk.css';
 
 export default function InfoDeskLayout() {
@@ -22,20 +24,24 @@ export default function InfoDeskLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
+    navigate('/login', { replace: true, state: {} });
     await logout();
-    navigate('/login');
   };
 
   const navItems = [
-    { path: '/info-desk', label: 'Dashboard', icon: <LayoutDashboard size={20} />, exact: true },
-    { path: '/info-desk/admissions', label: 'Admission Management', icon: <BedDouble size={20} /> },
-    { path: '/info-desk/monitoring', label: 'Patient Monitoring', icon: <Activity size={20} /> },
-    { path: '/info-desk/registration', label: 'Patient Records', icon: <UserPlus size={20} /> },
-    { path: '/info-desk/prescriptions', label: 'Prescription Management', icon: <FileSignature size={20} /> },
-    // { path: '/info-desk/billing', label: 'Billing Management', icon: <Receipt size={20} /> },
+    { section: 'Main' },
+    { path: '/info-desk', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+    { section: 'Management' },
+    { path: '/info-desk/admissions', label: 'Admission Management', icon: BedDouble },
+    { path: '/info-desk/prescriptions', label: 'Prescription Management', icon: FileSignature },
+    { path: '/info-desk/registration', label: 'Patient Records', icon: UserPlus },
+    { section: 'Monitoring' },
+    { path: '/info-desk/monitoring', label: 'Patient Monitoring', icon: Activity },
   ];
 
   const getPageTitle = () => {
+    if (location.pathname.startsWith('/info-desk/patients')) return 'Detailed Patient Record';
+
     const current = navItems.find(item =>
       item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path)
     );
@@ -44,70 +50,102 @@ export default function InfoDeskLayout() {
 
   const closeSidebar = () => setIsSidebarOpen(false);
 
+  const initials = user
+    ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()
+    : 'I';
+
   return (
-    <div className="info-desk-layout">
-      {/* Mobile Sidebar Overlay */}
+    <div className="admin-layout">
+      {/* ── Mobile Sidebar Overlay ── */}
       {isSidebarOpen && (
-        <div className="info-desk-sidebar-overlay" onClick={closeSidebar} />
+        <div
+          className="admin-sidebar-overlay"
+          onClick={closeSidebar}
+        />
       )}
 
-      {/* Sidebar */}
-      <aside className={`info-desk-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ color: '#38bdf8', marginRight: '8px' }}>+</span> PMed-Aid
+      {/* ── Sidebar ── */}
+      <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-icon" style={{ background: 'transparent', padding: 0, width: '46px', height: '46px' }}>
+            <img
+              src="/pmed-logo.png"
+              alt="PMed-Aid Logo"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))'
+              }}
+            />
+          </div>
+          <div className="sidebar-brand-text">
+            <h1>PMed-Aid</h1>
+            <span>Information Desk</span>
           </div>
           <button className="sidebar-close-btn" onClick={closeSidebar}>
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         <nav className="sidebar-nav">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.exact}
-              onClick={closeSidebar}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
-          ))}
+          {navItems.map((item, index) => {
+            if (item.section) {
+              return <div key={index} className="sidebar-section-label">{item.section}</div>;
+            }
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.exact}
+                onClick={closeSidebar}
+                className={({ isActive }) => {
+                  const isPatientRecordView = item.path === '/info-desk/registration' && location.pathname.startsWith('/info-desk/patients');
+                  return `sidebar-link ${isActive || isPatientRecordView ? 'active' : ''}`;
+                }}
+              >
+                <Icon size={20} />
+                {item.label}
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">
-          <button onClick={handleLogout} className="logout-btn">
-            <LogOut size={18} />
-            Sign Out
-          </button>
+          <div className="sidebar-user">
+            <div className="sidebar-user-avatar">{initials}</div>
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">
+                {user?.first_name} {user?.last_name}
+              </span>
+              <span className="sidebar-user-role">Information Desk</span>
+            </div>
+          </div>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="info-desk-main">
-        <header className="topbar">
-          <div className="topbar-left" style={{ display: 'flex', alignItems: 'center' }}>
-            <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
-              <Menu size={24} />
+      {/* ── Main ── */}
+      <main className="admin-main">
+        <header className="admin-topbar">
+          <div className="admin-topbar-left">
+            <button
+              className="topbar-icon-btn mobile-menu-btn"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu size={20} />
             </button>
-            <h1>{getPageTitle()}</h1>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--admin-text)' }}>{getPageTitle()}</h2>
           </div>
-          <div className="topbar-right">
-            <div className="user-profile">
-              <div className="user-avatar">
-                {user?.first_name?.[0]}{user?.last_name?.[0]}
-              </div>
-              <div className="user-info">
-                <span className="user-name">{user?.first_name} {user?.last_name}</span>
-                <span className="user-role">Information Desk</span>
-              </div>
-            </div>
+          <div className="admin-topbar-right">
+            <NotificationBell />
+            <button className="topbar-icon-btn logout" onClick={handleLogout} title="Log Out">
+              <LogOut size={18} />
+            </button>
           </div>
         </header>
 
-        <div className="content-area">
+        <div className="admin-content">
           <Outlet />
         </div>
       </main>

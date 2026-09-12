@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { Search, Eye, X, Users } from 'lucide-react';
+import { Search, Eye, Users } from 'lucide-react';
 
 export default function PatientManagement() {
   const [patients, setPatients] = useState([]);
   const [search, setSearch]     = useState('');
   const [loading, setLoading]   = useState(true);
-  const [selected, setSelected] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function fetchPatients() {
@@ -79,7 +80,7 @@ export default function PatientManagement() {
                   <td style={{ fontSize: '0.82rem' }}>{p.contact_number || '—'}</td>
                   <td>
                     <div className="action-btns">
-                      <button className="btn-action" title="View Details" onClick={() => setSelected(p)}>
+                      <button className="btn-action" title="View Details" onClick={() => navigate(`/admin/patients/${p.id}`)}>
                         <Eye />
                       </button>
                     </div>
@@ -91,52 +92,7 @@ export default function PatientManagement() {
         </table>
       </div>
 
-      {/* ── Patient Detail Modal ── */}
-      {selected && (
-        <div className="modal-overlay" onClick={() => setSelected(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600 }}>
-            <div className="modal-header">
-              <h3>Patient Details</h3>
-              <button className="modal-close" onClick={() => setSelected(null)}><X size={18} /></button>
-            </div>
-            <div className="modal-body">
-              <div className="patient-detail-header">
-                <div className="patient-detail-avatar">{getInitials(selected)}</div>
-                <div className="patient-detail-name">
-                  <h2>{selected.first_name} {selected.last_name}</h2>
-                  <p>{selected.user?.email || 'No linked account'}</p>
-                </div>
-              </div>
-              <div className="patient-fields-grid">
-                <div className="patient-field">
-                  <label>Gender</label>
-                  <span>{selected.gender || '—'}</span>
-                </div>
-                <div className="patient-field">
-                  <label>Date of Birth</label>
-                  <span>{selected.date_of_birth ? new Date(selected.date_of_birth).toLocaleDateString() : '—'}</span>
-                </div>
-                <div className="patient-field">
-                  <label>Contact Number</label>
-                  <span>{selected.contact_number || '—'}</span>
-                </div>
-                <div className="patient-field">
-                  <label>Address</label>
-                  <span>{selected.address || '—'}</span>
-                </div>
-                <div className="patient-field">
-                  <label>Blood Type</label>
-                  <span>{selected.blood_type || '—'}</span>
-                </div>
-                <div className="patient-field">
-                  <label>Emergency Contact</label>
-                  <span>{selected.emergency_contact || '—'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
     </>
   );
 }

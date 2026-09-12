@@ -46,18 +46,24 @@ export default function AdmissionManagement() {
   const [patients, setPatients] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [nurses, setNurses] = useState([]);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('arrivals'); // arrivals, pending_admissions, admitted, outpatient, discharged
   const [loading, setLoading] = useState(true);
+  const [tabCounts, setTabCounts] = useState({});
 
   const [modal, setModal] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [patientForm, setPatientForm] = useState({ first_name: '', last_name: '', date_of_birth: '', gender: 'male', contact_number: '', civil_status: 'single', address: '' });
+  const [patientForm, setPatientForm] = useState({
+    first_name: '', last_name: '', date_of_birth: '', gender: 'male',
+    contact_number: '', civil_status: 'single', address: '',
+    emergency_contact_name: '', emergency_contact_number: '', blood_type: '', allergies: ''
+  });
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [selectedConsultation, setSelectedConsultation] = useState(null);
 
-  const [consultationForm, setConsultationForm] = useState({ doctor_id: '', notes: '' });
-  const [admissionForm, setAdmissionForm] = useState({ room_id: '', attending_doctor_id: '', notes: '' });
+  const [consultationForm, setConsultationForm] = useState({ doctor_id: '', scheduled_time: '', notes: '' });
+  const [admissionForm, setAdmissionForm] = useState({ room_id: '', attending_doctor_id: '', assigned_nurse_id: '', department: '', reason_for_admission: '', notes: '' });
 
   const [patientSearch, setPatientSearch] = useState('');
   const [error, setError] = useState('');
@@ -67,33 +73,43 @@ export default function AdmissionManagement() {
   async function fetchData() {
     setLoading(true);
     try {
-      if (activeTab === 'admitted' || activeTab === 'discharged') {
-        const { data } = await api.get('/admissions', { params: { status: activeTab } });
-        setAdmissions(data.data);
-      } else if (activeTab === 'arrivals') {
-        const { data } = await api.get('/consultations', { params: { status: 'waiting,in_session' } });
-        setConsultations(data.data);
-      } else if (activeTab === 'pending_admissions') {
-        const { data } = await api.get('/consultations', { params: { admission_required: true, pending_admission: true } });
-        setConsultations(data.data);
-      } else if (activeTab === 'outpatient') {
-        const { data } = await api.get('/consultations', { params: { admission_required: false, status: 'completed' } });
-        setConsultations(data.data);
-      }
+      const [adm, dis, arr, pend, out] = await Promise.all([
+        api.get('/admissions', { params: { status: 'admitted' } }),
+        api.get('/admissions', { params: { status: 'discharged' } }),
+        api.get('/consultations', { params: { status: 'waiting,in_session' } }),
+        api.get('/consultations', { params: { admission_required: true, pending_admission: true } }),
+        api.get('/consultations', { params: { admission_required: false, status: 'completed' } })
+      ]);
+
+      setTabCounts({
+        admitted: adm.data.data.length,
+        discharged: dis.data.data.length,
+        arrivals: arr.data.data.length,
+        pending_admissions: pend.data.data.length,
+        outpatient: out.data.data.length
+      });
+
+      if (activeTab === 'admitted') setAdmissions(adm.data.data);
+      else if (activeTab === 'discharged') setAdmissions(dis.data.data);
+      else if (activeTab === 'arrivals') setConsultations(arr.data.data);
+      else if (activeTab === 'pending_admissions') setConsultations(pend.data.data);
+      else if (activeTab === 'outpatient') setConsultations(out.data.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }
 
   async function fetchDropdowns() {
     try {
-      const [pRes, rRes, dRes] = await Promise.all([
-        api.get('/patients'),
+      const [pRes, rRes, dRes, nRes] = await Promise.all([
+        api.get('/patients', { params: { exclude_active: true } }),
         api.get('/rooms/available'),
-        api.get('/users', { params: { role: 'doctor' } })
+        api.get('/users', { params: { role: 'doctor' } }),
+        api.get('/users', { params: { role: 'nurse' } })
       ]);
       setPatients(pRes.data.data);
       setRooms(rRes.data.data);
       setDoctors(dRes.data.data);
+      setNurses(nRes.data.data);
     } catch (err) { console.error(err); }
   }
 
@@ -101,41 +117,46 @@ export default function AdmissionManagement() {
   useEffect(() => { fetchDropdowns(); }, []);
 
   function openNewConsultation() {
-    setError(''); setModal('patient-type');
-  }
-
-  function startNewPatient() {
-    setPatientForm({ first_name: '', last_name: '', date_of_birth: '', gender: 'male', contact_number: '' });
-    setError(''); setModal('new-patient');
-  }
-
-  function startSearchPatient() {
     setPatientSearch(''); setSelectedPatient(null); setError(''); setModal('search-patient');
   }
 
-  async function createNewPatient() {
+  function startNewPatient() {
+    const parts = patientSearch.trim().split(/\s+/);
+    const firstName = parts[0] || '';
+    const lastName = parts.slice(1).join(' ') || '';
+    setPatientForm({ first_name: firstName, last_name: lastName, date_of_birth: '', gender: 'male', contact_number: '', civil_status: 'single', address: '', emergency_contact_name: '', emergency_contact_number: '', blood_type: '', allergies: '' });
+    setError(''); setModal('new-patient');
+  }
+
+  function createNewPatient() {
     if (!patientForm.first_name.trim() || !patientForm.last_name.trim()) { setError('Please enter first and last name.'); return; }
-    try {
-      const { data } = await api.post('/patients', patientForm);
-      setSelectedPatient(data.data);
-      setConsultationForm({ doctor_id: '', notes: '' });
-      setError(''); setModal('assign-doctor');
-      fetchDropdowns();
-    } catch (err) { setError(err.response?.data?.message || 'Failed to create patient.'); }
+    setSelectedPatient({ ...patientForm, isNew: true });
+    setConsultationForm({ doctor_id: '', scheduled_time: '', notes: '' });
+    setError(''); setModal('assign-doctor');
+    fetchDropdowns();
   }
 
   function selectSearchedPatient(patient) {
     setSelectedPatient(patient);
-    setConsultationForm({ doctor_id: '', notes: '' });
+    setConsultationForm({ doctor_id: '', scheduled_time: '', notes: '' });
     setError(''); setModal('assign-doctor');
   }
 
   async function handleSubmitConsultation(e) {
     e.preventDefault(); setError(''); setIsSubmitting(true);
     try {
+      let finalPatientId = selectedPatient.id;
+      if (selectedPatient.isNew) {
+        const patientData = { ...selectedPatient };
+        delete patientData.isNew;
+        const { data } = await api.post('/patients', patientData);
+        finalPatientId = data.data.id;
+      }
+
       await api.post('/consultations', {
-        patient_id: selectedPatient.id,
+        patient_id: finalPatientId,
         doctor_id: consultationForm.doctor_id,
+        scheduled_time: consultationForm.scheduled_time || null,
         notes: consultationForm.notes
       });
       setSuccess('Patient queued for consultation!');
@@ -147,7 +168,7 @@ export default function AdmissionManagement() {
 
   function openAssignRoom(consultation) {
     setSelectedConsultation(consultation);
-    setAdmissionForm({ room_id: '', attending_doctor_id: consultation.doctor_id, notes: consultation.notes || '' });
+    setAdmissionForm({ room_id: '', attending_doctor_id: consultation.doctor_id, assigned_nurse_id: '', department: '', reason_for_admission: '', notes: consultation.notes || '' });
     setError(''); setModal('assign-room');
   }
 
@@ -158,6 +179,9 @@ export default function AdmissionManagement() {
         patient_id: selectedConsultation.patient_id,
         room_id: admissionForm.room_id,
         attending_doctor_id: admissionForm.attending_doctor_id,
+        assigned_nurse_id: admissionForm.assigned_nurse_id || null,
+        department: admissionForm.department,
+        reason_for_admission: admissionForm.reason_for_admission,
         notes: admissionForm.notes,
         consultation_id: selectedConsultation.id
       });
@@ -243,7 +267,7 @@ export default function AdmissionManagement() {
                         ${dischargeData.prescription.items.map(item => `
                           <tr>
                             <td class="rx-doc-med-name">${item.medication_name}</td>
-                            <td>${item.dosage} ${item.dosage_unit}</td>
+                            <td>${item.dosage}</td>
                             <td>${item.frequency}x ${item.frequency_unit}</td>
                             <td>${item.instructions || '-'}</td>
                           </tr>
@@ -283,7 +307,7 @@ export default function AdmissionManagement() {
   }
 
   const filteredPatients = patients.filter(p => {
-    if (!patientSearch) return true;
+    if (!patientSearch.trim()) return false;
     const name = `${p.first_name} ${p.last_name}`.toLowerCase();
     return name.includes(patientSearch.toLowerCase());
   });
@@ -335,7 +359,7 @@ export default function AdmissionManagement() {
                   transition: 'all 0.2s'
                 }}
               >
-                {tab.label}
+                {tab.label} {tabCounts[tab.id] !== undefined ? `(${tabCounts[tab.id]})` : ''}
               </button>
             ))}
           </div>
@@ -418,50 +442,7 @@ export default function AdmissionManagement() {
         </div>
       </div>
 
-      {/* PATIENT TYPE SELECTION MODAL */}
-      {modal === 'patient-type' && (
-        <div style={overlay} onClick={() => setModal(null)}>
-          <div style={{ ...modalBox, maxWidth: 480 }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '28px 32px 24px', borderBottom: '1px solid #e2e8f0' }}>
-              <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>New Consultation</h3>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '0.88rem' }}>Select how you'd like to queue the patient.</p>
-            </div>
-            <div style={{ padding: '28px 32px 32px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <button
-                  onClick={startNewPatient}
-                  style={{
-                    padding: '28px 20px', borderRadius: 12, border: '2px solid #e2e8f0', background: '#fff',
-                    cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                    transition: 'all 0.2s', fontSize: '0.92rem', fontWeight: 600, color: '#334155'
-                  }}
-                >
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
-                    <UserCheck size={22} />
-                  </div>
-                  New Patient
-                </button>
-                <button
-                  onClick={startSearchPatient}
-                  style={{
-                    padding: '28px 20px', borderRadius: 12, border: '2px solid #e2e8f0', background: '#fff',
-                    cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                    transition: 'all 0.2s', fontSize: '0.92rem', fontWeight: 600, color: '#334155'
-                  }}
-                >
-                  <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-                    <Search size={22} />
-                  </div>
-                  Existing Patient
-                </button>
-              </div>
-            </div>
-            <div style={{ padding: '0 32px 20px', textAlign: 'right' }}>
-              <button type="button" className="action-btn outline" onClick={() => setModal(null)}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* NEW PATIENT FORM MODAL */}
       {modal === 'new-patient' && (
@@ -489,6 +470,24 @@ export default function AdmissionManagement() {
                   <div><label style={lbl}>Contact Number</label><input style={inp} value={patientForm.contact_number} onChange={e => setPatientForm({ ...patientForm, contact_number: e.target.value })} placeholder="e.g. 09XX-XXX-XXXX" /></div>
                 </div>
                 <div><label style={lbl}>Address</label><input style={inp} value={patientForm.address} onChange={e => setPatientForm({ ...patientForm, address: e.target.value })} placeholder="e.g. 123 Main St, City" /></div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 20 }}>
+                  <div><label style={lbl}>Emergency Contact Name</label><input style={inp} value={patientForm.emergency_contact_name} onChange={e => setPatientForm({ ...patientForm, emergency_contact_name: e.target.value })} placeholder="e.g. Maria Dela Cruz" /></div>
+                  <div><label style={lbl}>Emergency Contact Number</label><input style={inp} value={patientForm.emergency_contact_number} onChange={e => setPatientForm({ ...patientForm, emergency_contact_number: e.target.value })} placeholder="e.g. 09XX-XXX-XXXX" /></div>
+                </div>
+                <div style={{ marginTop: 20 }}>
+                  <label style={lbl}>Blood Type</label>
+                  <select style={inp} value={patientForm.blood_type} onChange={e => setPatientForm({ ...patientForm, blood_type: e.target.value })}>
+                    <option value="">Select (Optional)</option>
+                    <option value="A+">A+</option><option value="A-">A-</option>
+                    <option value="B+">B+</option><option value="B-">B-</option>
+                    <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                    <option value="O+">O+</option><option value="O-">O-</option>
+                  </select>
+                </div>
+                <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 20, marginTop: 20 }}>
+                  <div style={sectionLabel}>Medical Information</div>
+                  <div><label style={lbl}>Allergies</label><textarea style={{ ...inp, minHeight: 70, resize: 'vertical' }} value={patientForm.allergies} onChange={e => setPatientForm({ ...patientForm, allergies: e.target.value })} placeholder="e.g. Penicillin, Sulfa drugs, Latex (leave blank if none)" /></div>
+                </div>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '16px 32px 24px', borderTop: '1px solid #e2e8f0' }}>
@@ -499,31 +498,54 @@ export default function AdmissionManagement() {
         </div>
       )}
 
-      {/* SEARCH EXISTING PATIENT MODAL */}
+      {/* UNIFIED SEARCH / NEW PATIENT MODAL */}
       {modal === 'search-patient' && (
         <div style={overlay} onClick={() => setModal(null)}>
           <div style={{ ...modalBox, maxWidth: 580 }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '28px 32px 24px', borderBottom: '1px solid #e2e8f0' }}>
-              <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>Select Patient</h3>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '0.88rem' }}>Search for an existing patient to proceed with consultation.</p>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>New Consultation</h3>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '0.88rem' }}>Search for a patient or create a new one.</p>
             </div>
             <div style={{ padding: '24px 32px 28px' }}>
               <div style={{ position: 'relative', marginBottom: 16 }}>
                 <Search size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input placeholder="Search patient by name..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} style={{ ...inp, paddingLeft: 40, padding: '12px 14px 12px 40px' }} autoFocus />
+                <input placeholder="Enter patient name..." value={patientSearch} onChange={e => setPatientSearch(e.target.value)} style={{ ...inp, paddingLeft: 40, padding: '12px 14px 12px 40px' }} autoFocus />
               </div>
               <div style={{ maxHeight: 340, overflow: 'auto', border: '1px solid #e2e8f0', borderRadius: 10 }}>
-                {filteredPatients.length === 0 ? (
-                  <div style={{ padding: 32, textAlign: 'center', color: '#94a3b8' }}>
-                    <p style={{ margin: 0, fontSize: '0.9rem' }}>No patients found</p>
+                {filteredPatients.length > 0 && filteredPatients.map(p => (
+                  <div key={p.id} onClick={() => selectSearchedPatient(p)} style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem' }}>{p.first_name} {p.last_name}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 2 }}>{p.contact_number || 'No contact'}</div>
                   </div>
-                ) : (
-                  filteredPatients.map(p => (
-                    <div key={p.id} onClick={() => selectSearchedPatient(p)} style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}>
-                      <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem' }}>{p.first_name} {p.last_name}</div>
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 2 }}>{p.contact_number || 'No contact'} &bull; Patient ID: {p.id}</div>
+                ))}
+                {patientSearch.trim() && filteredPatients.length === 0 && (
+                  <div style={{ padding: '20px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
+                    No matching patients found.
+                  </div>
+                )}
+                {patientSearch.trim() && (
+                  <div
+                    onClick={startNewPatient}
+                    style={{ padding: '14px 16px', borderTop: '1px solid #e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#eff6ff'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', flexShrink: 0 }}>
+                      <Plus size={18} />
                     </div>
-                  ))
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#3b82f6', fontSize: '0.95rem' }}>Create new patient</div>
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: 1 }}>Register "{patientSearch.trim()}" as a new patient</div>
+                    </div>
+                  </div>
+                )}
+                {!patientSearch.trim() && filteredPatients.length === 0 && (
+                  <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
+                    Start typing a name to search...
+                  </div>
                 )}
               </div>
             </div>
@@ -545,7 +567,7 @@ export default function AdmissionManagement() {
             <div style={{ margin: '24px 32px 0', padding: '16px 20px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div>
                 <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1rem' }}>{selectedPatient.first_name} {selectedPatient.last_name}</div>
-                <div style={{ fontSize: '0.82rem', color: '#64748b' }}>Patient ID: {selectedPatient.id}</div>
+                <div style={{ fontSize: '0.82rem', color: '#64748b' }}>{selectedPatient.contact_number || 'No contact'}</div>
               </div>
             </div>
             <form onSubmit={handleSubmitConsultation}>
@@ -555,9 +577,10 @@ export default function AdmissionManagement() {
                   <label style={lbl}>Doctor <span style={{ color: '#ef4444' }}>*</span></label>
                   <select style={inp} value={consultationForm.doctor_id} onChange={e => setConsultationForm({ ...consultationForm, doctor_id: e.target.value })} required>
                     <option value="">Select a doctor</option>
-                    {doctors.map(d => <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>)}
+                    {doctors.map(d => <option key={d.id} value={d.id}>{d.first_name.startsWith('Dr.') ? '' : 'Dr. '}{d.first_name} {d.last_name}</option>)}
                   </select>
                 </div>
+
                 <div>
                   <label style={lbl}>Notes</label>
                   <textarea style={{ ...inp, minHeight: 90, resize: 'vertical' }} value={consultationForm.notes} onChange={e => setConsultationForm({ ...consultationForm, notes: e.target.value })} placeholder="Patient complaints, triage notes..." />
@@ -600,8 +623,25 @@ export default function AdmissionManagement() {
                   <label style={lbl}>Attending Doctor <span style={{ color: '#ef4444' }}>*</span></label>
                   <select style={inp} value={admissionForm.attending_doctor_id} onChange={e => setAdmissionForm({ ...admissionForm, attending_doctor_id: e.target.value })} required>
                     <option value="">Select attending physician</option>
-                    {doctors.map(d => <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>)}
+                    {doctors.map(d => <option key={d.id} value={d.id}>{d.first_name.startsWith('Dr.') ? '' : 'Dr. '}{d.first_name} {d.last_name}</option>)}
                   </select>
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={lbl}>Assigned Nurse</label>
+                  <select style={inp} value={admissionForm.assigned_nurse_id} onChange={e => setAdmissionForm({ ...admissionForm, assigned_nurse_id: e.target.value })}>
+                    <option value="">Select nurse (Optional)</option>
+                    {nurses.map(n => <option key={n.id} value={n.id}>{n.first_name} {n.last_name}</option>)}
+                  </select>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                  <div>
+                    <label style={lbl}>Department</label>
+                    <input style={inp} value={admissionForm.department} onChange={e => setAdmissionForm({ ...admissionForm, department: e.target.value })} placeholder="e.g. Internal Medicine" />
+                  </div>
+                  <div>
+                    <label style={lbl}>Reason for Admission</label>
+                    <input style={inp} value={admissionForm.reason_for_admission} onChange={e => setAdmissionForm({ ...admissionForm, reason_for_admission: e.target.value })} placeholder="e.g. Chest pain, observation" />
+                  </div>
                 </div>
                 <div>
                   <label style={lbl}>Admission Notes</label>
@@ -638,7 +678,7 @@ export default function AdmissionManagement() {
                   <ul style={{ margin: 0, paddingLeft: 20, color: '#475569' }}>
                     {dischargeData.prescription.items.map(item => (
                       <li key={item.id} style={{ marginBottom: 4 }}>
-                        <strong>{item.medication_name}</strong> - {item.dosage}{item.dosage_unit}, {item.frequency}x {item.frequency_unit}
+                        <strong>{item.medication_name}</strong> - {item.dosage}, {item.frequency}x {item.frequency_unit}
                       </li>
                     ))}
                   </ul>

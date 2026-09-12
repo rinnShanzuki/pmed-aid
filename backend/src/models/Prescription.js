@@ -1,7 +1,7 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/db');
 
-class Prescription extends Model {}
+class Prescription extends Model { }
 
 Prescription.init(
   {

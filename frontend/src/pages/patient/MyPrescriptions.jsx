@@ -57,7 +57,7 @@ export default function MyPrescriptions() {
                       <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, fontSize: '0.9rem', color: '#334155' }}>
                         {p.items?.map(item => (
                           <li key={item.id} style={{ marginBottom: 4 }}>
-                            <strong>{item.medication_name}</strong> - {item.dosage} {item.dosage_unit} 
+                            <strong>{item.medication_name}</strong> - {item.dosage}
                             <span style={{ color: '#64748b' }}> ({item.frequency})</span>
                           </li>
                         ))}

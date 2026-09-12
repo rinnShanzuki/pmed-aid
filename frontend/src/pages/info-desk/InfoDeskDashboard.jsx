@@ -19,15 +19,15 @@ export default function InfoDeskDashboard() {
     { label: 'Pending Registrations', value: stats.pendingRegistrations, sub: 'Require profile completion', icon: <Clock size={24} />, bg: '#fff7ed', color: '#f97316' },
   ];
 
-  const admissionTrendData = stats.admissionTrend && stats.admissionTrend.length > 0 
-    ? stats.admissionTrend 
+  const admissionTrendData = stats.admissionTrend && stats.admissionTrend.length > 0
+    ? stats.admissionTrend
     : [
-        { day: 'Mon', admissions: 0 },
-        { day: 'Tue', admissions: 0 },
-        { day: 'Wed', admissions: 0 },
-        { day: 'Thu', admissions: 0 },
-        { day: 'Fri', admissions: 0 },
-      ];
+      { day: 'Mon', admissions: 0 },
+      { day: 'Tue', admissions: 0 },
+      { day: 'Wed', admissions: 0 },
+      { day: 'Thu', admissions: 0 },
+      { day: 'Fri', admissions: 0 },
+    ];
 
   const patientStatusData = [
     { name: 'Admitted', value: stats.activePatients },

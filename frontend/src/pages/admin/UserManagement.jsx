@@ -3,11 +3,11 @@ import api from '../../services/api';
 import { Search, Plus, Pencil, Trash2, X, Users as UsersIcon } from 'lucide-react';
 
 const ROLE_COLORS = {
-  admin:     '#7c3aed',
-  doctor:    '#16a34a',
-  nurse:     '#ea580c',
+  admin: '#7c3aed',
+  doctor: '#16a34a',
+  nurse: '#ea580c',
   info_desk: '#0284c7',
-  patient:   '#db2777',
+  pharmacy: '#b45309'
 };
 
 const INITIAL_FORM = {
@@ -15,22 +15,23 @@ const INITIAL_FORM = {
 };
 
 export default function UserManagement() {
-  const [users, setUsers]       = useState([]);
-  const [search, setSearch]     = useState('');
+  const [users, setUsers] = useState([]);
+  const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
-  const [loading, setLoading]   = useState(true);
-  const [modal, setModal]       = useState(null); // null | 'add' | 'edit'
-  const [form, setForm]         = useState(INITIAL_FORM);
-  const [editId, setEditId]     = useState(null);
-  const [error, setError]       = useState('');
-  const [success, setSuccess]   = useState('');
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState(null); // null | 'add' | 'edit'
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [editId, setEditId] = useState(null);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   async function fetchUsers() {
     try {
       const params = { search };
       if (!showInactive) params.is_active = 'true';
       const { data } = await api.get('/users', { params });
-      setUsers(data.data);
+      const staffOnly = data.data.filter(u => u.role !== 'patient');
+      setUsers(staffOnly);
     } catch (err) {
       console.error(err);
     } finally {
@@ -206,8 +207,8 @@ export default function UserManagement() {
                         <option value="admin">Admin</option>
                         <option value="doctor">Doctor</option>
                         <option value="nurse">Nurse</option>
-                        <option value="info_desk">Info Desk</option>
-                        <option value="patient">Patient</option>
+                        <option value="info_desk">Information Desk</option>
+                        <option value="pharmacy">Pharmacy</option>
                       </select>
                     </div>
                     <div className="modal-form-group">

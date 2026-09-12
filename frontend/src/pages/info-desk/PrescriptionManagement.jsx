@@ -57,7 +57,7 @@ export default function PrescriptionManagement() {
   const [viewData, setViewData] = useState(null);
   const [encodingPrescriptionId, setEncodingPrescriptionId] = useState(null);
   const [form, setForm] = useState({ patient_id: '', admission_id: '', doctor_id: '', type: 'in_hospital', notes: '' });
-  const [items, setItems] = useState([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: 1, duration_unit: 'days', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
+  const [items, setItems] = useState([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -89,11 +89,11 @@ export default function PrescriptionManagement() {
   useEffect(() => { fetchPrescriptions(); fetchDropdowns(); }, []);
 
   function addItem() {
-    setItems([...items, { medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: 1, duration_unit: 'days', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
+    setItems([...items, { medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
   }
 
   function removeItem(idx) { if (items.length > 1) setItems(items.filter((_, i) => i !== idx)); }
-  function updateItem(idx, field, value) { 
+  function updateItem(idx, field, value) {
     setItems(items.map((it, i) => {
       if (i !== idx) return it;
       let updates = { [field]: value };
@@ -110,7 +110,7 @@ export default function PrescriptionManagement() {
 
   function openAdd() {
     setForm({ patient_id: '', admission_id: '', doctor_id: '', type: 'in_hospital', notes: '' });
-    setItems([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: 1, duration_unit: 'days', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
+    setItems([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
     setError('');
     setEncodeStep(1);
     setGeneratedQR('');
@@ -120,7 +120,7 @@ export default function PrescriptionManagement() {
 
   function openEncodeForPending(rx) {
     setForm({ patient_id: rx.patient_id, admission_id: rx.admission_id, doctor_id: rx.doctor_id, type: rx.type, notes: rx.notes || '' });
-    setItems([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: 1, duration_unit: 'days', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
+    setItems([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
     setError('');
     setEncodeStep(1);
     setGeneratedQR('');
@@ -141,10 +141,15 @@ export default function PrescriptionManagement() {
     if (encodeStep === 2) {
       try {
         let res;
+        const cleanedItems = items.map(item => ({
+          ...item,
+          dosage: `${item.dosage} ${item.dosage_unit}`
+        }));
+
         if (encodingPrescriptionId) {
-          res = await api.post(`/prescriptions/${encodingPrescriptionId}/items`, { items });
+          res = await api.post(`/prescriptions/${encodingPrescriptionId}/items`, { items: cleanedItems });
         } else {
-          res = await api.post('/prescriptions', { ...form, items });
+          res = await api.post('/prescriptions', { ...form, items: cleanedItems });
         }
         setGeneratedQR(res.data.qr_code);
         setGeneratedQRImage(res.data.qr_image || '');
@@ -260,7 +265,7 @@ export default function PrescriptionManagement() {
     try {
       const { data: qrRes } = await api.get(`/qr-codes/patient/${rx.patient_id}`);
       let qr = qrRes.data.find(q => String(q.prescription_id) === String(rx.id) && q.type === 'in_hospital');
-      
+
       const printWindow = window.open('', '', 'width=400,height=300');
       printWindow.document.write(`
         <html>
@@ -308,17 +313,26 @@ export default function PrescriptionManagement() {
     if (adm) setForm(f => ({ ...f, patient_id: patientId, admission_id: adm.id }));
   }
 
-  const handovers = prescriptions.filter(rx => rx.status === 'pending_encoding');
+  const isVisible = (rx) => {
+    if (rx.type === 'outpatient') return true;
+    return rx.admission_id != null; // Inpatient prescriptions are only visible if admission is confirmed
+  };
+
+  const handovers = prescriptions.filter(rx => rx.status === 'pending_encoding' && isVisible(rx));
   const handoverCount = handovers.length;
 
   const filtered = prescriptions.filter(rx => {
-    if (rx.status === 'pending_encoding') return false;
+    if (!isVisible(rx)) return false;
+    if (rx.status !== 'active') return false; // Show only ongoing medications
     if (activeTab === 'outpatient' && rx.type !== 'outpatient') return false;
     if (activeTab === 'inpatient' && rx.type === 'outpatient') return false;
     if (!search) return true;
     const name = `${rx.patient?.first_name} ${rx.patient?.last_name}`.toLowerCase();
     return name.includes(search.toLowerCase());
   });
+
+  const outpatientCount = prescriptions.filter(rx => rx.status === 'active' && rx.type === 'outpatient' && isVisible(rx)).length;
+  const inpatientCount = prescriptions.filter(rx => rx.status === 'active' && rx.type !== 'outpatient' && isVisible(rx)).length;
 
   if (modal === 'view' && viewData) {
     return (
@@ -361,25 +375,27 @@ export default function PrescriptionManagement() {
                 <div style={{ fontSize: '1.1rem', color: '#0f172a', fontWeight: 600 }}>{viewData.doctor?.first_name} {viewData.doctor?.last_name}</div>
                 <div style={{ color: '#475569', fontSize: '0.9rem', marginTop: 4 }}>Status: {viewData.status === 'active' ? 'Active' : viewData.status} | Type: {viewData.type?.replace('_', ' ')}</div>
               </div>
-              <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Assigned Nurse</div>
-                <select
-                  className="id-input"
-                  style={{ width: '100%', padding: '6px 12px', fontSize: '0.95rem' }}
-                  value={admissions.find(a => a.id === viewData.admission_id)?.assigned_nurse_id || ''}
-                  onChange={(e) => {
-                    const newNurseId = e.target.value;
-                    setAdmissions(admissions.map(a => a.id === viewData.admission_id ? { ...a, assigned_nurse_id: newNurseId } : a));
-                    handleAssignNurse(newNurseId);
-                  }}
-                >
-                  <option value="">-- Unassigned --</option>
-                  {nurses.map(n => (
-                    <option key={n.id} value={n.id}>{n.first_name} {n.last_name}</option>
-                  ))}
-                </select>
-                <div style={{ color: '#475569', fontSize: '0.8rem', marginTop: 4 }}>Assign before printing QR</div>
-              </div>
+              {viewData.type !== 'outpatient' && viewData.admission_id && (
+                <div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>Assigned Nurse</div>
+                  <select
+                    className="id-input"
+                    style={{ width: '100%', padding: '6px 12px', fontSize: '0.95rem' }}
+                    value={viewData.admission?.assigned_nurse_id || ''}
+                    onChange={(e) => {
+                      const newNurseId = e.target.value;
+                      setViewData({ ...viewData, admission: { ...viewData.admission, assigned_nurse_id: newNurseId } });
+                      handleAssignNurse(newNurseId);
+                    }}
+                  >
+                    <option value="">-- Unassigned --</option>
+                    {nurses.map(n => (
+                      <option key={n.id} value={n.id}>{n.first_name} {n.last_name}</option>
+                    ))}
+                  </select>
+                  <div style={{ color: '#475569', fontSize: '0.8rem', marginTop: 4 }}>Assign before printing QR</div>
+                </div>
+              )}
             </div>
 
             <div style={{ borderTop: '2px solid #f1f5f9', paddingTop: 32, marginBottom: 32 }}>
@@ -402,10 +418,10 @@ export default function PrescriptionManagement() {
                         {it.medication_name}
                         {it.instructions && <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 4, fontWeight: 400 }}>Note: {it.instructions}</div>}
                       </td>
-                      <td style={{ padding: '16px 8px', color: '#334155' }}>{it.dosage} {it.dosage_unit}</td>
+                      <td style={{ padding: '16px 8px', color: '#334155' }}>{it.dosage}</td>
                       <td style={{ padding: '16px 8px', color: '#334155' }}>{it.frequency}x {it.frequency_unit}</td>
                       <td style={{ padding: '16px 8px', color: '#334155' }}>{it.start_time ? `${it.start_time.slice(0, 5)}` : 'Auto'} {it.interval_hours ? ` (q${it.interval_hours}h)` : ''}</td>
-                      <td style={{ padding: '16px 8px', color: '#334155' }}>{it.duration} {it.duration_unit}</td>
+                      <td style={{ padding: '16px 8px', color: '#334155' }}>{it.duration}</td>
                       <td style={{ padding: '16px 8px', color: '#334155' }}>{it.route?.replace('_', ' ')}</td>
                     </tr>
                   ))}
@@ -549,7 +565,7 @@ export default function PrescriptionManagement() {
               transition: 'all 0.2s'
             }}
           >
-            Outpatient
+            Outpatient ({outpatientCount})
           </button>
           <button
             onClick={() => setActiveTab('inpatient')}
@@ -561,7 +577,7 @@ export default function PrescriptionManagement() {
               transition: 'all 0.2s'
             }}
           >
-            Admitted
+            Admitted ({inpatientCount})
           </button>
         </div>
 
@@ -607,12 +623,12 @@ export default function PrescriptionManagement() {
         <div style={overlay} onClick={() => setModal(null)}>
           <div style={{ ...modalBox, maxWidth: 720 }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid #f1f5f9' }}>
-              <h3 style={{ margin: 0 }}>
+              <h3 style={{ margin: 0, color: '#0f172a' }}>
                 {encodeStep === 1 ? 'Step 1: Encode Prescription' :
                   encodeStep === 2 ? 'Step 2: Review Prescription' :
                     'Step 3: Generate QR Code'}
               </h3>
-              <button onClick={() => setModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
+              <button type="button" onClick={() => setModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
             </div>
             <form id="encode-prescription-form" onSubmit={handleSubmit}>
               <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '60vh', overflowY: 'auto' }}>
@@ -620,30 +636,9 @@ export default function PrescriptionManagement() {
 
                 {encodeStep === 1 && (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                      <div><label style={lbl}>Patient *</label>
-                        <select style={inp} value={form.patient_id} onChange={e => onPatientChange(e.target.value)} required disabled={!!encodingPrescriptionId}>
-                          <option value="">Select Patient</option>
-                          {patients.map(p => <option key={p.id} value={p.id}>{p.first_name} {p.last_name}</option>)}
-                        </select></div>
-                      <div><label style={lbl}>Prescribing Doctor *</label>
-                        <select style={inp} value={form.doctor_id} onChange={e => setForm({ ...form, doctor_id: e.target.value })} required disabled={!!encodingPrescriptionId}>
-                          <option value="">Select Doctor</option>
-                          {doctors.map(d => <option key={d.id} value={d.id}>{d.first_name} {d.last_name}</option>)}
-                        </select></div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                      <div><label style={lbl}>Type</label>
-                        <select style={inp} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
-                          <option value="in_hospital">In Hospital</option><option value="discharge">Discharge</option>
-                        </select></div>
-                      <div><label style={lbl}>Notes</label>
-                        <input style={inp} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Optional notes..." /></div>
-                    </div>
-
-                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 16 }}>
+                    <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>Medication Items</h4>
+                        <h4 style={{ margin: 0, fontSize: '0.95rem', color: '#0f172a' }}>Medication Items</h4>
                         <button type="button" className="action-btn outline" onClick={addItem}><Plus size={14} /> Add Item</button>
                       </div>
                       {items.map((it, idx) => (
@@ -655,21 +650,21 @@ export default function PrescriptionManagement() {
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
                             <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Medication *</label><input style={inp} value={it.medication_name} onChange={e => updateItem(idx, 'medication_name', e.target.value)} required list={`med-list-${idx}`} />
                               <datalist id={`med-list-${idx}`}>{medications.map(m => <option key={m.id} value={m.name} />)}</datalist></div>
-                            <div><label style={lbl}>Dosage *</label><input style={inp} value={it.dosage} onChange={e => updateItem(idx, 'dosage', e.target.value)} required placeholder="e.g. 500" /></div>
-                            <div><label style={lbl}>Unit</label>
-                              <select style={inp} value={it.dosage_unit} onChange={e => updateItem(idx, 'dosage_unit', e.target.value)}>
-                                <option>mg</option><option>ml</option><option>g</option><option>mcg</option><option>IU</option>
-                              </select></div>
+                            <div style={{ gridColumn: 'span 2' }}>
+                              <label style={lbl}>Dosage *</label>
+                              <div style={{ display: 'flex' }}>
+                                <input style={{ ...inp, borderRight: 'none', borderTopRightRadius: 0, borderBottomRightRadius: 0, flex: 1 }} value={it.dosage} onChange={e => updateItem(idx, 'dosage', e.target.value)} required placeholder="e.g. 500" />
+                                <select style={{ ...inp, borderLeft: '1px solid #cbd5e1', borderTopLeftRadius: 0, borderBottomLeftRadius: 0, width: '80px', background: '#f8fafc' }} value={it.dosage_unit} onChange={e => updateItem(idx, 'dosage_unit', e.target.value)}>
+                                  <option>mg</option><option>ml</option><option>g</option><option>mcg</option><option>IU</option>
+                                </select>
+                              </div>
+                            </div>
                             <div><label style={lbl}>Frequency</label><input type="number" min="1" style={inp} value={it.frequency} onChange={e => updateItem(idx, 'frequency', e.target.value)} /></div>
                             <div><label style={lbl}>Freq Unit</label>
                               <select style={inp} value={it.frequency_unit} onChange={e => updateItem(idx, 'frequency_unit', e.target.value)}>
                                 <option value="hourly">Hourly</option><option value="daily">Daily</option><option value="weekly">Weekly</option>
                               </select></div>
-                            <div><label style={lbl}>Duration</label><input type="number" min="1" style={inp} value={it.duration} onChange={e => updateItem(idx, 'duration', e.target.value)} /></div>
-                            <div><label style={lbl}>Dur Unit</label>
-                              <select style={inp} value={it.duration_unit} onChange={e => updateItem(idx, 'duration_unit', e.target.value)}>
-                                <option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option>
-                              </select></div>
+                            <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Duration</label><input style={inp} value={it.duration} onChange={e => updateItem(idx, 'duration', e.target.value)} placeholder="e.g. 7 Days" /></div>
                             <div><label style={lbl}>Route</label>
                               <select style={inp} value={it.route} onChange={e => updateItem(idx, 'route', e.target.value)}>
                                 <option>oral</option><option>IV</option><option>IM</option><option>SC</option><option>topical</option><option>inhalation</option>
@@ -689,7 +684,7 @@ export default function PrescriptionManagement() {
                 {encodeStep === 2 && (
                   <div style={{ background: '#f8fafc', padding: 24, borderRadius: 8, border: '1px solid #e2e8f0', color: '#334155' }}>
                     <h3 style={{ marginTop: 0, marginBottom: 16, color: '#0f172a', borderBottom: '2px solid #cbd5e1', paddingBottom: 8 }}>Prescription Summary</h3>
-                    
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                       <div>
                         <span style={{ display: 'block', fontSize: '0.85rem', color: '#64748b', marginBottom: 4 }}>Patient</span>
@@ -720,10 +715,10 @@ export default function PrescriptionManagement() {
                             <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: 4, fontSize: '0.8rem', fontWeight: 600 }}>{it.route}</span>
                           </div>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, fontSize: '0.9rem' }}>
-                            <div><span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Dosage</span><strong style={{ color: '#1e293b' }}>{it.dosage} {it.dosage_unit}</strong></div>
+                            <div><span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Dosage</span><strong style={{ color: '#1e293b' }}>{it.dosage}</strong></div>
                             <div><span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Frequency</span><strong style={{ color: '#1e293b' }}>{it.frequency}x {it.frequency_unit}</strong></div>
                             <div><span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Schedule</span><strong style={{ color: '#1e293b' }}>{it.start_time ? `${it.start_time.slice(0, 5)}` : 'Auto'} {it.interval_hours ? ` (q${it.interval_hours}h)` : ''}</strong></div>
-                            <div><span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Duration</span><strong style={{ color: '#1e293b' }}>{it.duration} {it.duration_unit}</strong></div>
+                            <div><span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', marginBottom: 2 }}>Duration</span><strong style={{ color: '#1e293b' }}>{it.duration}</strong></div>
                           </div>
                           {it.instructions && (
                             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed #e2e8f0', fontSize: '0.85rem' }}>
@@ -769,18 +764,103 @@ export default function PrescriptionManagement() {
                   <>
                     <button type="button" className="action-btn outline" onClick={() => setModal(null)}>Done</button>
                     <button type="button" className="action-btn primary" onClick={() => {
-                      const pw = window.open('', '', 'width=600,height=600');
-                      pw.document.write(`
-                         <html><head><title>Prescription QR</title></head>
-                         <body style="text-align:center; padding: 50px; font-family: sans-serif;">
-                           <h3 style="color:#475569; margin-bottom:8px">PMed-Aid</h3>
-                           <img src="${generatedQRImage}" style="width:250px;height:250px" />
-                           <p style="margin-top:16px; font-size:0.9rem; color:#64748b">Scan to confirm medication administration.</p>
-                           <p style="font-size:0.8rem; color:#94a3b8; word-break:break-all">${generatedQR}</p>
-                           <script>setTimeout(function(){window.print()},300);</script>
-                         </body></html>
-                       `);
-                      pw.document.close();
+                      if (form.type === 'outpatient' || form.type === 'discharge') {
+                        const pat = patients.find(p => String(p.id) === String(form.patient_id));
+                        const doc = doctors.find(d => String(d.id) === String(form.doctor_id));
+                        const pw = window.open('', '', 'width=800,height=800');
+                        pw.document.write(`
+                          <html>
+                            <head>
+                              <title>Outpatient Prescription & QR</title>
+                              <style>${PRESCRIPTION_CSS}</style>
+                            </head>
+                            <body>
+                              <div class="rx-doc-wrapper">
+                                <div class="rx-doc-page" id="prescription-print-area">
+                                  <header class="rx-doc-header">
+                                    <div class="rx-doc-hospital-name">PMed-Aid General Hospital</div>
+                                    <div class="rx-doc-hospital-meta">
+                                      Metro City &nbsp;•&nbsp; www.pmed-aid.com
+                                    </div>
+                                  </header>
+
+                                  <section class="rx-doc-patient-info">
+                                    <div>
+                                      <span class="rx-doc-label">Patient</span>
+                                      <span class="rx-doc-value">${pat?.first_name} ${pat?.last_name}</span>
+                                    </div>
+                                    <div>
+                                      <span class="rx-doc-label">MRN</span>
+                                      <span class="rx-doc-value">MRN-${form.patient_id.toString().padStart(5, '0')}</span>
+                                    </div>
+                                    <div>
+                                      <span class="rx-doc-label">Attending Physician</span>
+                                      <span class="rx-doc-value">${doc?.first_name || 'N/A'} ${doc?.last_name || ''}</span>
+                                    </div>
+                                    <div>
+                                      <span class="rx-doc-label">Date Issued</span>
+                                      <span class="rx-doc-value">
+                                        ${new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })}
+                                      </span>
+                                    </div>
+                                  </section>
+
+                                  <section class="rx-doc-rx-section">
+                                    <h2 class="rx-doc-section-title">${form.type === 'discharge' ? 'Discharge' : 'Outpatient'} Medications</h2>
+                                    ${items && items.length > 0 ? `
+                                      <table class="rx-doc-table">
+                                        <thead>
+                                          <tr><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Instructions</th></tr>
+                                        </thead>
+                                        <tbody>
+                                          ${items.map(item => `
+                                            <tr>
+                                              <td class="rx-doc-med-name">${item.medication_name}</td>
+                                              <td>${item.dosage} ${item.dosage_unit}</td>
+                                              <td>${item.frequency}x ${item.frequency_unit}</td>
+                                              <td>${item.instructions || '-'}</td>
+                                            </tr>
+                                          `).join('')}
+                                        </tbody>
+                                      </table>
+                                    ` : '<p style="text-align: center; color: #5a6478; margin-bottom: 30px;">No medications prescribed.</p>'}
+                                  </section>
+
+                                  <section class="rx-doc-qr-section">
+                                    ${generatedQRImage ? `<img src="${generatedQRImage}" class="rx-doc-qr-img" />` : '<p>No QR Code generated</p>'}
+                                    <p class="rx-doc-qr-caption">
+                                      Scan this code to link your records and view your prescriptions in the patient portal.
+                                    </p>
+                                    <p style="font-family: monospace; font-size: 10px; margin-top: 5px;">${generatedQR}</p>
+                                  </section>
+
+                                  <footer class="rx-doc-footer">
+                                    <div class="rx-doc-signature-line">
+                                      <span>${doc?.first_name || 'N/A'} ${doc?.last_name || ''}</span>
+                                      <span class="rx-doc-signature-label">Physician's Signature</span>
+                                    </div>
+                                  </footer>
+                                </div>
+                              </div>
+                              <script>setTimeout(function(){window.print()},300);</script>
+                            </body>
+                          </html>
+                        `);
+                        pw.document.close();
+                      } else {
+                        const pw = window.open('', '', 'width=600,height=600');
+                        pw.document.write(`
+                           <html><head><title>Prescription QR</title></head>
+                           <body style="text-align:center; padding: 50px; font-family: sans-serif;">
+                             <h3 style="color:#475569; margin-bottom:8px">PMed-Aid</h3>
+                             <img src="${generatedQRImage}" style="width:250px;height:250px" />
+                             <p style="margin-top:16px; font-size:0.9rem; color:#64748b">Scan to confirm medication administration.</p>
+                             <p style="font-size:0.8rem; color:#94a3b8; word-break:break-all">${generatedQR}</p>
+                             <script>setTimeout(function(){window.print()},300);</script>
+                           </body></html>
+                         `);
+                        pw.document.close();
+                      }
                     }}>
                       <QrCode size={16} style={{ marginRight: 6 }} /> Print QR Code
                     </button>

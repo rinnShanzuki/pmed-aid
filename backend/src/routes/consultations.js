@@ -32,4 +32,7 @@ router.post('/:id/request-admission', auth, roleGuard(['admin', 'doctor']), cons
 // Doctor completes outpatient consultation
 router.post('/:id/complete-outpatient', auth, roleGuard(['admin', 'doctor']), consultationController.completeOutpatient);
 
+// Doctor hands over consultation prescription to info desk
+router.post('/:id/handover', auth, roleGuard(['admin', 'doctor']), consultationController.handoverPrescription);
+
 module.exports = router;

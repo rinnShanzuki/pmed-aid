@@ -10,7 +10,8 @@ import AdminLayout from './components/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import PatientManagement from './pages/admin/PatientManagement';
-import MedicationManagement from './pages/admin/MedicationManagement';
+import PatientRecordAdmin from './pages/admin/PatientRecord';
+
 import ReportsAnalytics from './pages/admin/ReportsAnalytics';
 import SystemSettings from './pages/admin/SystemSettings';
 
@@ -31,7 +32,8 @@ import PharmacyLayout from './components/pharmacy/PharmacyLayout';
 // Doctor
 import DoctorLayout from './components/doctor/DoctorLayout';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
-import PatientRecords from './pages/doctor/PatientRecords';
+import MyPatients from './pages/doctor/MyPatients';
+import PatientRecordDoctor from './pages/doctor/PatientRecord';
 import Consultations from './pages/doctor/Consultations';
 import Prescriptions from './pages/doctor/Prescriptions';
 import MedicationPlans from './pages/doctor/MedicationPlans';
@@ -57,7 +59,7 @@ import AdherenceHistory from './pages/patient/AdherenceHistory';
 // ─── Placeholder dashboards (replaced with real pages later) ───────
 function PlaceholderDash({ role }) {
   const { logout } = useAuth();
-  const navigate   = useNavigate();
+  const navigate = useNavigate();
 
   async function handleLogout() {
     await logout();
@@ -65,11 +67,11 @@ function PlaceholderDash({ role }) {
   }
 
   const roleColors = {
-    admin:     '#a78bfa',
+    admin: '#a78bfa',
     info_desk: '#38bdf8',
-    doctor:    '#34d399',
-    nurse:     '#fb923c',
-    patient:   '#f472b6',
+    doctor: '#34d399',
+    nurse: '#fb923c',
+    patient: '#f472b6',
   };
 
   return (
@@ -140,8 +142,8 @@ export default function App() {
       <AuthProvider>
         <Routes>
           {/* ── Public ── */}
-          <Route path="/login"        element={<AuthPage />} />
-          <Route path="/register"     element={<AuthPage />} />
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/register" element={<AuthPage />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
           {/* ── General Dashboard (no sidebar, shared by admin & info_desk) ── */}
@@ -157,12 +159,13 @@ export default function App() {
               <AdminLayout />
             </ProtectedRoute>
           }>
-            <Route index               element={<AdminDashboard />} />
-            <Route path="users"        element={<UserManagement />} />
-            <Route path="patients"     element={<PatientManagement />} />
-            <Route path="medications"  element={<MedicationManagement />} />
-            <Route path="reports"      element={<ReportsAnalytics />} />
-            <Route path="settings"     element={<SystemSettings />} />
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<UserManagement />} />
+            <Route path="patients" element={<PatientManagement />} />
+            <Route path="patients/:id" element={<PatientRecordAdmin />} />
+
+            <Route path="reports" element={<ReportsAnalytics />} />
+            <Route path="settings" element={<SystemSettings />} />
           </Route>
 
           {/* ── Information Desk (nested) ── */}
@@ -171,12 +174,12 @@ export default function App() {
               <InfoDeskLayout />
             </ProtectedRoute>
           }>
-            <Route index               element={<InfoDeskDashboard />} />
+            <Route index element={<InfoDeskDashboard />} />
             <Route path="registration" element={<PatientRegistration />} />
-            <Route path="admissions"   element={<AdmissionManagement />} />
-            <Route path="monitoring"   element={<PatientMonitoring />} />
+            <Route path="admissions" element={<AdmissionManagement />} />
+            <Route path="monitoring" element={<PatientMonitoring />} />
             <Route path="prescriptions" element={<PrescriptionManagement />} />
-            <Route path="qr-codes"     element={<QrCodeManagement />} />
+            <Route path="qr-codes" element={<QrCodeManagement />} />
             <Route path="patients/:id" element={<PatientRecord />} />
             {/* <Route path="billing"      element={<BillingExpenses />} /> */}
           </Route>
@@ -197,7 +200,8 @@ export default function App() {
             </ProtectedRoute>
           }>
             <Route index element={<DoctorDashboard />} />
-            <Route path="patients" element={<PatientRecords />} />
+            <Route path="patients" element={<MyPatients />} />
+            <Route path="patients/:id" element={<PatientRecordDoctor />} />
             <Route path="consultations" element={<Consultations />} />
             <Route path="prescriptions" element={<Prescriptions />} />
             <Route path="medication-plans" element={<MedicationPlans />} />
@@ -232,8 +236,8 @@ export default function App() {
           </Route>
 
           {/* ── Default ── */}
-          <Route path="/"  element={<Navigate to="/login" replace />} />
-          <Route path="*"  element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

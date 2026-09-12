@@ -3,7 +3,7 @@ const { Op } = require('sequelize');
 const { notifyInfoDesk, createNotification } = require('../utils/notificationHelper');
 
 const SCHEDULE_INCLUDES = [
-  { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'dosage_unit', 'route'] },
+  { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'route'] },
   { model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] },
   { model: User, as: 'administeredBy', attributes: ['id', 'first_name', 'last_name'] },
 ];
@@ -11,9 +11,9 @@ const SCHEDULE_INCLUDES = [
 exports.getAll = async (req, res, next) => {
   try {
     const where = {};
-    if (req.query.patient_id)   where.patient_id   = req.query.patient_id;
-    if (req.query.admission_id) where.admission_id  = req.query.admission_id;
-    if (req.query.status)       where.status        = req.query.status;
+    if (req.query.patient_id) where.patient_id = req.query.patient_id;
+    if (req.query.admission_id) where.admission_id = req.query.admission_id;
+    if (req.query.status) where.status = req.query.status;
     if (req.query.date) {
       const d = new Date(req.query.date);
       const next = new Date(d); next.setDate(next.getDate() + 1);
@@ -21,7 +21,7 @@ exports.getAll = async (req, res, next) => {
     }
 
     let scheduleIncludes = [...SCHEDULE_INCLUDES];
-    
+
     if (req.user.role === 'nurse') {
       const { Admission } = require('../models');
       scheduleIncludes.push({
@@ -68,7 +68,7 @@ exports.administer = async (req, res, next) => {
     if (schedule.status === 'administered') return res.status(400).json({ success: false, message: 'Already administered.' });
 
     const newStatus = req.body.status || 'administered'; // could be 'refused' or 'pending'
-    
+
     const administered_by = req.body.administered_by || req.user.id;
 
     if (newStatus === 'pending') {
@@ -127,7 +127,7 @@ exports.administer = async (req, res, next) => {
 
     const fullSchedule = await MedicationSchedule.findByPk(schedule.id, {
       include: [
-        { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'dosage_unit'] },
+        { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage'] },
         { model: Patient, as: 'patient', attributes: ['first_name', 'last_name'] },
       ],
     });

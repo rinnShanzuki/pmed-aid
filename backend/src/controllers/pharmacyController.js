@@ -57,7 +57,7 @@ exports.getPendingPickups = async (req, res, next) => {
           model: PrescriptionItem, as: 'items',
           where: { status: 'active' },
           required: false,
-          attributes: ['id', 'medication_name', 'dosage', 'dosage_unit', 'frequency', 'frequency_unit', 'duration', 'duration_unit', 'route', 'instructions'],
+          attributes: ['id', 'medication_name', 'dosage', 'frequency', 'frequency_unit', 'duration', 'route', 'instructions'],
         },
       ],
       order: [['createdAt', 'DESC']],

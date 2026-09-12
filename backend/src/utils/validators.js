@@ -46,7 +46,7 @@ const patientValidator = [
   body('last_name').notEmpty().trim().withMessage('Last name is required'),
   body('date_of_birth').isDate().withMessage('Valid date of birth is required'),
   body('gender').isIn(['male', 'female', 'other']).withMessage('Valid gender is required'),
-  body('contact_number').notEmpty().withMessage('Contact number is required'),
+  body('contact_number').optional({ checkFalsy: true }).isString(),
 ];
 
 // ==========================================
@@ -78,14 +78,14 @@ const prescriptionValidator = [
   body('items.*.medication_name').notEmpty().withMessage('Medication name is required'),
   body('items.*.dosage').notEmpty().withMessage('Dosage is required'),
   body('items.*.frequency').isInt({ min: 1 }).withMessage('Frequency must be at least 1'),
-  body('items.*.duration').isInt({ min: 1 }).withMessage('Duration must be at least 1'),
+  body('items.*.duration').notEmpty().withMessage('Duration is required'),
 ];
 
 const prescriptionItemValidator = [
   body('medication_name').notEmpty().withMessage('Medication name is required'),
   body('dosage').notEmpty().withMessage('Dosage is required'),
   body('frequency').isInt({ min: 1 }).withMessage('Frequency must be at least 1'),
-  body('duration').isInt({ min: 1 }).withMessage('Duration must be at least 1'),
+  body('duration').notEmpty().withMessage('Duration is required'),
 ];
 
 // ==========================================

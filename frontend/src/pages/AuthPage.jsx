@@ -114,7 +114,7 @@ export default function AuthPage() {
         if (from) {
           const roleRoot = ROLE_REDIRECTS[user.role];
           const adminRoots = ['/admin', '/info-desk']; // Admin has access to both
-          
+
           if (user.role === 'admin' && adminRoots.some(r => from.startsWith(r))) {
             dest = from;
           } else if (from.startsWith(roleRoot)) {
@@ -176,7 +176,7 @@ export default function AuthPage() {
       if (from) {
         const roleRoot = ROLE_REDIRECTS[user.role];
         const adminRoots = ['/admin', '/info-desk'];
-        
+
         if (user.role === 'admin' && adminRoots.some(r => from.startsWith(r))) {
           dest = from;
         } else if (from.startsWith(roleRoot)) {
@@ -334,6 +334,19 @@ export default function AuthPage() {
                   <input type={showRegPass ? 'text' : 'password'} id="qr-password" name="password"
                     placeholder="Enter Password" value={regForm.password} onChange={handleRegChange}
                     disabled={regLoading} required />
+                  <button type="button" className="toggle-pass" onClick={() => setShowRegPass(!showRegPass)} tabIndex="-1">
+                    {showRegPass ? (
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
               <div className="form-group">
@@ -342,6 +355,19 @@ export default function AuthPage() {
                   <input type={showRegPass ? 'text' : 'password'} id="qr-confirm" name="confirm"
                     placeholder="Confirm Password" value={regForm.confirm} onChange={handleRegChange}
                     disabled={regLoading} required />
+                  <button type="button" className="toggle-pass" onClick={() => setShowRegPass(!showRegPass)} tabIndex="-1">
+                    {showRegPass ? (
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
@@ -376,7 +402,7 @@ export default function AuthPage() {
         {/* ─── Login Form Panel (sits on the right by default) ─── */}
         <div className="auth-form-panel auth-panel-login">
           <div className="auth-card">
-            <div className="auth-card-header"><h2>Welcome back</h2></div>
+
             {loginError && <div className="auth-error">{loginError}</div>}
             <form className="auth-form" onSubmit={handleLoginSubmit}>
               <div className="form-group">
@@ -392,7 +418,7 @@ export default function AuthPage() {
                   <input type={showLoginPass ? 'text' : 'password'} id="login-password" name="password"
                     placeholder="Enter Password" value={loginForm.password} onChange={handleLoginChange}
                     disabled={loginLoading} required />
-                  <button type="button" className="btn-icon pass-toggle" onClick={() => setShowLoginPass(!showLoginPass)} tabIndex="-1">
+                  <button type="button" className="toggle-pass" onClick={() => setShowLoginPass(!showLoginPass)} tabIndex="-1">
                     {showLoginPass ? (
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path>
@@ -466,6 +492,19 @@ export default function AuthPage() {
                     <input type={showRegPass ? 'text' : 'password'} id="reg-password" name="password"
                       placeholder="Enter Password" value={regForm.password} onChange={handleRegChange}
                       disabled={regLoading} required />
+                    <button type="button" className="toggle-pass" onClick={() => setShowRegPass(!showRegPass)} tabIndex="-1">
+                      {showRegPass ? (
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </div>
                 <div className="form-group">
@@ -474,6 +513,19 @@ export default function AuthPage() {
                     <input type={showRegPass ? 'text' : 'password'} id="reg-confirm" name="confirm"
                       placeholder="Confirm Password" value={regForm.confirm} onChange={handleRegChange}
                       disabled={regLoading} required />
+                    <button type="button" className="toggle-pass" onClick={() => setShowRegPass(!showRegPass)} tabIndex="-1">
+                      {showRegPass ? (
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"></path>
+                          <line x1="1" y1="1" x2="23" y2="23"></line>
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      )}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -525,7 +577,7 @@ export default function AuthPage() {
               <div className="auth-brand-inner">
                 <h1 className="auth-brand-welcome">Welcome to</h1>
                 <div className="auth-logo">
-                  <svg viewBox="0 0 24 24" width="48" height="48"><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6v-2z" fill="#1d64c1" /></svg>
+                  <img src="/pmed-logo.png" alt="PMed-Aid Logo" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
                 </div>
                 <h2 className="auth-brand-name">PMed-Aid</h2>
                 <p className="auth-brand-tagline">Manage hospital operations, track patient medications, and connect with healthcare professionals in one unified platform.</p>
@@ -535,7 +587,7 @@ export default function AuthPage() {
               <div className="auth-brand-inner">
                 <h1 className="auth-brand-welcome">Welcome to</h1>
                 <div className="auth-logo">
-                  <svg viewBox="0 0 24 24" width="48" height="48"><path d="M19 11h-6V5h-2v6H5v2h6v6h2v-6h6v-2z" fill="#1d64c1" /></svg>
+                  <img src="/pmed-logo.png" alt="PMed-Aid Logo" style={{ width: '80px', height: '80px', objectFit: 'contain' }} />
                 </div>
                 <h2 className="auth-brand-name">PMed-Aid</h2>
                 <p className="auth-brand-tagline">Manage hospital operations, track patient medications, and connect with healthcare professionals in one unified platform.</p>

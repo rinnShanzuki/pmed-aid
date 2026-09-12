@@ -7,7 +7,7 @@ exports.create = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-    const { patient_id, room_id, attending_doctor_id, notes, consultation_id, department, reason_for_admission, treatment_plan, progress_notes, nurse_notes, final_diagnosis, condition_at_discharge, discharge_summary, discharge_assessment, follow_up_date, follow_up_instructions } = req.body;
+    const { patient_id, room_id, attending_doctor_id, assigned_nurse_id, notes, consultation_id, department, reason_for_admission, treatment_plan, progress_notes, nurse_notes, final_diagnosis, condition_at_discharge, discharge_summary, discharge_assessment, follow_up_date, follow_up_instructions } = req.body;
 
     const room = await Room.findByPk(room_id);
     if (!room) return res.status(404).json({ success: false, message: 'Room not found.' });
@@ -20,6 +20,7 @@ exports.create = async (req, res, next) => {
       room_id,
       admitted_by: req.user.id,
       attending_doctor_id,
+      assigned_nurse_id: assigned_nurse_id || null,
       admission_date: new Date(),
       notes,
       department,
@@ -40,6 +41,12 @@ exports.create = async (req, res, next) => {
       if (consultation) {
         await consultation.update({ admission_id: admission.id, status: 'admitted' });
       }
+
+      // Link any prescriptions created during this consultation to the new admission
+      await Prescription.update(
+        { admission_id: admission.id },
+        { where: { consultation_id } }
+      );
     }
 
     // Auto-generate in-hospital QR code
@@ -84,6 +91,7 @@ exports.getAll = async (req, res, next) => {
     if (req.query.assigned_nurse_id) where.assigned_nurse_id = req.query.assigned_nurse_id;
     if (req.query.patient_id) where.patient_id = req.query.patient_id;
     if (req.user && req.user.role === 'nurse') where.assigned_nurse_id = req.user.id;
+    if (req.user && req.user.role === 'doctor') where.attending_doctor_id = req.user.id;
 
     const admissions = await Admission.findAll({
       where,

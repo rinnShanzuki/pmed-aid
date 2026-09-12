@@ -35,7 +35,7 @@ exports.scan = async (req, res, next) => {
     const now = new Date();
     const updateData = { last_scan_date: now };
     if (!qrCode.first_scan_date) updateData.first_scan_date = now;
-    
+
     await qrCode.update(updateData);
 
     const today = new Date(now);

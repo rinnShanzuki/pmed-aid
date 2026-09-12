@@ -1,6 +1,7 @@
 require('dotenv').config();
 const app = require('./app');
 const { sequelize, User, Patient, Room, Admission, Prescription, PrescriptionItem, MedicationSchedule, QrCode } = require('./models');
+const { startMonitor } = require('./cron/adherenceMonitor');
 
 const PORT = process.env.PORT || 5000;
 
@@ -11,8 +12,6 @@ async function ensureDefaultAccounts() {
       { email: 'infodesk@hospital.local', password: 'infodesk123', first_name: 'Rinn', last_name: 'Espinosa', role: 'info_desk' },
       { email: 'doctor@hospital.local', password: 'doctor123', first_name: 'Dr. Ruiz', last_name: 'Cruz', role: 'doctor' },
       { email: 'nurse@hospital.local', password: 'nurse123', first_name: 'Maria', last_name: 'Santos', role: 'nurse' },
-      { email: 'patient@hospital.local', password: 'patient123', first_name: 'John', last_name: 'Doe', role: 'patient' },
-      { email: 'patient@test.com', password: 'patient123', first_name: 'Jane', last_name: 'Smith', role: 'patient' },
       { email: 'pharmacy@hospital.local', password: 'pharmacy123', first_name: 'Pharm', last_name: 'Manager', role: 'pharmacy' }
     ];
 
@@ -162,6 +161,7 @@ function startServer() {
       console.log('✅ Database models synced');
 
       await ensureDefaultAccounts();
+      startMonitor();
     } catch (error) {
       console.error('❌ Database initialization warning:', error.message);
     }
@@ -169,3 +169,5 @@ function startServer() {
 }
 
 startServer();
+
+

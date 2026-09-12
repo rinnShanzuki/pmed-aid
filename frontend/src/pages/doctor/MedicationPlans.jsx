@@ -46,7 +46,7 @@ export default function MedicationPlans() {
         ) : filtered.map(rx => {
           // Find if there are schedules for this patient
           const patientSched = schedules.find(s => s.patient_id === rx.patient_id);
-          
+
           return (
             <div key={rx.id} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, background: '#f8fafc' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -56,14 +56,14 @@ export default function MedicationPlans() {
                 </div>
                 <span className={`badge ${rx.status === 'active' ? 'active' : 'inactive'}`}>{rx.status}</span>
               </div>
-              
+
               <div style={{ display: 'grid', gap: 12 }}>
                 {rx.items?.map((it, idx) => (
                   <div key={idx} style={{ background: 'white', padding: 16, borderRadius: 8, border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <strong style={{ display: 'block', fontSize: '0.95rem' }}>{it.medication_name}</strong>
                       <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                        {it.dosage} {it.dosage_unit} • {it.frequency}x {it.frequency_unit} • For {it.duration} {it.duration_unit} ({it.route})
+                        {it.dosage} • {it.frequency}x {it.frequency_unit} • For {it.duration} ({it.route})
                       </span>
                     </div>
                   </div>

@@ -10,7 +10,7 @@ export default function MedAdministration() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending'); // pending, completed, missed
   const [search, setSearch] = useState('');
-  
+
   const [scanModal, setScanModal] = useState(null);
   const [scanError, setScanError] = useState('');
   const [scanSuccess, setScanSuccess] = useState('');
@@ -24,13 +24,13 @@ export default function MedAdministration() {
       setScanError('');
       setScanSuccess('');
       const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
-      
+
       let isProcessing = false;
       scanner.render(
         async (decodedText) => {
           if (isProcessing) return;
           isProcessing = true;
-          
+
           try {
             const { data } = await api.post('/qr-codes/verify', { code: decodedText });
             if (!data.data.is_active || data.data.type !== 'in_hospital') {
@@ -43,7 +43,7 @@ export default function MedAdministration() {
               isProcessing = false;
               return;
             }
-            
+
             // Match! Administer the dose.
             setScanSuccess('Patient verified! Administering dose...');
             await scanner.clear();
@@ -62,7 +62,7 @@ export default function MedAdministration() {
         }
       );
       return () => {
-        scanner.clear().catch(() => {});
+        scanner.clear().catch(() => { });
       };
     }
   }, [scanModal]);
@@ -140,7 +140,7 @@ export default function MedAdministration() {
                     <td><strong>{s.patient?.first_name} {s.patient?.last_name}</strong></td>
                     <td>
                       <div style={{ fontWeight: 600 }}>{s.prescriptionItem?.medication_name}</div>
-                      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{s.prescriptionItem?.dosage} {s.prescriptionItem?.dosage_unit}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{s.prescriptionItem?.dosage}</div>
                     </td>
                     <td style={{ color: '#64748b' }}>{s.prescriptionItem?.route?.replace('_', ' ')}</td>
                     <td>
@@ -158,7 +158,7 @@ export default function MedAdministration() {
                     {filter === 'completed' && (
                       <td style={{ fontSize: '0.85rem', color: '#64748b' }}>
                         {s.administeredBy ? `${s.administeredBy.first_name} ${s.administeredBy.last_name}` : 'Unknown'}
-                        <br/>
+                        <br />
                         {s.administered_at && new Date(s.administered_at).toLocaleTimeString()}
                       </td>
                     )}
@@ -179,11 +179,11 @@ export default function MedAdministration() {
                 Verify identity for: <strong>{scanModal.patient?.first_name} {scanModal.patient?.last_name}</strong>
               </p>
             </div>
-            
+
             <div style={{ padding: '24px' }}>
               {scanError && <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: 8, marginBottom: 16, fontWeight: 500, textAlign: 'center' }}>{scanError}</div>}
               {scanSuccess && <div style={{ padding: '12px', background: '#dcfce7', color: '#166534', borderRadius: 8, marginBottom: 16, fontWeight: 500, textAlign: 'center' }}>{scanSuccess}</div>}
-              
+
               <div id="reader" style={{ width: '100%', border: 'none', borderRadius: 8, overflow: 'hidden' }}></div>
             </div>
 

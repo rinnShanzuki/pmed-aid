@@ -1,10 +1,11 @@
-const { Consultation, Patient, User, QrCode, AuditLog, Prescription } = require('../models');
+const { Consultation, Patient, User, QrCode, AuditLog, Prescription, Notification } = require('../models');
 const { validationResult } = require('express-validator');
 const { notifyInfoDesk } = require('../utils/notificationHelper');
+const sequelize = require('../config/db');
 
 exports.create = async (req, res, next) => {
   try {
-    const { patient_id, doctor_id, notes, department, chief_complaint, hpi, symptoms, findings, vital_signs, assessment, follow_up_date } = req.body;
+    const { patient_id, doctor_id, notes, department, chief_complaint, hpi, symptoms, findings, vital_signs, assessment, follow_up_date, scheduled_time } = req.body;
 
     const consultation = await Consultation.create({
       patient_id,
@@ -17,7 +18,18 @@ exports.create = async (req, res, next) => {
       findings,
       vital_signs,
       assessment,
-      follow_up_date
+      follow_up_date,
+      scheduled_time
+    });
+
+    const p = await Patient.findByPk(patient_id);
+    await Notification.create({
+      user_id: doctor_id,
+      title: 'New Consultation',
+      message: `A new patient (${p.first_name} ${p.last_name}) has been queued for your consultation.`,
+      type: 'alert',
+      priority: 'medium',
+      related_consultation_id: consultation.id
     });
 
     await AuditLog.create({
@@ -64,7 +76,11 @@ exports.getAll = async (req, res, next) => {
         { model: Patient, as: 'patient' },
         { model: User, as: 'doctor', attributes: ['id', 'first_name', 'last_name'] },
       ],
-      order: [['created_at', 'ASC']],
+      order: [
+        [sequelize.literal('scheduled_time IS NULL'), 'ASC'],
+        ['scheduled_time', 'ASC'],
+        ['created_at', 'ASC']
+      ],
     });
     res.json({ success: true, data: consultations });
   } catch (error) { next(error); }
@@ -104,6 +120,13 @@ exports.requestAdmission = async (req, res, next) => {
       admission_required: true,
       diagnosis: req.body.diagnosis || consultation.diagnosis,
       doctor_notes: req.body.doctor_notes || consultation.doctor_notes,
+      chief_complaint: req.body.chief_complaint || consultation.chief_complaint,
+      hpi: req.body.hpi || consultation.hpi,
+      symptoms: req.body.symptoms || consultation.symptoms,
+      findings: req.body.findings || consultation.findings,
+      vital_signs: req.body.vital_signs || consultation.vital_signs,
+      assessment: req.body.assessment || consultation.assessment,
+      follow_up_date: req.body.follow_up_date || consultation.follow_up_date,
       status: 'completed',
     });
 
@@ -114,6 +137,24 @@ exports.requestAdmission = async (req, res, next) => {
       priority: 'high',
       related_consultation_id: consultation.id,
     });
+
+    if (req.body.handover === true) {
+      const prescription = await Prescription.create({
+        consultation_id: consultation.id,
+        patient_id: consultation.patient_id,
+        doctor_id: req.user.id,
+        type: 'in_hospital',
+        status: 'pending_encoding',
+        notes: req.body.doctor_notes || consultation.doctor_notes,
+      });
+      await notifyInfoDesk({
+        type: 'alert',
+        title: 'Prescription Handover',
+        message: `Dr. has handed over an admission prescription for ${consultation.patient?.first_name || 'a patient'} ${consultation.patient?.last_name || ''}. Ready for encoding.`,
+        priority: 'high',
+        related_prescription_id: prescription.id,
+      });
+    }
 
     await AuditLog.create({
       user_id: req.user.id,
@@ -139,6 +180,13 @@ exports.completeOutpatient = async (req, res, next) => {
       admission_required: false,
       diagnosis: req.body.diagnosis || consultation.diagnosis,
       doctor_notes: req.body.doctor_notes || consultation.doctor_notes,
+      chief_complaint: req.body.chief_complaint || consultation.chief_complaint,
+      hpi: req.body.hpi || consultation.hpi,
+      symptoms: req.body.symptoms || consultation.symptoms,
+      findings: req.body.findings || consultation.findings,
+      vital_signs: req.body.vital_signs || consultation.vital_signs,
+      assessment: req.body.assessment || consultation.assessment,
+      follow_up_date: req.body.follow_up_date || consultation.follow_up_date,
       status: 'completed',
     });
 
@@ -170,6 +218,24 @@ exports.completeOutpatient = async (req, res, next) => {
       related_consultation_id: consultation.id,
     });
 
+    if (req.body.handover === true) {
+      const handRx = await Prescription.create({
+        consultation_id: consultation.id,
+        patient_id: consultation.patient_id,
+        doctor_id: req.user.id,
+        type: 'outpatient',
+        status: 'pending_encoding',
+        notes: req.body.doctor_notes || consultation.doctor_notes,
+      });
+      await notifyInfoDesk({
+        type: 'alert',
+        title: 'Prescription Handover',
+        message: `Dr. has handed over an outpatient prescription for ${consultation.patient?.first_name || 'a patient'} ${consultation.patient?.last_name || ''}. Ready for encoding.`,
+        priority: 'high',
+        related_prescription_id: handRx.id,
+      });
+    }
+
     await AuditLog.create({
       user_id: req.user.id,
       action: 'outpatient_consultation_completed',
@@ -182,3 +248,56 @@ exports.completeOutpatient = async (req, res, next) => {
     res.json({ success: true, message: 'Outpatient consultation completed.', data: consultation });
   } catch (error) { next(error); }
 };
+
+exports.handoverPrescription = async (req, res, next) => {
+  try {
+    const consultation = await Consultation.findByPk(req.params.id, {
+      include: [{ model: Patient, as: 'patient' }],
+    });
+    if (!consultation) return res.status(404).json({ success: false, message: 'Consultation not found.' });
+
+    // Update consultation notes and mark as completed
+    await consultation.update({
+      diagnosis: req.body.diagnosis || consultation.diagnosis,
+      doctor_notes: req.body.notes || consultation.doctor_notes,
+      chief_complaint: req.body.chief_complaint || consultation.chief_complaint,
+      hpi: req.body.hpi || consultation.hpi,
+      symptoms: req.body.symptoms || consultation.symptoms,
+      findings: req.body.findings || consultation.findings,
+      vital_signs: req.body.vital_signs || consultation.vital_signs,
+      assessment: req.body.assessment || consultation.assessment,
+      follow_up_date: req.body.follow_up_date || consultation.follow_up_date,
+      status: 'completed',
+    });
+
+    // Create a pending_encoding prescription for handover
+    const prescription = await Prescription.create({
+      consultation_id: consultation.id,
+      patient_id: consultation.patient_id,
+      doctor_id: req.user.id,
+      type: 'outpatient',
+      status: 'pending_encoding',
+      notes: req.body.notes, // Pass doctor's notes to the prescription draft
+    });
+
+    await notifyInfoDesk({
+      type: 'alert',
+      title: 'Prescription Handover',
+      message: `Dr. has handed over an outpatient prescription for ${consultation.patient?.first_name || 'a patient'} ${consultation.patient?.last_name || ''}. Ready for encoding.`,
+      priority: 'high',
+      related_prescription_id: prescription.id,
+    });
+
+    await AuditLog.create({
+      user_id: req.user.id,
+      action: 'prescription_handover',
+      entity_type: 'prescription',
+      entity_id: prescription.id,
+      details: { consultation_id: consultation.id },
+      ip_address: req.ip,
+    });
+
+    res.json({ success: true, message: 'Prescription handed over to Information Desk successfully.', data: prescription });
+  } catch (error) { next(error); }
+};
+

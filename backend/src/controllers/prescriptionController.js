@@ -1,4 +1,4 @@
-const { Prescription, PrescriptionItem, MedicationSchedule, Patient, User, AuditLog, QrCode } = require('../models');
+const { Prescription, PrescriptionItem, MedicationSchedule, Patient, User, AuditLog, QrCode, Admission } = require('../models');
 const { generateSchedulesForItems } = require('../utils/scheduleGenerator');
 const { generateQRDataURL } = require('../utils/qrGenerator');
 const { validationResult } = require('express-validator');
@@ -7,7 +7,11 @@ const { notifyInfoDesk } = require('../utils/notificationHelper');
 exports.create = async (req, res, next) => {
   try {
     const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+    console.log('BODY:', req.body);
+    if (!errors.isEmpty()) {
+      console.log('VALIDATION ERRORS:', errors.array());
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
 
     const { admission_id, consultation_id, patient_id, doctor_id, type, notes, items, status } = req.body;
 
@@ -19,6 +23,7 @@ exports.create = async (req, res, next) => {
       type: type || 'in_hospital',
       status: status || 'active',
       notes,
+      prescribed_time: new Date().toTimeString().slice(0, 8),
     });
 
     if (status === 'pending_encoding' || !items || items.length === 0) {
@@ -31,7 +36,12 @@ exports.create = async (req, res, next) => {
     }
 
     const createdItems = await PrescriptionItem.bulkCreate(
-      items.map(item => ({ ...item, prescription_id: prescription.id }))
+      items.map(item => ({ 
+        ...item, 
+        prescription_id: prescription.id,
+        start_time: item.start_time === '' ? null : item.start_time,
+        interval_hours: item.interval_hours === '' ? null : item.interval_hours
+      }))
     );
 
     const scheduleEntries = generateSchedulesForItems(
@@ -103,6 +113,8 @@ exports.getAll = async (req, res, next) => {
       const patient = await Patient.findOne({ where: { user_id: req.user.id } });
       if (!patient) return res.json({ success: true, data: [] });
       where.patient_id = patient.id;
+    } else if (req.user.role === 'doctor') {
+      where.doctor_id = req.user.id;
     }
 
     const prescriptions = await Prescription.findAll({
@@ -111,6 +123,7 @@ exports.getAll = async (req, res, next) => {
         { model: PrescriptionItem, as: 'items' },
         { model: User, as: 'doctor', attributes: ['id', 'first_name', 'last_name'] },
         { model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] },
+        { model: Admission, as: 'admission', attributes: ['id', 'status'] },
       ],
       order: [['created_at', 'DESC']],
     });
@@ -125,6 +138,7 @@ exports.getById = async (req, res, next) => {
         { model: PrescriptionItem, as: 'items' },
         { model: User, as: 'doctor', attributes: ['id', 'first_name', 'last_name'] },
         { model: Patient, as: 'patient' },
+        { model: Admission, as: 'admission' },
       ],
     });
     if (!prescription) return res.status(404).json({ success: false, message: 'Prescription not found.' });

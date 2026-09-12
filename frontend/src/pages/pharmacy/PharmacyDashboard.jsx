@@ -409,9 +409,9 @@ export default function PharmacyDashboard() {
                     {(rx.items || []).map(item => (
                       <tr key={item.id}>
                         <td style={{ fontWeight: 600, color: '#0f172a' }}>{item.medication_name}</td>
-                        <td>{item.dosage} {item.dosage_unit}</td>
+                        <td>{item.dosage}</td>
                         <td>{item.frequency}x {item.frequency_unit}</td>
-                        <td>{item.duration} {item.duration_unit}</td>
+                        <td>{item.duration}</td>
                         <td style={{ textTransform: 'capitalize' }}>{item.route}</td>
                         <td style={{ textAlign: 'right' }}>
                           <button
@@ -421,7 +421,7 @@ export default function PharmacyDashboard() {
                               setDispenseModal({
                                 itemId: item.id,
                                 medicationName: item.medication_name,
-                                dosage: `${item.dosage} ${item.dosage_unit}`,
+                                dosage: item.dosage,
                                 patientName: `${rx.patient?.first_name} ${rx.patient?.last_name}`,
                               });
                               setDispenseForm({ medication_id: '', quantity: 1 });

@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { Stethoscope, Search, Plus, Save, CheckCircle, LogOut, AlertCircle, Pill, ArrowLeft, Trash2, User, Clock, FileText, BedDouble } from 'lucide-react';
+import { Stethoscope, Search, Plus, Save, CheckCircle, LogOut, AlertCircle, Pill, ArrowLeft, Trash2, User, Clock, FileText, BedDouble, Send } from 'lucide-react';
 
 export default function Consultations() {
-  const [activeTab, setActiveTab] = useState('consultations'); // 'consultations' or 'admitted'
-  const [admissions, setAdmissions] = useState([]);
   const [consultations, setConsultations] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  
+
   const [modal, setModal] = useState(null); // 'consultation' or 'admission_session'
   const [selectedRecord, setSelectedRecord] = useState(null);
-  
+
   const [notes, setNotes] = useState('');
   const [diagnosis, setDiagnosis] = useState('');
   const [chiefComplaint, setChiefComplaint] = useState('');
@@ -29,14 +27,18 @@ export default function Consultations() {
 
   // Prescription form states
   const [prescriptionItems, setPrescriptionItems] = useState([]);
-  const [newMedication, setNewMedication] = useState({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: 1, duration_unit: 'days', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
+  const [newMedication, setNewMedication] = useState({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
   const [medications, setMedications] = useState([]);
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
+
+  // Handover flow states
+  const [actionDialog, setActionDialog] = useState(null); // 'outpatient' | 'admission' | 'session' | null
+  const [pendingSubmitAction, setPendingSubmitAction] = useState(null);
 
   useEffect(() => {
     fetchData();
     fetchMedications();
-  }, [activeTab]);
+  }, []);
 
   async function fetchMedications() {
     try {
@@ -48,13 +50,8 @@ export default function Consultations() {
   async function fetchData() {
     setLoading(true);
     try {
-      if (activeTab === 'consultations') {
-        const { data } = await api.get('/consultations', { params: { status: 'waiting,in_session' } });
-        setConsultations(data.data || []);
-      } else {
-        const { data } = await api.get('/admissions', { params: { status: 'admitted' } });
-        setAdmissions(data.data || []);
-      }
+      const { data } = await api.get('/consultations', { params: { status: 'waiting,in_session' } });
+      setConsultations(data.data || []);
     } catch (err) {
       console.error(err);
       setError('Failed to load records.');
@@ -75,10 +72,11 @@ export default function Consultations() {
     setAssessment(consultation.assessment || '');
     setFollowUpDate(consultation.follow_up_date ? consultation.follow_up_date.split('T')[0] : '');
     setPrescriptionItems([]);
-    setNewMedication({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: 1, duration_unit: 'days', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
+    setNewMedication({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
     setError(''); setSuccess(''); setShowPrescriptionForm(false);
+    setActionDialog(null); setPendingSubmitAction(null);
     setModal('consultation');
-    
+
     if (consultation.status === 'waiting' || consultation.status === 'not_started' || !consultation.status) {
       setSessionStatus('in_session');
       try {
@@ -89,31 +87,6 @@ export default function Consultations() {
       }
     } else {
       setSessionStatus(consultation.status);
-    }
-  }
-
-  async function openAdmissionSession(admission) {
-    setSelectedRecord(admission);
-    setNotes(admission.consultation_notes || '');
-    setDiagnosis(admission.diagnosis || '');
-    setTreatmentPlan(admission.treatment_plan || '');
-    setProgressNotes(admission.progress_notes || '');
-    setFollowUpDate(admission.follow_up_date ? admission.follow_up_date.split('T')[0] : '');
-    setPrescriptionItems([]);
-    setNewMedication({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: 1, duration_unit: 'days', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
-    setError(''); setSuccess(''); setShowPrescriptionForm(false);
-    setModal('admission_session');
-    
-    if (admission.consultation_status === 'waiting' || admission.consultation_status === 'not_started' || !admission.consultation_status) {
-      setSessionStatus('in_session');
-      try {
-        await api.put(`/admissions/${admission.id}`, { consultation_status: 'in_session' });
-        fetchData();
-      } catch (err) {
-        console.error("Failed to start session", err);
-      }
-    } else {
-      setSessionStatus(admission.consultation_status);
     }
   }
 
@@ -132,11 +105,7 @@ export default function Consultations() {
   async function startSession() {
     setError('');
     try {
-      if (modal === 'consultation') {
-        await api.put(`/consultations/${selectedRecord.id}`, { status: 'in_session' });
-      } else {
-        await api.put(`/admissions/${selectedRecord.id}`, { consultation_status: 'in_session' });
-      }
+      await api.put(`/consultations/${selectedRecord.id}`, { status: 'in_session' });
       setSessionStatus('in_session');
       setSuccess('Session started.');
       setTimeout(() => setSuccess(''), 2000);
@@ -150,8 +119,8 @@ export default function Consultations() {
       setError('Please fill in medication name and dosage.');
       return;
     }
-    setPrescriptionItems([...prescriptionItems, { ...newMedication, id: Date.now() }]);
-    setNewMedication({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: 1, duration_unit: 'days', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
+    setPrescriptionItems([...prescriptionItems, { ...newMedication, dosage: `${newMedication.dosage} ${newMedication.dosage_unit}`, id: Date.now() }]);
+    setNewMedication({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
     setError('');
   }
 
@@ -160,11 +129,11 @@ export default function Consultations() {
   }
 
   // --- CONSULTATION FLOW ACTIONS ---
-  async function completeOutpatientConsultation() {
+  async function completeOutpatientConsultation(handover = false) {
     if (!diagnosis.trim() || !notes.trim()) { setError('Please enter diagnosis and notes.'); return; }
     setError('');
     try {
-      if (prescriptionItems.length > 0) {
+      if (prescriptionItems.length > 0 && !handover) {
         await api.post('/prescriptions', {
           consultation_id: selectedRecord.id,
           patient_id: selectedRecord.patient_id,
@@ -173,19 +142,19 @@ export default function Consultations() {
           items: prescriptionItems.map(({ id, ...item }) => item)
         });
       }
-      await api.post(`/consultations/${selectedRecord.id}/complete-outpatient`, { 
-        diagnosis, doctor_notes: notes, chief_complaint: chiefComplaint, hpi, symptoms, findings, vital_signs: vitals, assessment, follow_up_date: followUpDate 
+      await api.post(`/consultations/${selectedRecord.id}/complete-outpatient`, {
+        diagnosis, doctor_notes: notes, chief_complaint: chiefComplaint, hpi, symptoms, findings, vital_signs: vitals, assessment, follow_up_date: followUpDate, handover
       });
       setSuccess('Outpatient session completed successfully.');
       setModal(null); setTimeout(() => { setSuccess(''); fetchData(); }, 2000);
     } catch (err) { setError(err.response?.data?.message || 'Failed to complete outpatient session.'); }
   }
 
-  async function requestAdmissionConsultation() {
+  async function requestAdmissionConsultation(handover = false) {
     if (!diagnosis.trim() || !notes.trim()) { setError('Please enter diagnosis and notes.'); return; }
     setError('');
     try {
-      if (prescriptionItems.length > 0) {
+      if (prescriptionItems.length > 0 && !handover) {
         await api.post('/prescriptions', {
           consultation_id: selectedRecord.id,
           patient_id: selectedRecord.patient_id,
@@ -194,54 +163,31 @@ export default function Consultations() {
           items: prescriptionItems.map(({ id, ...item }) => item)
         });
       }
-      await api.post(`/consultations/${selectedRecord.id}/request-admission`, { 
-        diagnosis, doctor_notes: notes, chief_complaint: chiefComplaint, hpi, symptoms, findings, vital_signs: vitals, assessment, follow_up_date: followUpDate 
+      await api.post(`/consultations/${selectedRecord.id}/request-admission`, {
+        diagnosis, doctor_notes: notes, chief_complaint: chiefComplaint, hpi, symptoms, findings, vital_signs: vitals, assessment, follow_up_date: followUpDate, handover
       });
       setSuccess('Admission requested successfully.');
       setModal(null); setTimeout(() => { setSuccess(''); fetchData(); }, 2000);
     } catch (err) { setError(err.response?.data?.message || 'Failed to request admission.'); }
   }
 
-  // --- ADMISSION FLOW ACTIONS ---
-  async function submitAdmissionPrescription(isDischarge = false) {
-    if (prescriptionItems.length === 0 && !isDischarge) { setError('Please add at least one medication.'); return; }
-    if (!diagnosis.trim() || !notes.trim()) { setError('Please enter diagnosis and clinical notes.'); return; }
+  const handleActionSelection = async (choice) => {
+    const type = actionDialog;
+    setActionDialog(null);
 
-    setError('');
-    try {
-      if (isDischarge) {
-        await api.put(`/admissions/${selectedRecord.id}`, { diagnosis, consultation_notes: notes, treatment_plan: treatmentPlan, progress_notes: progressNotes, follow_up_date: followUpDate });
-        await api.post(`/admissions/${selectedRecord.id}/request-discharge`, { notes, diagnosis });
-      } else {
-        await api.put(`/admissions/${selectedRecord.id}`, { diagnosis, consultation_notes: notes, consultation_status: 'completed', treatment_plan: treatmentPlan, progress_notes: progressNotes, follow_up_date: followUpDate });
+    if (choice === 'prescribe') {
+      setPendingSubmitAction(type);
+      setShowPrescriptionForm(true);
+    } else if (choice === 'handover') {
+      if (type === 'outpatient' || type === 'session') {
+        await completeOutpatientConsultation(true);
+      } else if (type === 'admission') {
+        await requestAdmissionConsultation(true);
       }
+    }
+  };
 
-      if (prescriptionItems.length > 0) {
-        await api.post('/prescriptions', {
-          admission_id: selectedRecord.id,
-          patient_id: selectedRecord.patient_id,
-          type: isDischarge ? 'discharge' : 'in_hospital',
-          notes,
-          items: prescriptionItems.map(({ id, ...item }) => item)
-        });
-      }
-
-      setSuccess(isDischarge ? 'Discharge requested!' : 'Prescription saved and session completed!');
-      setModal(null); setTimeout(() => { setSuccess(''); fetchData(); }, 2000);
-    } catch (err) { setError(err.response?.data?.message || 'Failed to complete session.'); }
-  }
-
-  async function saveAndEndAdmissionSession() {
-    if (!diagnosis.trim() || !notes.trim()) { setError('Please enter diagnosis and notes.'); return; }
-    setError('');
-    try {
-      await api.put(`/admissions/${selectedRecord.id}`, { diagnosis, consultation_notes: notes, consultation_status: 'completed', treatment_plan: treatmentPlan, progress_notes: progressNotes, follow_up_date: followUpDate });
-      setSuccess('Session completed and saved.');
-      setModal(null); setTimeout(() => { setSuccess(''); fetchData(); }, 2000);
-    } catch (err) { setError(err.response?.data?.message || 'Failed to save session.'); }
-  }
-
-  const listToFilter = activeTab === 'consultations' ? consultations : admissions;
+  const listToFilter = consultations;
   const filtered = listToFilter.filter(item => {
     if (!search) return true;
     const name = `${item.patient?.first_name} ${item.patient?.last_name}`.toLowerCase();
@@ -264,25 +210,23 @@ export default function Consultations() {
               <input style={inp} value={newMedication.medication_name} onChange={e => setNewMedication({ ...newMedication, medication_name: e.target.value })} list="med-list-doc" placeholder="e.g. Paracetamol" />
               <datalist id="med-list-doc">{medications.map(m => <option key={m.id} value={m.name} />)}</datalist>
             </div>
-            <div><label style={lbl}>Dosage *</label><input style={inp} value={newMedication.dosage} onChange={e => setNewMedication({ ...newMedication, dosage: e.target.value })} placeholder="e.g. 500" /></div>
-            <div><label style={lbl}>Unit</label>
-              <select style={inp} value={newMedication.dosage_unit} onChange={e => setNewMedication({ ...newMedication, dosage_unit: e.target.value })}>
-                <option>mg</option><option>ml</option><option>g</option><option>mcg</option><option>IU</option>
-              </select>
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={lbl}>Dosage *</label>
+              <div style={{ display: 'flex' }}>
+                <input style={{ ...inp, borderRight: 'none', borderTopRightRadius: 0, borderBottomRightRadius: 0, flex: 1 }} value={newMedication.dosage} onChange={e => setNewMedication({ ...newMedication, dosage: e.target.value })} placeholder="e.g. 500" />
+                <select style={{ ...inp, borderLeft: '1px solid #cbd5e1', borderTopLeftRadius: 0, borderBottomLeftRadius: 0, width: '80px', background: '#f8fafc' }} value={newMedication.dosage_unit} onChange={e => setNewMedication({ ...newMedication, dosage_unit: e.target.value })}>
+                  <option>mg</option><option>ml</option><option>g</option><option>mcg</option><option>IU</option>
+                </select>
+              </div>
             </div>
-            
+
             <div><label style={lbl}>Frequency</label><input type="number" min="1" style={inp} value={newMedication.frequency} onChange={e => handleMedicationChange('frequency', e.target.value)} /></div>
             <div><label style={lbl}>Freq Unit</label>
               <select style={inp} value={newMedication.frequency_unit} onChange={e => handleMedicationChange('frequency_unit', e.target.value)}>
                 <option value="hourly">Hourly</option><option value="daily">Daily</option><option value="weekly">Weekly</option>
               </select>
             </div>
-            <div><label style={lbl}>Duration</label><input type="number" min="1" style={inp} value={newMedication.duration} onChange={e => handleMedicationChange('duration', e.target.value)} /></div>
-            <div><label style={lbl}>Dur Unit</label>
-              <select style={inp} value={newMedication.duration_unit} onChange={e => handleMedicationChange('duration_unit', e.target.value)}>
-                <option value="days">Days</option><option value="weeks">Weeks</option><option value="months">Months</option>
-              </select>
-            </div>
+            <div style={{ gridColumn: 'span 2' }}><label style={lbl}>Duration</label><input style={inp} value={newMedication.duration} onChange={e => handleMedicationChange('duration', e.target.value)} placeholder="e.g. 7 Days" /></div>
 
             <div><label style={lbl}>Route</label>
               <select style={inp} value={newMedication.route} onChange={e => handleMedicationChange('route', e.target.value)}>
@@ -308,7 +252,7 @@ export default function Consultations() {
                       <div>
                         <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: 4 }}>{item.medication_name}</div>
                         <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                          {item.dosage}{item.dosage_unit} • {item.frequency}x {item.frequency_unit} for {item.duration} {item.duration_unit} • Route: {item.route}
+                          {item.dosage} • {item.frequency}x {item.frequency_unit} for {item.duration} • Route: {item.route}
                         </div>
                         {item.instructions && <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: 4 }}><i>"{item.instructions}"</i></div>}
                       </div>
@@ -318,15 +262,18 @@ export default function Consultations() {
                 </div>
               </div>
             )}
-            
+
             <div style={{ display: 'flex', gap: 16 }}>
               {modal === 'consultation' ? (
                 <>
-                  <button onClick={onSubmitOutpatient} style={{ ...actionBtn, background: '#10b981', color: '#fff', flex: 1, padding: '12px' }}>
-                    <CheckCircle size={16} /> Complete Outpatient
-                  </button>
-                  <button onClick={onSubmitAdmit} style={{ ...actionBtn, background: '#3b82f6', color: '#fff', flex: 1, padding: '12px' }}>
-                    <BedDouble size={16} /> Request Admission
+                  <button 
+                    onClick={() => {
+                      if (pendingSubmitAction === 'outpatient' || pendingSubmitAction === 'session') completeOutpatientConsultation(false);
+                      else if (pendingSubmitAction === 'admission') requestAdmissionConsultation(false);
+                    }} 
+                    style={{ ...actionBtn, background: '#f59e0b', color: '#fff', flex: 1, padding: '12px' }}
+                  >
+                    <CheckCircle size={16} /> Complete Session
                   </button>
                 </>
               ) : (
@@ -349,8 +296,8 @@ export default function Consultations() {
   function renderModalBody() {
     return (
       <div style={{ maxWidth: 1000, margin: '0 auto', paddingBottom: 60 }}>
-        <button 
-          onClick={() => setModal(null)} 
+        <button
+          onClick={() => setModal(null)}
           style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.9rem', fontWeight: 600, marginBottom: 24, padding: 0 }}
         >
           <ArrowLeft size={16} /> Back to Dashboard
@@ -363,7 +310,7 @@ export default function Consultations() {
           <div style={{ background: '#f8fafc', padding: '24px 32px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h2 style={{ margin: '0 0 8px 0', color: '#0f172a', fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <User size={24} color="#3b82f6" /> 
+                <User size={24} color="#3b82f6" />
                 {selectedRecord.patient?.first_name} {selectedRecord.patient?.last_name}
               </h2>
               <div style={{ display: 'flex', gap: 24, color: '#64748b', fontSize: '0.9rem' }}>
@@ -371,16 +318,16 @@ export default function Consultations() {
                 {modal === 'admission_session' && <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>Room: {selectedRecord.room?.room_number || 'Unknown'}</span>}
               </div>
             </div>
-            
+
             <div style={{ textAlign: 'right' }}>
-              <div style={{ 
+              <div style={{
                 display: 'inline-block', padding: '6px 16px', borderRadius: 20, fontSize: '0.85rem', fontWeight: 600,
                 background: sessionStatus === 'in_session' ? '#dbeafe' : sessionStatus === 'completed' ? '#dcfce7' : '#f1f5f9',
                 color: sessionStatus === 'in_session' ? '#0369a1' : sessionStatus === 'completed' ? '#166534' : '#475569'
               }}>
                 Status: {sessionStatus.replace('_', ' ').toUpperCase()}
               </div>
-              
+
               {sessionStatus === 'not_started' && (
                 <button onClick={startSession} style={{ ...actionBtn, background: '#3b82f6', color: '#fff', marginTop: 12, width: '100%' }}>
                   Start Session
@@ -397,7 +344,7 @@ export default function Consultations() {
           <div style={{ padding: '32px' }}>
             {sessionStatus !== 'not_started' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                
+
                 <div>
                   <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '2px solid #f1f5f9', paddingBottom: 8 }}>
                     <FileText size={18} /> Clinical Evaluation
@@ -416,32 +363,38 @@ export default function Consultations() {
                       <p style={{ margin: 0, fontSize: '0.95rem', color: '#334155', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{selectedRecord.notes}</p>
                     </div>
                   )}
-                  
+
                   {modal === 'consultation' && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                       <div><label style={{ ...lbl, fontSize: '0.9rem' }}>Chief Complaint</label><input style={{ ...inp }} value={chiefComplaint} onChange={e => setChiefComplaint(e.target.value)} disabled={sessionStatus === 'completed'} /></div>
                       <div><label style={{ ...lbl, fontSize: '0.9rem' }}>Symptoms</label><input style={{ ...inp }} value={symptoms} onChange={e => setSymptoms(e.target.value)} disabled={sessionStatus === 'completed'} /></div>
                     </div>
                   )}
-                  
+
                   <div style={{ marginBottom: 20 }}>
                     <label style={{ ...lbl, fontSize: '0.9rem' }}>Primary Diagnosis</label>
                     <input style={{ ...inp, padding: '12px 16px', fontSize: '1rem' }} value={diagnosis} onChange={e => setDiagnosis(e.target.value)} placeholder="Enter official diagnosis..." disabled={sessionStatus === 'completed'} />
                   </div>
-                  
+
                   {modal === 'consultation' && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                       <div style={{ gridColumn: 'span 2' }}>
-                         <label style={{ ...lbl, fontSize: '0.9rem' }}>Vital Signs</label>
-                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-                           <input style={inp} placeholder="BP (e.g. 120/80)" value={vitals.bp} onChange={e => setVitals({...vitals, bp: e.target.value})} disabled={sessionStatus === 'completed'} />
-                           <input style={inp} placeholder="HR (bpm)" type="number" value={vitals.hr} onChange={e => setVitals({...vitals, hr: e.target.value})} disabled={sessionStatus === 'completed'} />
-                           <input style={inp} placeholder="Temp (°C)" type="number" step="0.1" value={vitals.temp} onChange={e => setVitals({...vitals, temp: e.target.value})} disabled={sessionStatus === 'completed'} />
-                         </div>
+                        <label style={{ ...lbl, fontSize: '0.9rem' }}>Vital Signs</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                          <input style={inp} placeholder="BP (e.g. 120/80)" value={vitals.bp} onChange={e => {
+                            let val = e.target.value;
+                            if (val.length === 3 && /^\d{3}$/.test(val) && (vitals.bp || '').length < 3) {
+                              val += '/';
+                            }
+                            setVitals({ ...vitals, bp: val });
+                          }} disabled={sessionStatus === 'completed'} />
+                          <input style={inp} placeholder="HR (bpm)" type="number" value={vitals.hr} onChange={e => setVitals({ ...vitals, hr: e.target.value })} disabled={sessionStatus === 'completed'} />
+                          <input style={inp} placeholder="Temp (°C)" type="number" step="0.1" value={vitals.temp} onChange={e => setVitals({ ...vitals, temp: e.target.value })} disabled={sessionStatus === 'completed'} />
+                        </div>
                       </div>
 
                       <div style={{ gridColumn: 'span 2' }}><label style={{ ...lbl, fontSize: '0.9rem' }}>History of Present Illness (HPI)</label><textarea style={{ ...inp, minHeight: 80 }} value={hpi} onChange={e => setHpi(e.target.value)} disabled={sessionStatus === 'completed'} /></div>
-                      
+
                       <div style={{ gridColumn: 'span 2' }}><label style={{ ...lbl, fontSize: '0.9rem' }}>Clinical Findings</label><textarea style={{ ...inp, minHeight: 80 }} value={findings} onChange={e => setFindings(e.target.value)} disabled={sessionStatus === 'completed'} /></div>
                       <div style={{ gridColumn: 'span 2' }}><label style={{ ...lbl, fontSize: '0.9rem' }}>Assessment</label><textarea style={{ ...inp, minHeight: 80 }} value={assessment} onChange={e => setAssessment(e.target.value)} disabled={sessionStatus === 'completed'} /></div>
                     </div>
@@ -471,40 +424,21 @@ export default function Consultations() {
                       <h4 style={{ margin: 0, color: '#334155' }}>Next Steps</h4>
                     </div>
                     <div style={{ display: 'flex', gap: 16 }}>
-                      <button onClick={() => setShowPrescriptionForm(true)} style={{ ...actionBtn, background: '#10b981', color: '#fff', flex: 1, padding: '12px' }}>
-                        <Pill size={16} /> Prescribe Medications
+                      <button onClick={() => setActionDialog('outpatient')} style={{ ...actionBtn, background: '#10b981', color: '#fff', flex: 1, padding: '12px' }}>
+                        <CheckCircle size={16} /> Complete Outpatient
                       </button>
-                      
-                      {modal === 'consultation' ? (
-                        <>
-                          <button onClick={completeOutpatientConsultation} style={{ ...actionBtn, background: '#f59e0b', color: '#fff', flex: 1, padding: '12px' }}>
-                            <CheckCircle size={16} /> Complete Outpatient
-                          </button>
-                          <button onClick={requestAdmissionConsultation} style={{ ...actionBtn, background: '#3b82f6', color: '#fff', flex: 1, padding: '12px' }}>
-                            <BedDouble size={16} /> Request Admission
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button onClick={() => submitAdmissionPrescription(false)} style={{ ...actionBtn, background: '#3b82f6', color: '#fff', flex: 1, padding: '12px' }}>
-                            <CheckCircle size={16} /> Save & End Session
-                          </button>
-                          <button onClick={() => submitAdmissionPrescription(true)} style={{ ...actionBtn, background: '#f59e0b', color: '#fff', flex: 1, padding: '12px' }}>
-                            <LogOut size={16} /> Request Discharge
-                          </button>
-                        </>
-                      )}
+                      <button onClick={() => setActionDialog('admission')} style={{ ...actionBtn, background: '#3b82f6', color: '#fff', flex: 1, padding: '12px' }}>
+                        <BedDouble size={16} /> Request Admission
+                      </button>
+                      <button onClick={() => setActionDialog('session')} style={{ ...actionBtn, background: '#f59e0b', color: '#fff', flex: 1, padding: '12px' }}>
+                        <CheckCircle size={16} /> Complete Session
+                      </button>
                     </div>
                   </div>
                 )}
 
-                {sessionStatus === 'in_session' && showPrescriptionForm && renderPrescriptionForm(
-                  completeOutpatientConsultation, 
-                  requestAdmissionConsultation, 
-                  () => submitAdmissionPrescription(true), 
-                  () => submitAdmissionPrescription(false)
-                )}
-                
+                {sessionStatus === 'in_session' && showPrescriptionForm && renderPrescriptionForm()}
+
               </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748b' }}>
@@ -514,6 +448,24 @@ export default function Consultations() {
             )}
           </div>
         </div>
+
+        {actionDialog && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+            <div style={{ background: '#fff', padding: 32, borderRadius: 12, width: 450, textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.25rem', color: '#1e293b' }}>Prescription Handling</h3>
+              <p style={{ color: '#64748b', marginBottom: 24, fontSize: '0.95rem' }}>How would you like to handle the prescription for this patient?</p>
+              <div style={{ display: 'flex', gap: 16 }}>
+                <button onClick={() => handleActionSelection('prescribe')} style={{ ...actionBtn, background: '#10b981', color: '#fff', flex: 1, padding: '12px' }}>
+                  <Pill size={18} /> Prescribe Medication
+                </button>
+                <button onClick={() => handleActionSelection('handover')} style={{ ...actionBtn, background: '#3b82f6', color: '#fff', flex: 1, padding: '12px' }}>
+                  <Send size={18} /> Handover
+                </button>
+              </div>
+              <button onClick={() => setActionDialog(null)} style={{ marginTop: 20, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>Cancel</button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -536,31 +488,6 @@ export default function Consultations() {
               </div>
             </div>
           </div>
-
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', gap: '4px', alignSelf: 'flex-start' }}>
-            <button
-              onClick={() => setActiveTab('consultations')}
-              style={{
-                padding: '6px 16px', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-                background: activeTab === 'consultations' ? '#fff' : 'transparent',
-                color: activeTab === 'consultations' ? '#0f172a' : '#64748b',
-                boxShadow: activeTab === 'consultations' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              }}
-            >
-              Consultation Queue
-            </button>
-            <button
-              onClick={() => setActiveTab('admitted')}
-              style={{
-                padding: '6px 16px', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-                background: activeTab === 'admitted' ? '#fff' : 'transparent',
-                color: activeTab === 'admitted' ? '#0f172a' : '#64748b',
-                boxShadow: activeTab === 'admitted' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              }}
-            >
-              Admitted Patients
-            </button>
-          </div>
         </div>
 
         <div className="id-table-container">
@@ -568,33 +495,33 @@ export default function Consultations() {
             <thead>
               <tr>
                 <th>Patient</th>
-                {activeTab === 'admitted' && <th>Room</th>}
-                <th>Date</th>
+                <th>Time</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
+                <tr><td colSpan="4" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>No records found.</td></tr>
+                <tr><td colSpan="4" style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>No records found.</td></tr>
               ) : filtered.map(a => (
                 <tr key={a.id}>
                   <td><strong>{a.patient?.first_name} {a.patient?.last_name}</strong></td>
-                  {activeTab === 'admitted' && <td>{a.room?.room_number || '—'}</td>}
-                  <td style={{ fontSize: '0.85rem', color: '#64748b' }}>{new Date(a.created_at || a.admission_date).toLocaleDateString()}</td>
+                  <td style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                    {new Date((a.consultation_status || a.status) === 'completed' || (a.consultation_status || a.status) === 'admitted' ? a.updated_at : a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </td>
                   <td>
                     <span style={{
                       padding: '4px 12px', borderRadius: 20, fontSize: '0.85rem', fontWeight: 600,
                       background: (a.consultation_status || a.status) === 'in_session' ? '#dbeafe' : (a.consultation_status || a.status) === 'completed' ? '#dcfce7' : '#f3f4f6',
                       color: (a.consultation_status || a.status) === 'in_session' ? '#0369a1' : (a.consultation_status || a.status) === 'completed' ? '#166534' : '#6b7280'
                     }}>
-                      {(a.consultation_status || a.status) === 'in_session' ? 'Active' : (a.consultation_status || a.status) === 'completed' ? 'Completed' : 'Not Started'}
+                      {(a.consultation_status || a.status) === 'in_session' ? 'Active' : (a.consultation_status || a.status) === 'completed' ? 'Completed' : 'Waiting'}
                     </span>
                   </td>
                   <td>
-                    <button className="action-btn primary" onClick={() => activeTab === 'consultations' ? openConsultationSession(a) : openAdmissionSession(a)} style={{ fontSize: '0.85rem' }}>
+                    <button className="action-btn primary" onClick={() => openConsultationSession(a)} style={{ fontSize: '0.85rem' }}>
                       <Stethoscope size={14} /> Open Form
                     </button>
                   </td>

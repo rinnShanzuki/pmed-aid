@@ -9,7 +9,9 @@ import {
   Menu,
   X
 } from 'lucide-react';
+import NotificationBell from '../common/NotificationBell';
 import { useAuth } from '../../hooks/useAuth';
+import '../../styles/admin.css';
 import '../../styles/nurse.css';
 
 export default function NurseLayout() {
@@ -40,15 +42,15 @@ export default function NurseLayout() {
   };
 
   const handleLogout = async () => {
+    navigate('/login', { replace: true, state: {} });
     await logout();
-    navigate('/login');
   };
 
   const navItems = [
-    { path: '/nurse', label: 'Nurse Dashboard', icon: <LayoutDashboard size={20} />, exact: true },
-    { path: '/nurse/scanner', label: 'QR Scanner', icon: <ScanLine size={20} /> },
-    { path: '/nurse/patients', label: 'Patient Monitoring', icon: <Users size={20} /> },
-    { path: '/nurse/monitoring', label: 'Medication Schedule Monitoring', icon: <Activity size={20} /> },
+    { path: '/nurse', label: 'Nurse Dashboard', icon: LayoutDashboard, exact: true },
+    { path: '/nurse/scanner', label: 'QR Scanner', icon: ScanLine },
+    { path: '/nurse/patients', label: 'Patient Monitoring', icon: Users },
+    { path: '/nurse/monitoring', label: 'Medication Schedule Monitoring', icon: Activity },
   ];
 
   const getPageTitle = () => {
@@ -58,69 +60,98 @@ export default function NurseLayout() {
     return current ? current.label : 'Nurse Portal';
   };
 
+  const initials = user
+    ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()
+    : 'N';
+
   return (
-    <div className="nurse-layout">
+    <div className="admin-layout">
+      {/* ── Mobile Sidebar Overlay ── */}
       {isSidebarOpen && (
-        <div className="nurse-sidebar-overlay" onClick={closeSidebar} />
+        <div className="admin-sidebar-overlay" onClick={closeSidebar} />
       )}
-      <aside className={`nurse-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ color: '#38bdf8', marginRight: '8px' }}>+</span> PMed-Aid
+
+      {/* ── Sidebar ── */}
+      <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-icon" style={{ background: 'transparent', padding: 0, width: '46px', height: '46px' }}>
+            <img
+              src="/pmed-logo.png"
+              alt="PMed-Aid Logo"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))'
+              }}
+            />
+          </div>
+          <div className="sidebar-brand-text">
+            <h1>PMed-Aid</h1>
+            <span>Nurse Portal</span>
           </div>
           <button className="sidebar-close-btn" onClick={closeSidebar}>
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
+
         <nav className="sidebar-nav">
-          {navItems.map((item) => (
-            <NavLink key={item.path} to={item.path} end={item.exact}
-              onClick={closeSidebar}
-              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-              {item.icon}{item.label}
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.exact}
+                onClick={closeSidebar}
+                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+              >
+                <Icon size={20} />
+                {item.label}
+              </NavLink>
+            );
+          })}
         </nav>
-        <div className="sidebar-footer" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {deferredPrompt && (
-            <button onClick={handleInstallClick} className="logout-btn" style={{ background: '#3b82f6', color: '#fff' }}>
-              <LayoutDashboard size={18} /> Install App
-            </button>
-          )}
-          <button onClick={handleLogout} className="logout-btn">
-            <LogOut size={18} /> Sign Out
-          </button>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-user">
+            <div className="sidebar-user-avatar">{initials}</div>
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">
+                {user?.first_name} {user?.last_name}
+              </span>
+              <span className="sidebar-user-role">Nurse</span>
+            </div>
+          </div>
         </div>
       </aside>
-      <main className="nurse-main">
-        <header className="topbar">
-          <div className="topbar-left" style={{ display: 'flex', alignItems: 'center' }}>
-            <button className="mobile-menu-btn" onClick={() => setIsSidebarOpen(true)}>
-              <Menu size={24} />
+
+      {/* ── Main ── */}
+      <main className="admin-main">
+        <header className="admin-topbar">
+          <div className="admin-topbar-left">
+            <button
+              className="topbar-icon-btn mobile-menu-btn"
+              onClick={() => setIsSidebarOpen(true)}
+            >
+              <Menu size={20} />
             </button>
-            <h1>{getPageTitle()}</h1>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--admin-text)' }}>{getPageTitle()}</h2>
           </div>
-          <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="admin-topbar-right">
             {deferredPrompt && (
-              <button onClick={handleInstallClick} className="mobile-only-btn" style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'none' }} title="Install App">
+              <button className="topbar-icon-btn" onClick={handleInstallClick} title="Install App">
                 <LayoutDashboard size={18} />
               </button>
             )}
-            <button onClick={handleLogout} className="mobile-only-btn" style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '50%', cursor: 'pointer', display: 'none' }} title="Sign Out">
+            <NotificationBell />
+            <button className="topbar-icon-btn logout" onClick={handleLogout} title="Log Out">
               <LogOut size={18} />
             </button>
-            <div className="user-profile">
-              <div className="user-avatar nurse-avatar">
-                {user?.first_name?.[0]}{user?.last_name?.[0]}
-              </div>
-              <div className="user-info">
-                <span className="user-name">{user?.first_name} {user?.last_name}</span>
-                <span className="user-role">Nurse</span>
-              </div>
-            </div>
           </div>
         </header>
-        <div className="content-area">
+
+        <div className="admin-content">
           <Outlet />
         </div>
       </main>

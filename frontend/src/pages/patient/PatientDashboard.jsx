@@ -45,11 +45,11 @@ export default function PatientDashboard() {
   const completed = todaysSchedules.filter(s => s.status === 'completed');
   const missed = todaysSchedules.filter(s => s.status === 'missed');
   const pending = todaysSchedules.filter(s => s.status === 'pending');
-  
-  const upcoming = pending.filter(s => new Date(s.scheduled_time) >= now).sort((a,b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
 
-  const adherence = todaysSchedules.length > 0 
-    ? Math.round((completed.length / (completed.length + missed.length + pending.length)) * 100) 
+  const upcoming = pending.filter(s => new Date(s.scheduled_time) >= now).sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+
+  const adherence = todaysSchedules.length > 0
+    ? Math.round((completed.length / (completed.length + missed.length + pending.length)) * 100)
     : 100;
 
   return (
@@ -123,7 +123,7 @@ export default function PatientDashboard() {
                     </div>
                     <div style={{ flex: 1 }}>
                       <strong style={{ color: '#0f172a', display: 'block', fontSize: '1.1rem' }}>{s.prescriptionItem?.medication_name}</strong>
-                      <span style={{ color: '#64748b', fontSize: '0.9rem' }}>{s.prescriptionItem?.dosage} {s.prescriptionItem?.dosage_unit}</span>
+                      <span style={{ color: '#64748b', fontSize: '0.9rem' }}>{s.prescriptionItem?.dosage}</span>
                     </div>
                   </div>
                 ))}

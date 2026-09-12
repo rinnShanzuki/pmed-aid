@@ -18,7 +18,28 @@
 .pr-header-left {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
+}
+
+.pr-back-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.pr-back-icon:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #cbd5e1;
 }
 
 .pr-patient-name {
@@ -97,7 +118,7 @@
   border: 1px solid #e2e8f0;
   padding: 32px;
   min-height: 100%;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .pr-section-title {
@@ -244,11 +265,25 @@
   transform: translateX(-50%);
 }
 
-.timeline-icon.consultation { background: #8b5cf6; }
-.timeline-icon.admission { background: #3b82f6; }
-.timeline-icon.discharge { background: #10b981; }
-.timeline-icon.prescription { background: #f59e0b; }
-.timeline-icon.administration { background: #ec4899; }
+.timeline-icon.consultation {
+  background: #8b5cf6;
+}
+
+.timeline-icon.admission {
+  background: #3b82f6;
+}
+
+.timeline-icon.discharge {
+  background: #10b981;
+}
+
+.timeline-icon.prescription {
+  background: #f59e0b;
+}
+
+.timeline-icon.administration {
+  background: #ec4899;
+}
 
 .timeline-content {
   background: #f8fafc;

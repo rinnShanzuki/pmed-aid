@@ -22,6 +22,7 @@ Notification.init(
     related_schedule_id: { type: DataTypes.INTEGER, allowNull: true },
     related_prescription_id: { type: DataTypes.INTEGER, allowNull: true },
     related_admission_id: { type: DataTypes.INTEGER, allowNull: true },
+    related_consultation_id: { type: DataTypes.INTEGER, allowNull: true },
   },
   {
     sequelize,

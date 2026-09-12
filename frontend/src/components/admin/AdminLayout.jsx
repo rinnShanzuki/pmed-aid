@@ -5,19 +5,19 @@ import {
   LayoutDashboard, Users, UserCog, Pill, BarChart3,
   Settings, LogOut, Activity, Menu, X
 } from 'lucide-react';
+import NotificationBell from '../common/NotificationBell';
 import '../../styles/admin.css';
 
 const navItems = [
   { section: 'Main' },
-  { to: '/admin',              icon: LayoutDashboard, label: 'Dashboard',   end: true },
+  { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { section: 'Management' },
-  { to: '/admin/users',        icon: UserCog,         label: 'Users' },
-  { to: '/admin/patients',     icon: Users,           label: 'Patients' },
-  { to: '/admin/medications',  icon: Pill,            label: 'Medications' },
+  { to: '/admin/users', icon: UserCog, label: 'Users' },
+  { to: '/admin/patients', icon: Users, label: 'Patients' },
   { section: 'Insights' },
-  { to: '/admin/reports',      icon: BarChart3,       label: 'Reports' },
+  { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
   { section: 'Configuration' },
-  { to: '/admin/settings',     icon: Settings,        label: 'Settings' },
+  { to: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function AdminLayout() {
@@ -44,8 +44,8 @@ export default function AdminLayout() {
     <div className="admin-layout">
       {/* ── Mobile Sidebar Overlay ── */}
       {isSidebarOpen && (
-        <div 
-          className="admin-sidebar-overlay" 
+        <div
+          className="admin-sidebar-overlay"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -53,15 +53,24 @@ export default function AdminLayout() {
       {/* ── Sidebar ── */}
       <aside className={`admin-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
-          <div className="sidebar-brand-icon">
-            <Activity />
+          <div className="sidebar-brand-icon" style={{ background: 'transparent', padding: 0, width: '46px', height: '46px' }}>
+            <img
+              src="/pmed-logo.png"
+              alt="PMed-Aid Logo"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))'
+              }}
+            />
           </div>
           <div className="sidebar-brand-text">
             <h1>PMed-Aid</h1>
-            <span>Admin Panel</span>
+            <span>Admin Portal</span>
           </div>
-          <button 
-            className="sidebar-close-btn" 
+          <button
+            className="sidebar-close-btn"
             onClick={() => setIsSidebarOpen(false)}
           >
             <X size={20} />
@@ -103,8 +112,8 @@ export default function AdminLayout() {
       <main className="admin-main">
         <header className="admin-topbar">
           <div className="admin-topbar-left">
-            <button 
-              className="topbar-icon-btn mobile-menu-btn" 
+            <button
+              className="topbar-icon-btn mobile-menu-btn"
               onClick={() => setIsSidebarOpen(true)}
             >
               <Menu size={20} />
@@ -112,9 +121,9 @@ export default function AdminLayout() {
             {/* Page title injected by child routes if needed */}
           </div>
           <div className="admin-topbar-right">
-            <button className="btn-logout" onClick={handleLogout}>
-              <LogOut size={16} />
-              <span className="logout-text">Log Out</span>
+            <NotificationBell />
+            <button className="topbar-icon-btn logout" onClick={handleLogout} title="Log Out">
+              <LogOut size={18} />
             </button>
           </div>
         </header>

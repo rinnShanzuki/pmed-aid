@@ -266,24 +266,9 @@
   color: var(--admin-text);
 }
 
-.btn-logout {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid #fecaca;
+.topbar-icon-btn.logout:hover {
   background: #fef2f2;
   color: #dc2626;
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: inherit;
-}
-
-.btn-logout:hover {
-  background: #fee2e2;
   border-color: #fca5a5;
 }
 

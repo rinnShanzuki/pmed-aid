@@ -37,7 +37,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
-      console.error('API Error:', error.response.status, error.response.data);
+      // Don't log errors for unauthenticated requests on startup
+      if (error.response.status !== 401) {
+        console.error('API Error:', error.response.status, error.response.data);
+      }
     } else if (error.request) {
       console.error('Network Error:', error.message);
     }

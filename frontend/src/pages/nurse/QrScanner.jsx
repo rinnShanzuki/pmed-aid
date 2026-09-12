@@ -16,10 +16,10 @@ export default function QrScanner() {
       setError('');
       setResult(null);
       const { data } = await api.post('/qr-codes/scan', { code: qrString.trim() });
-      
+
       // We got the patient, now fetch their pending schedules for today
       const schedRes = await api.get('/schedules/patient/' + data.data.patient.id, { params: { status: 'pending' } });
-      
+
       setResult({ patient: data.data.patient, schedules: schedRes.data.data });
       setCode('');
     } catch (err) {
@@ -37,9 +37,9 @@ export default function QrScanner() {
       const el = document.getElementById("qr-reader");
       if (!el) return;
 
-      scanner = new Html5QrcodeScanner("qr-reader", { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 } 
+      scanner = new Html5QrcodeScanner("qr-reader", {
+        fps: 10,
+        qrbox: { width: 250, height: 250 }
       }, false);
 
       scanner.render(
@@ -58,7 +58,7 @@ export default function QrScanner() {
     return () => {
       clearTimeout(timer);
       if (scanner) {
-        scanner.clear().catch(() => {});
+        scanner.clear().catch(() => { });
       }
     };
   }, []);
@@ -126,10 +126,10 @@ export default function QrScanner() {
           <div className="id-section-header" style={{ borderBottom: '1px solid #e2e8f0' }}>
             <h3><CheckCircle size={20} color="#10b981" /> Patient Verified: {result.patient.first_name} {result.patient.last_name}</h3>
           </div>
-          
+
           <div style={{ padding: 24 }}>
             <h4 style={{ margin: '0 0 16px 0', color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}><Pill size={18} /> Pending Medications</h4>
-            
+
             {result.schedules.length === 0 ? (
               <p style={{ color: '#64748b', margin: 0 }}>No pending medications for this patient.</p>
             ) : (
@@ -139,7 +139,7 @@ export default function QrScanner() {
                     <div>
                       <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '1.1rem' }}>{s.prescriptionItem?.medication_name}</div>
                       <div style={{ color: '#64748b', fontSize: '0.9rem', marginTop: 4 }}>
-                        {s.prescriptionItem?.dosage} {s.prescriptionItem?.dosage_unit} — {s.prescriptionItem?.route?.replace('_', ' ')}
+                        {s.prescriptionItem?.dosage} — {s.prescriptionItem?.route?.replace('_', ' ')}
                       </div>
                       <div style={{ color: '#0284c7', fontSize: '0.85rem', marginTop: 4, fontWeight: 500 }}>
                         Scheduled for: {new Date(s.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

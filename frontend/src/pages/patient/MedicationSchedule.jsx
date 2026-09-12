@@ -60,7 +60,7 @@ export default function MedicationSchedule() {
       <div className="id-section-header">
         <h3><Calendar size={20} /> Daily Medication Schedule</h3>
       </div>
-      
+
       <div style={{ padding: 24 }}>
         <p style={{ color: '#64748b', marginBottom: 24 }}>
           {new Date().toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
@@ -81,13 +81,13 @@ export default function MedicationSchedule() {
               const isOverdue = isPending && new Date(s.scheduled_time) < new Date();
 
               return (
-                <div key={s.id} style={{ 
+                <div key={s.id} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderRadius: 12,
                   border: isCompleted ? '1px solid #a7f3d0' : isMissed ? '1px solid #fecaca' : isOverdue ? '1px solid #fde68a' : '1px solid #e2e8f0',
                   background: isCompleted ? '#ecfdf5' : isMissed ? '#fef2f2' : isOverdue ? '#fffbeb' : '#f8fafc'
                 }}>
                   <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                    <div style={{ 
+                    <div style={{
                       width: 50, height: 50, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: isCompleted ? '#10b981' : isMissed ? '#ef4444' : isOverdue ? '#f59e0b' : '#cbd5e1', color: 'white', fontWeight: 700
                     }}>
@@ -95,7 +95,7 @@ export default function MedicationSchedule() {
                     </div>
                     <div>
                       <h4 style={{ margin: '0 0 4px 0', fontSize: '1.2rem', color: '#0f172a' }}>{s.prescriptionItem?.medication_name}</h4>
-                      <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>{s.prescriptionItem?.dosage} {s.prescriptionItem?.dosage_unit} — {s.prescriptionItem?.route?.replace('_', ' ')}</p>
+                      <p style={{ margin: 0, color: '#64748b', fontSize: '0.95rem' }}>{s.prescriptionItem?.dosage} — {s.prescriptionItem?.route?.replace('_', ' ')}</p>
                       {isOverdue && <span style={{ color: '#d97706', fontSize: '0.85rem', fontWeight: 600 }}>Overdue</span>}
                     </div>
                   </div>
@@ -116,7 +116,7 @@ export default function MedicationSchedule() {
                       </div>
                     ) : (
                       <button className="btn-primary" onClick={() => handleConfirm(s.id)} style={{ background: '#10b981' }}>
-                        <CheckCircle size={18} style={{ marginRight: 6 }}/> Confirm Taken
+                        <CheckCircle size={18} style={{ marginRight: 6 }} /> Confirm Taken
                       </button>
                     )}
                   </div>

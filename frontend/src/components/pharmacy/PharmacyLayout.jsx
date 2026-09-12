@@ -17,8 +17,8 @@ export default function PharmacyLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
+    navigate('/login', { replace: true, state: {} });
     await logout();
-    navigate('/login');
   };
 
   const navItems = [

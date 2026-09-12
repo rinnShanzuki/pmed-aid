@@ -1,7 +1,7 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/db');
 
-class Consultation extends Model {}
+class Consultation extends Model { }
 
 Consultation.init(
   {
@@ -13,6 +13,7 @@ Consultation.init(
       allowNull: false,
       defaultValue: 'waiting',
     },
+    scheduled_time: { type: DataTypes.DATE, allowNull: true },
     admission_required: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     admission_id: { type: DataTypes.INTEGER, allowNull: true },
     department: { type: DataTypes.STRING(255), allowNull: true },

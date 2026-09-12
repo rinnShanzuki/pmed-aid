@@ -8,18 +8,30 @@ exports.overview = async (req, res, next) => {
 
     const admWhere = { status: 'admitted' };
     if (req.user.role === 'nurse') admWhere.assigned_nurse_id = req.user.id;
+    if (req.user.role === 'doctor') admWhere.attending_doctor_id = req.user.id;
 
-    const scheduleInclude = req.user.role === 'nurse' ? [{
-      model: Admission,
-      as: 'admission',
-      where: { assigned_nurse_id: req.user.id },
-      attributes: [],
-    }] : [];
+    // Build the include for MedicationSchedule based on role
+    let scheduleInclude = [];
+    if (req.user.role === 'nurse') {
+      scheduleInclude = [{
+        model: Admission,
+        as: 'admission',
+        where: { assigned_nurse_id: req.user.id },
+        attributes: [],
+      }];
+    } else if (req.user.role === 'doctor') {
+      scheduleInclude = [{
+        model: Admission,
+        as: 'admission',
+        where: { attending_doctor_id: req.user.id },
+        attributes: [],
+      }];
+    }
 
     const [activeAdmissions, totalPatients, activePrescriptions, todayStats, overdue] = await Promise.all([
       Admission.count({ where: admWhere }),
-      Patient.count(),
-      Prescription.count({ where: { status: 'active' } }),
+      Patient.count(), // We'll keep total patients hospital-wide or change? Let's leave it, not used heavily on doctor dashboard. Wait, doctor dashboard doesn't even show total patients.
+      Prescription.count({ where: { status: 'active', ...(req.user.role === 'doctor' && { doctor_id: req.user.id }) } }),
       MedicationSchedule.findAll({
         where: { scheduled_time: { [Op.gte]: today, [Op.lt]: tomorrow } },
         include: scheduleInclude,
@@ -52,10 +64,10 @@ exports.overview = async (req, res, next) => {
         active_prescriptions: activePrescriptions,
         today: {
           total_doses: Object.values(statsMap).reduce((a, b) => a + b, 0),
-          completed:   statsMap.completed  || 0,
-          pending:     statsMap.pending    || 0,
-          missed:      statsMap.missed     || 0,
-          skipped:     statsMap.skipped    || 0,
+          completed: statsMap.completed || 0,
+          pending: statsMap.pending || 0,
+          missed: statsMap.missed || 0,
+          skipped: statsMap.skipped || 0,
         },
         overdue_count: overdue,
       },
@@ -68,21 +80,47 @@ exports.medicationStatus = async (req, res, next) => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const admissionInclude = {
-      model: Admission, as: 'admission',
-      attributes: ['id'],
-      include: [{ model: Room, as: 'room', attributes: ['room_number'] }],
-    };
+    let scheduleInclude = [];
     if (req.user.role === 'nurse') {
-      admissionInclude.where = { assigned_nurse_id: req.user.id };
+      scheduleInclude = [{
+        model: Admission,
+        as: 'admission',
+        where: { assigned_nurse_id: req.user.id },
+        attributes: ['id', 'patient_id', 'room_id'],
+        include: [
+          { model: Patient, as: 'patient', attributes: ['first_name', 'last_name'] },
+          { model: Room, as: 'room', attributes: ['room_number', 'room_type'] },
+        ],
+      }];
+    } else if (req.user.role === 'doctor') {
+      scheduleInclude = [{
+        model: Admission,
+        as: 'admission',
+        where: { attending_doctor_id: req.user.id },
+        attributes: ['id', 'patient_id', 'room_id'],
+        include: [
+          { model: Patient, as: 'patient', attributes: ['first_name', 'last_name'] },
+          { model: Room, as: 'room', attributes: ['room_number', 'room_type'] },
+        ],
+      }];
+    } else {
+      scheduleInclude = [{
+        model: Admission,
+        as: 'admission',
+        attributes: ['id', 'patient_id', 'room_id'],
+        include: [
+          { model: Patient, as: 'patient', attributes: ['first_name', 'last_name'] },
+          { model: Room, as: 'room', attributes: ['room_number', 'room_type'] },
+        ],
+      }];
     }
 
     const schedules = await MedicationSchedule.findAll({
       where: { scheduled_time: { [Op.gte]: today, [Op.lt]: tomorrow } },
       include: [
-        { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'dosage_unit', 'route'] },
+        { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'route'] },
         { model: Patient, as: 'patient', attributes: ['id', 'first_name', 'last_name'] },
-        admissionInclude,
+        ...scheduleInclude,
         { model: User, as: 'administeredBy', attributes: ['first_name', 'last_name'] },
       ],
       order: [['scheduled_time', 'ASC']],
@@ -103,7 +141,7 @@ exports.medicationStatus = async (req, res, next) => {
       patientMap[pid].schedules.push({
         id: s.id,
         medication_name: s.prescriptionItem?.medication_name,
-        dosage: `${s.prescriptionItem?.dosage} ${s.prescriptionItem?.dosage_unit}`,
+        dosage: `${s.prescriptionItem?.dosage}`,
         route: s.prescriptionItem?.route,
         scheduled_time: s.scheduled_time,
         status: s.status,
@@ -125,11 +163,12 @@ exports.alerts = async (req, res, next) => {
       },
       include: [
         { model: Patient, as: 'patient', attributes: ['first_name', 'last_name'] },
-        { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage', 'dosage_unit'] },
+        { model: PrescriptionItem, as: 'prescriptionItem', attributes: ['medication_name', 'dosage'] },
         {
           model: Admission, as: 'admission',
-          attributes: [],
-          where: req.user.role === 'nurse' ? { assigned_nurse_id: req.user.id } : undefined,
+          attributes: ['id', 'patient_id', 'room_id'],
+          where: req.user.role === 'nurse' ? { assigned_nurse_id: req.user.id } :
+            req.user.role === 'doctor' ? { attending_doctor_id: req.user.id } : undefined,
           include: [{ model: Room, as: 'room', attributes: ['room_number'] }],
         },
       ],
@@ -142,7 +181,7 @@ exports.alerts = async (req, res, next) => {
       priority: 'high',
       patient_name: `${s.patient.first_name} ${s.patient.last_name}`,
       room_number: s.admission?.room?.room_number || 'N/A',
-      medication: `${s.prescriptionItem?.medication_name} ${s.prescriptionItem?.dosage} ${s.prescriptionItem?.dosage_unit}`,
+      medication: `${s.prescriptionItem?.medication_name} ${s.prescriptionItem?.dosage}`,
       scheduled_time: s.scheduled_time,
       minutes_overdue: Math.round((new Date() - new Date(s.scheduled_time)) / 60000),
     }));

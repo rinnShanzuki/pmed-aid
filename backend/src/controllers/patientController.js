@@ -1,4 +1,4 @@
-const { Patient, User, AuditLog } = require('../models');
+const { Patient, User, AuditLog, Consultation, Admission, Prescription } = require('../models');
 const { validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 
@@ -36,8 +36,40 @@ exports.getAll = async (req, res, next) => {
     if (req.query.search) {
       where[Op.or] = [
         { first_name: { [Op.like]: `%${req.query.search}%` } },
-        { last_name:  { [Op.like]: `%${req.query.search}%` } },
+        { last_name: { [Op.like]: `%${req.query.search}%` } },
       ];
+    }
+
+    if (req.query.exclude_active === 'true') {
+      const activeConsults = await Consultation.findAll({
+        where: { status: { [Op.in]: ['waiting', 'in-progress'] } },
+        attributes: ['patient_id']
+      });
+      const activeAdmits = await Admission.findAll({
+        where: { status: 'admitted' },
+        attributes: ['patient_id']
+      });
+      const excludeIds = new Set([
+        ...activeConsults.map(c => c.patient_id),
+        ...activeAdmits.map(a => a.patient_id)
+      ]);
+      if (excludeIds.size > 0) {
+        where.id = { ...where.id, [Op.notIn]: Array.from(excludeIds) };
+      }
+    }
+
+    if (req.user && req.user.role === 'doctor') {
+      const [consults, admits, prescs] = await Promise.all([
+        Consultation.findAll({ where: { doctor_id: req.user.id }, attributes: ['patient_id'] }),
+        Admission.findAll({ where: { attending_doctor_id: req.user.id }, attributes: ['patient_id'] }),
+        Prescription.findAll({ where: { doctor_id: req.user.id }, attributes: ['patient_id'] })
+      ]);
+      const patientIds = new Set([
+        ...consults.map(c => c.patient_id),
+        ...admits.map(a => a.patient_id),
+        ...prescs.map(p => p.patient_id)
+      ]);
+      where.id = { [Op.in]: Array.from(patientIds) };
     }
 
     const patients = await Patient.findAll({
