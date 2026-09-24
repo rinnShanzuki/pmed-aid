@@ -5,11 +5,11 @@ const auth = require('../middlewares/auth');
 const roleGuard = require('../middlewares/roleGuard');
 const { body } = require('express-validator');
 
-// Create consultation (Info desk)
+// Create consultation (Info desk & Doctor ad-hoc)
 router.post(
   '/',
   auth,
-  roleGuard(['admin', 'info_desk']),
+  roleGuard(['admin', 'info_desk', 'doctor']),
   [
     body('patient_id').isInt().withMessage('Patient ID is required'),
     body('doctor_id').isInt().withMessage('Doctor ID is required'),

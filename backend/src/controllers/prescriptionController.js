@@ -36,8 +36,8 @@ exports.create = async (req, res, next) => {
     }
 
     const createdItems = await PrescriptionItem.bulkCreate(
-      items.map(item => ({ 
-        ...item, 
+      items.map(item => ({
+        ...item,
         prescription_id: prescription.id,
         start_time: item.start_time === '' ? null : item.start_time,
         interval_hours: item.interval_hours === '' ? null : item.interval_hours

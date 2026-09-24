@@ -44,7 +44,7 @@ export default function Prescriptions() {
     try {
       const { data } = await api.get(`/prescriptions/${id}`);
       setViewData(data.data);
-      
+
       if (data.data.type === 'in_hospital' && data.data.patient_id) {
         try {
           const adh = await api.get(`/analytics/adherence?patient_id=${data.data.patient_id}`);
@@ -56,7 +56,7 @@ export default function Prescriptions() {
       } else {
         setAdherenceStats(null);
       }
-      
+
       setModal('view');
     } catch (err) { console.error(err); }
   }
@@ -121,7 +121,7 @@ export default function Prescriptions() {
                   </div>
                   <div>
                     <span style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>Doses Completed</span>
-                    <strong style={{ fontSize: '1.5rem', color: '#15803d' }}>{adherenceStats.completed} <span style={{fontSize: '1rem', color: '#166534'}}>/ {adherenceStats.total_doses - adherenceStats.pending}</span></strong>
+                    <strong style={{ fontSize: '1.5rem', color: '#15803d' }}>{adherenceStats.completed} <span style={{ fontSize: '1rem', color: '#166534' }}>/ {adherenceStats.total_doses - adherenceStats.pending}</span></strong>
                   </div>
                   <div>
                     <span style={{ display: 'block', fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>Missed / Skipped</span>

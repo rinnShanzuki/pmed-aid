@@ -1,19 +1,16 @@
-const sequelize = require('./src/config/db');
+const sequelize = require('./src/config/db.js');
 
-async function migrate() {
+(async () => {
   try {
-    console.log('Adding civil_status to patients...');
-    await sequelize.query("ALTER TABLE patients ADD COLUMN civil_status ENUM('single', 'married', 'divorced', 'widowed') DEFAULT NULL;").catch(e => console.log('Already exists or error:', e.message));
-    
-    console.log('Adding last_login to users...');
-    await sequelize.query("ALTER TABLE users ADD COLUMN last_login DATETIME DEFAULT NULL;").catch(e => console.log('Already exists or error:', e.message));
+    await sequelize.authenticate();
+    console.log('Connection has been established successfully.');
 
-    console.log('Migration completed.');
-  } catch (error) {
-    console.error('Migration failed:', error);
-  } finally {
+    await sequelize.query("ALTER TABLE patients ADD COLUMN patient_type ENUM('none', 'outpatient', 'pending_admission', 'admitted') DEFAULT 'none';");
+    console.log('Successfully added patient_type column to patients table.');
+
     process.exit(0);
+  } catch (error) {
+    console.error('Unable to add column:', error);
+    process.exit(1);
   }
-}
-
-migrate();
+})();

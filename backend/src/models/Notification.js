@@ -1,7 +1,7 @@
 const { DataTypes, Model } = require('sequelize');
 const sequelize = require('../config/db');
 
-class Notification extends Model {}
+class Notification extends Model { }
 
 Notification.init(
   {
@@ -36,6 +36,28 @@ Notification.init(
       { fields: ['related_prescription_id'] },
       { fields: ['related_admission_id'] },
     ],
+    hooks: {
+      afterCreate: (notification, options) => {
+        try {
+          const socket = require('../socket');
+          const io = socket.getIo();
+          io.to(`user_${notification.user_id}`).emit('new_notification', notification.toJSON());
+        } catch (err) {
+          console.error('WebSocket emit failed:', err.message);
+        }
+      },
+      afterBulkCreate: (notifications, options) => {
+        try {
+          const socket = require('../socket');
+          const io = socket.getIo();
+          notifications.forEach(n => {
+            io.to(`user_${n.user_id}`).emit('new_notification', n.toJSON());
+          });
+        } catch (err) {
+          console.error('WebSocket emit bulk failed:', err.message);
+        }
+      }
+    }
   }
 );
 

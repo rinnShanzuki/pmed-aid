@@ -28,6 +28,7 @@
     "puppeteer": "^25.1.0",
     "qrcode": "^1.5.4",
     "sequelize": "^6.37.8",
+    "socket.io": "^4.8.3",
     "uuid": "^14.0.0"
   },
   "devDependencies": {

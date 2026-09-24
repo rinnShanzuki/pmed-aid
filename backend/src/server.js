@@ -64,7 +64,7 @@ async function ensureDefaultAccounts() {
               const doctorUser = await User.findOne({ where: { role: 'doctor' } });
               const infoDeskUser = await User.findOne({ where: { role: 'info_desk' } });
               const room = await Room.findOne({ where: { is_occupied: false } });
-              
+
               admission = await Admission.create({
                 patient_id: patientProfile.id,
                 room_id: room ? room.id : 1,
@@ -144,9 +144,15 @@ async function ensureDefaultAccounts() {
   }
 }
 
+const http = require('http');
+const socket = require('./socket');
+
 function startServer() {
+  const server = http.createServer(app);
+  socket.init(server);
+
   // Start HTTP server immediately so cloud health checks pass and port opens without blocking on DB
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`🚀 Server running → http://localhost:${PORT}`);
     console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
   });

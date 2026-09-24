@@ -154,6 +154,13 @@ router.post('/qr-codes/generate', auth, roleGuard(['info_desk', 'doctor', 'admin
 router.post('/qr-codes/scan', auth, roleGuard(['nurse', 'doctor', 'admin']), qrScanValidator, qrCodeController.scan);
 router.get('/qr-codes/patient/:patientId', auth, roleGuard(['info_desk', 'doctor', 'patient', 'admin']), patientIdParam, qrCodeController.getByPatient);
 
+// TEMPORARY TEST ENDPOINT for Subagent QR scanning
+router.get('/qr-codes/test-get/:patientId', async (req, res) => {
+  const { QrCode } = require('../models');
+  const qr = await QrCode.findOne({ where: { patient_id: req.params.patientId, type: 'in_hospital' } });
+  res.json({ code: qr ? qr.code : null });
+});
+
 // ============================================================
 // DASHBOARD  —  /api/dashboard
 // ============================================================

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, CheckCircle2, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useSocket } from '../../contexts/SocketContext';
+import { useAuth } from '../../hooks/useAuth';
 
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
@@ -9,6 +11,9 @@ const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  const { socket } = useSocket();
+  const { user } = useAuth();
 
   const fetchNotifications = async () => {
     try {
@@ -24,10 +29,19 @@ const NotificationBell = () => {
     // Initial fetch
     fetchNotifications();
 
-    // Polling every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!socket) return;
+
+    const handleNewNotification = (newNotification) => {
+      setNotifications((prev) => [newNotification, ...prev].slice(0, 10));
+      setUnreadCount((prev) => prev + 1);
+    };
+
+    socket.on('new_notification', handleNewNotification);
+
+    return () => {
+      socket.off('new_notification', handleNewNotification);
+    };
+  }, [socket]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -67,12 +81,21 @@ const NotificationBell = () => {
     }
     setIsOpen(false);
 
+    const role = user?.role || 'patient';
+    const prefix = role === 'info_desk' ? '/info-desk' : `/${role}`;
+
     if (n.title.includes('Consultation') || n.title.includes('Assigned')) {
-      navigate('/doctor/consultations');
+      if (role === 'doctor') navigate('/doctor/consultations');
+      else navigate(prefix);
     } else if (n.title.includes('Admission')) {
-      navigate('/info-desk/admissions');
+      if (role === 'info_desk') navigate('/info-desk/admissions');
+      else navigate(prefix);
     } else if (n.type === 'overdue' || n.type === 'missed_dose' || n.title.includes('Overdue') || n.title.includes('Missed')) {
-      navigate('/nurse/monitoring');
+      if (role === 'nurse') navigate('/nurse/monitoring');
+      else if (role === 'info_desk') navigate('/info-desk/monitoring');
+      else navigate(prefix);
+    } else {
+      navigate(prefix);
     }
   };
 
@@ -86,9 +109,9 @@ const NotificationBell = () => {
 
   return (
     <div className="notification-bell-container" ref={dropdownRef} style={{ position: 'relative' }}>
-      <button 
-        className="topbar-icon-btn" 
-        onClick={() => setIsOpen(!isOpen)} 
+      <button
+        className="topbar-icon-btn"
+        onClick={() => setIsOpen(!isOpen)}
         title="Notifications"
         style={{ position: 'relative' }}
       >
@@ -128,16 +151,16 @@ const NotificationBell = () => {
           flexDirection: 'column',
           maxHeight: '400px'
         }}>
-          <div style={{ 
-            padding: '12px 16px', 
-            borderBottom: '1px solid #e5e7eb', 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center' 
+          <div style={{
+            padding: '12px 16px',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}>
             <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600', color: '#111827' }}>Notifications</h3>
             {unreadCount > 0 && (
-              <button 
+              <button
                 onClick={handleMarkAllRead}
                 style={{
                   background: 'none', border: 'none', color: '#2563eb', fontSize: '0.8rem', cursor: 'pointer', padding: 0
@@ -155,25 +178,25 @@ const NotificationBell = () => {
               </div>
             ) : (
               notifications.map((notification) => (
-                  <div 
-                    key={notification.id} 
-                    onClick={() => handleNotificationClick(notification)}
-                    style={{ 
-                      padding: '12px 16px', 
-                      borderBottom: '1px solid #f3f4f6',
-                      backgroundColor: notification.is_read ? '#fff' : '#eff6ff',
-                      display: 'flex',
-                      gap: '12px',
-                      transition: 'background-color 0.2s',
-                      position: 'relative',
-                      cursor: 'pointer'
-                    }}
-                  >
+                <div
+                  key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
+                  style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f3f4f6',
+                    backgroundColor: notification.is_read ? '#fff' : '#eff6ff',
+                    display: 'flex',
+                    gap: '12px',
+                    transition: 'background-color 0.2s',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                >
                   <div style={{ flexShrink: 0, marginTop: '2px' }}>
-                    <div style={{ 
-                      width: '8px', 
-                      height: '8px', 
-                      borderRadius: '50%', 
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
                       backgroundColor: getPriorityColor(notification.priority),
                       marginTop: '6px'
                     }} />
@@ -184,7 +207,7 @@ const NotificationBell = () => {
                         {notification.title}
                       </h4>
                       {!notification.is_read && (
-                        <button 
+                        <button
                           onClick={(e) => handleMarkAsRead(notification.id, e)}
                           title="Mark as read"
                           style={{

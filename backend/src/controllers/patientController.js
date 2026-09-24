@@ -26,6 +26,14 @@ exports.create = async (req, res, next) => {
       ip_address: req.ip,
     });
 
+    const { notifyAdmin } = require('../utils/notificationHelper');
+    await notifyAdmin({
+      type: 'system',
+      title: 'New Patient Registered',
+      message: `${patient.first_name} ${patient.last_name} has been successfully registered.`,
+      priority: 'low'
+    });
+
     res.status(201).json({ success: true, data: patient });
   } catch (error) { next(error); }
 };

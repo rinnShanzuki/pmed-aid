@@ -62,10 +62,7 @@ export default function ReportsAnalytics() {
 
   return (
     <>
-      <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', marginBottom: 20 }}>
-        <BarChart3 size={20} style={{ display: 'inline', marginRight: 10, verticalAlign: 'text-bottom' }} />
-        Reports & Analytics
-      </h2>
+
 
       <div className="charts-grid">
         {/* Adherence Report */}

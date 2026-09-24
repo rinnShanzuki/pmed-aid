@@ -55,18 +55,8 @@ async function checkAdherence() {
         });
       }
 
-      // 3. Notify Attending Doctor
-      if (admission.attending_doctor_id) {
-        notificationsToCreate.push({
-          user_id: admission.attending_doctor_id,
-          type: 'missed_dose',
-          title: title,
-          message: message,
-          priority: 'critical',
-          related_schedule_id: schedule.id,
-          related_admission_id: admission.id
-        });
-      }
+      // 3. Notify Attending Doctor (DISABLED)
+      // Doctors will now only check the Adherence dashboard manually instead of receiving push alerts.
 
       // 4. (Optional) Notify Info Desk/Admin - Let's find an info_desk user
       const infoDesks = await User.findAll({ where: { role: 'info_desk' }, attributes: ['id'] });

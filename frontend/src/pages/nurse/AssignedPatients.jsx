@@ -28,7 +28,7 @@ export default function AssignedPatients() {
   return (
     <div className="id-card">
       <div className="id-section-header">
-        <h3><BedDouble size={20} /> Assigned Patients</h3>
+        <div></div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <div className="search-bar" style={{ width: 300 }}>
             <Search size={16} />

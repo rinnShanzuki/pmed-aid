@@ -185,6 +185,41 @@ export default function MedAdministration() {
               {scanSuccess && <div style={{ padding: '12px', background: '#dcfce7', color: '#166534', borderRadius: 8, marginBottom: 16, fontWeight: 500, textAlign: 'center' }}>{scanSuccess}</div>}
 
               <div id="reader" style={{ width: '100%', border: 'none', borderRadius: 8, overflow: 'hidden' }}></div>
+              <button
+                type="button"
+                className="btn-primary"
+                id="simulate-scan-btn"
+                style={{ marginTop: '16px', width: '100%' }}
+                onClick={async () => {
+                  try {
+                    const res = await api.get(`/qr-codes/test-get/${scanModal.patient_id}`);
+                    if (!res.data.code) {
+                      setScanError('No QR code found for this patient.');
+                      return;
+                    }
+                    const decodedText = res.data.code;
+                    const { data } = await api.post('/qr-codes/verify', { code: decodedText });
+                    if (!data.data.is_active || data.data.type !== 'in_hospital') {
+                      setScanError('Invalid or inactive wristband QR.');
+                      return;
+                    }
+                    if (data.data.patient_id !== scanModal.patient_id) {
+                      setScanError('Mismatch! This wristband belongs to a different patient.');
+                      return;
+                    }
+                    setScanSuccess('Patient verified! Administering dose...');
+                    await api.post(`/schedules/${scanModal.id}/administer`, { notes: 'Administered via QR confirmation (Simulated)' });
+                    setTimeout(() => {
+                      setScanModal(null);
+                      fetchSchedules();
+                    }, 1500);
+                  } catch (err) {
+                    setScanError('Failed to verify QR code.');
+                  }
+                }}
+              >
+                Simulate QR Scan (Test)
+              </button>
             </div>
 
             <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'right' }}>

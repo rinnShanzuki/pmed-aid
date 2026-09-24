@@ -26,6 +26,10 @@ async function notifyInfoDesk(payload) {
   return notifyRole('info_desk', payload);
 }
 
+async function notifyAdmin(payload) {
+  return notifyRole('admin', payload);
+}
+
 async function createNotification(payload) {
   return Notification.create({
     user_id: payload.user_id,
@@ -42,5 +46,6 @@ async function createNotification(payload) {
 module.exports = {
   notifyRole,
   notifyInfoDesk,
+  notifyAdmin,
   createNotification,
 };

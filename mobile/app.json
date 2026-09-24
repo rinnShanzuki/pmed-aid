@@ -1,4 +1,30 @@
 {
-  "name": "pmedaid",
-  "displayName": "pmedaid"
+  "expo": {
+    "name": "PMED-AID",
+    "slug": "pmedaid",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1d64c1"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pmedaid.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1d64c1"
+      },
+      "package": "com.pmedaid.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
 }

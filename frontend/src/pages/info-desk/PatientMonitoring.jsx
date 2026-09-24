@@ -151,7 +151,9 @@ export default function PatientMonitoring() {
   const [wardStatusFilter, setWardStatusFilter] = useState('all');
   const [pendingSearch, setPendingSearch] = useState('');
   const [pendingStatusFilter, setPendingStatusFilter] = useState('all');
+  const [pendingTypeFilter, setPendingTypeFilter] = useState('admitted'); // 'admitted' | 'outpatient' | 'all'
   const [overdueSearch, setOverdueSearch] = useState('');
+  const [overdueTypeFilter, setOverdueTypeFilter] = useState('admitted'); // 'admitted' | 'outpatient' | 'all'
 
   const fetchDashboard = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -230,11 +232,19 @@ export default function PatientMonitoring() {
     return matchesSearch && matchesStatus;
   });
   const filteredPending = (pendingSchedule || []).filter(row => {
+    const isAdmitted = row.roomNumber !== 'N/A';
+    if (pendingTypeFilter === 'admitted' && !isAdmitted) return false;
+    if (pendingTypeFilter === 'outpatient' && isAdmitted) return false;
+
     const matchesSearch = pendingSearch === '' || row.patientName.toLowerCase().includes(pendingSearch.toLowerCase()) || row.roomNumber.toLowerCase().includes(pendingSearch.toLowerCase()) || row.medicationName.toLowerCase().includes(pendingSearch.toLowerCase()) || row.assignedNurse.toLowerCase().includes(pendingSearch.toLowerCase());
     const matchesStatus = pendingStatusFilter === 'all' || row.status === pendingStatusFilter;
     return matchesSearch && matchesStatus;
   });
   const filteredOverdue = (overdueList || []).filter(row => {
+    const isAdmitted = row.roomNumber !== 'N/A';
+    if (overdueTypeFilter === 'admitted' && !isAdmitted) return false;
+    if (overdueTypeFilter === 'outpatient' && isAdmitted) return false;
+
     const matchesSearch = overdueSearch === '' || row.patientName.toLowerCase().includes(overdueSearch.toLowerCase()) || row.roomNumber.toLowerCase().includes(overdueSearch.toLowerCase()) || row.medicationName.toLowerCase().includes(overdueSearch.toLowerCase()) || row.assignedNurse.toLowerCase().includes(overdueSearch.toLowerCase());
     return matchesSearch;
   });
@@ -370,6 +380,20 @@ export default function PatientMonitoring() {
             { value: 'pending', label: 'Pending' },
           ]}
         />
+        <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid #e2e8f0', marginBottom: 16, padding: '0 2px' }}>
+          <button
+            style={{ padding: '8px 4px', background: 'none', border: 'none', borderBottom: pendingTypeFilter === 'admitted' ? '2px solid #3b82f6' : '2px solid transparent', color: pendingTypeFilter === 'admitted' ? '#3b82f6' : '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem', outline: 'none' }}
+            onClick={() => setPendingTypeFilter('admitted')}
+          >
+            Admitted Patients
+          </button>
+          <button
+            style={{ padding: '8px 4px', background: 'none', border: 'none', borderBottom: pendingTypeFilter === 'outpatient' ? '2px solid #3b82f6' : '2px solid transparent', color: pendingTypeFilter === 'outpatient' ? '#3b82f6' : '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem', outline: 'none' }}
+            onClick={() => setPendingTypeFilter('outpatient')}
+          >
+            Outpatients
+          </button>
+        </div>
         <div className="id-table-container">
           <table className="id-table">
             <thead>
@@ -427,6 +451,20 @@ export default function PatientMonitoring() {
           onSearchChange={setOverdueSearch}
           searchPlaceholder="Search patient, room, medication, nurse…"
         />
+        <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid #e2e8f0', marginBottom: 16, padding: '0 2px' }}>
+          <button
+            style={{ padding: '8px 4px', background: 'none', border: 'none', borderBottom: overdueTypeFilter === 'admitted' ? '2px solid #ef4444' : '2px solid transparent', color: overdueTypeFilter === 'admitted' ? '#dc2626' : '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem', outline: 'none' }}
+            onClick={() => setOverdueTypeFilter('admitted')}
+          >
+            Admitted Patients
+          </button>
+          <button
+            style={{ padding: '8px 4px', background: 'none', border: 'none', borderBottom: overdueTypeFilter === 'outpatient' ? '2px solid #ef4444' : '2px solid transparent', color: overdueTypeFilter === 'outpatient' ? '#dc2626' : '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem', outline: 'none' }}
+            onClick={() => setOverdueTypeFilter('outpatient')}
+          >
+            Outpatients
+          </button>
+        </div>
         <div className="id-table-container">
           <table className="id-table">
             <thead>

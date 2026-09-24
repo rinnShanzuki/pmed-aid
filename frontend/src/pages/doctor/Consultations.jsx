@@ -6,6 +6,7 @@ export default function Consultations() {
   const [consultations, setConsultations] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('queue');
 
   const [modal, setModal] = useState(null); // 'consultation' or 'admission_session'
   const [selectedRecord, setSelectedRecord] = useState(null);
@@ -38,7 +39,7 @@ export default function Consultations() {
   useEffect(() => {
     fetchData();
     fetchMedications();
-  }, []);
+  }, [activeTab]);
 
   async function fetchMedications() {
     try {
@@ -50,7 +51,8 @@ export default function Consultations() {
   async function fetchData() {
     setLoading(true);
     try {
-      const { data } = await api.get('/consultations', { params: { status: 'waiting,in_session' } });
+      const statusParam = activeTab === 'queue' ? 'waiting,in_session' : 'completed,admitted';
+      const { data } = await api.get('/consultations', { params: { status: statusParam } });
       setConsultations(data.data || []);
     } catch (err) {
       console.error(err);
@@ -266,11 +268,11 @@ export default function Consultations() {
             <div style={{ display: 'flex', gap: 16 }}>
               {modal === 'consultation' ? (
                 <>
-                  <button 
+                  <button
                     onClick={() => {
                       if (pendingSubmitAction === 'outpatient' || pendingSubmitAction === 'session') completeOutpatientConsultation(false);
                       else if (pendingSubmitAction === 'admission') requestAdmissionConsultation(false);
-                    }} 
+                    }}
                     style={{ ...actionBtn, background: '#f59e0b', color: '#fff', flex: 1, padding: '12px' }}
                   >
                     <CheckCircle size={16} /> Complete Session
@@ -425,12 +427,12 @@ export default function Consultations() {
                     </div>
                     <div style={{ display: 'flex', gap: 16 }}>
                       <button onClick={() => setActionDialog('outpatient')} style={{ ...actionBtn, background: '#10b981', color: '#fff', flex: 1, padding: '12px' }}>
-                        <CheckCircle size={16} /> Complete Outpatient
+                        <Pill size={16} /> Complete & Prescribe
                       </button>
                       <button onClick={() => setActionDialog('admission')} style={{ ...actionBtn, background: '#3b82f6', color: '#fff', flex: 1, padding: '12px' }}>
                         <BedDouble size={16} /> Request Admission
                       </button>
-                      <button onClick={() => setActionDialog('session')} style={{ ...actionBtn, background: '#f59e0b', color: '#fff', flex: 1, padding: '12px' }}>
+                      <button onClick={() => completeOutpatientConsultation(false)} style={{ ...actionBtn, background: '#f59e0b', color: '#fff', flex: 1, padding: '12px' }}>
                         <CheckCircle size={16} /> Complete Session
                       </button>
                     </div>
@@ -488,6 +490,21 @@ export default function Consultations() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid #e2e8f0', marginBottom: 20 }}>
+          <button
+            style={{ padding: '8px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'queue' ? '2px solid #3b82f6' : '2px solid transparent', color: activeTab === 'queue' ? '#3b82f6' : '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem', outline: 'none' }}
+            onClick={() => setActiveTab('queue')}
+          >
+            Consultation Queue
+          </button>
+          <button
+            style={{ padding: '8px 4px', background: 'none', border: 'none', borderBottom: activeTab === 'completed' ? '2px solid #3b82f6' : '2px solid transparent', color: activeTab === 'completed' ? '#3b82f6' : '#64748b', fontWeight: 600, cursor: 'pointer', fontSize: '0.95rem', outline: 'none' }}
+            onClick={() => setActiveTab('completed')}
+          >
+            Completed Sessions
+          </button>
         </div>
 
         <div className="id-table-container">

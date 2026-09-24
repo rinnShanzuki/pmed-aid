@@ -18,6 +18,7 @@ export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // null | 'add' | 'edit'
   const [form, setForm] = useState(INITIAL_FORM);
@@ -29,6 +30,7 @@ export default function UserManagement() {
     try {
       const params = { search };
       if (!showInactive) params.is_active = 'true';
+      if (activeTab !== 'all') params.role = activeTab;
       const { data } = await api.get('/users', { params });
       const staffOnly = data.data.filter(u => u.role !== 'patient');
       setUsers(staffOnly);
@@ -39,7 +41,7 @@ export default function UserManagement() {
     }
   }
 
-  useEffect(() => { fetchUsers(); }, [search, showInactive]);
+  useEffect(() => { fetchUsers(); }, [search, showInactive, activeTab]);
 
   function openAdd() {
     setForm(INITIAL_FORM);
@@ -105,7 +107,31 @@ export default function UserManagement() {
 
       <div className="admin-table-card">
         <div className="table-header">
-          <h3><UsersIcon size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />User Management</h3>
+          <div className="table-tabs" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+            {['All', 'Admin', 'Doctor', 'Nurse', 'Info Desk', 'Pharmacy'].map(tab => {
+              const value = tab.toLowerCase().replace(' ', '_');
+              return (
+                <button
+                  key={value}
+                  onClick={() => setActiveTab(value)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: activeTab === value ? '#eff6ff' : 'transparent',
+                    color: activeTab === value ? '#3b82f6' : '#64748b',
+                    fontWeight: activeTab === value ? 600 : 500,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {tab}
+                </button>
+              )
+            })}
+          </div>
           <div className="table-header-actions">
             <div className="table-search">
               <Search />

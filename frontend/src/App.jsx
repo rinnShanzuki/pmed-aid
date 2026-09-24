@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { SocketProvider } from './contexts/SocketContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthPage from './pages/AuthPage';
@@ -37,7 +38,6 @@ import PatientRecordDoctor from './pages/doctor/PatientRecord';
 import Consultations from './pages/doctor/Consultations';
 import Prescriptions from './pages/doctor/Prescriptions';
 import MedicationPlans from './pages/doctor/MedicationPlans';
-import Adherence from './pages/doctor/Adherence';
 
 // Nurse
 import NurseLayout from './components/nurse/NurseLayout';
@@ -140,105 +140,106 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* ── Public ── */}
-          <Route path="/login" element={<AuthPage />} />
-          <Route path="/register" element={<AuthPage />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
+        <SocketProvider>
+          <Routes>
+            {/* ── Public ── */}
+            <Route path="/login" element={<AuthPage />} />
+            <Route path="/register" element={<AuthPage />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
 
-          {/* ── General Dashboard (no sidebar, shared by admin & info_desk) ── */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute allowedRoles={['admin', 'info_desk']}>
-              <GeneralDashboard />
-            </ProtectedRoute>
-          } />
+            {/* ── General Dashboard (no sidebar, shared by admin & info_desk) ── */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute allowedRoles={['admin', 'info_desk']}>
+                <GeneralDashboard />
+              </ProtectedRoute>
+            } />
 
-          {/* ── Admin (nested) ── */}
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <AdminLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UserManagement />} />
-            <Route path="patients" element={<PatientManagement />} />
-            <Route path="patients/:id" element={<PatientRecordAdmin />} />
+            {/* ── Admin (nested) ── */}
+            <Route path="/admin" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<UserManagement />} />
+              <Route path="patients" element={<PatientManagement />} />
+              <Route path="patients/:id" element={<PatientRecordAdmin />} />
 
-            <Route path="reports" element={<ReportsAnalytics />} />
-            <Route path="settings" element={<SystemSettings />} />
-          </Route>
+              <Route path="reports" element={<ReportsAnalytics />} />
+              <Route path="settings" element={<SystemSettings />} />
+            </Route>
 
-          {/* ── Information Desk (nested) ── */}
-          <Route path="/info-desk" element={
-            <ProtectedRoute allowedRoles={['info_desk', 'admin']}>
-              <InfoDeskLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<InfoDeskDashboard />} />
-            <Route path="registration" element={<PatientRegistration />} />
-            <Route path="admissions" element={<AdmissionManagement />} />
-            <Route path="monitoring" element={<PatientMonitoring />} />
-            <Route path="prescriptions" element={<PrescriptionManagement />} />
-            <Route path="qr-codes" element={<QrCodeManagement />} />
-            <Route path="patients/:id" element={<PatientRecord />} />
-            {/* <Route path="billing"      element={<BillingExpenses />} /> */}
-          </Route>
+            {/* ── Information Desk (nested) ── */}
+            <Route path="/info-desk" element={
+              <ProtectedRoute allowedRoles={['info_desk', 'admin']}>
+                <InfoDeskLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<InfoDeskDashboard />} />
+              <Route path="registration" element={<PatientRegistration />} />
+              <Route path="admissions" element={<AdmissionManagement />} />
+              <Route path="monitoring" element={<PatientMonitoring />} />
+              <Route path="prescriptions" element={<PrescriptionManagement />} />
+              <Route path="qr-codes" element={<QrCodeManagement />} />
+              <Route path="patients/:id" element={<PatientRecord />} />
+              {/* <Route path="billing"      element={<BillingExpenses />} /> */}
+            </Route>
 
-          {/* ── Pharmacy (standalone portal) ── */}
-          <Route path="/pharmacy" element={
-            <ProtectedRoute allowedRoles={['pharmacy']}>
-              <PharmacyLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<PharmacyDashboard />} />
-          </Route>
+            {/* ── Pharmacy (standalone portal) ── */}
+            <Route path="/pharmacy" element={
+              <ProtectedRoute allowedRoles={['pharmacy']}>
+                <PharmacyLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<PharmacyDashboard />} />
+            </Route>
 
-          {/* ── Doctor (nested) ── */}
-          <Route path="/doctor" element={
-            <ProtectedRoute allowedRoles={['doctor', 'admin']}>
-              <DoctorLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<DoctorDashboard />} />
-            <Route path="patients" element={<MyPatients />} />
-            <Route path="patients/:id" element={<PatientRecordDoctor />} />
-            <Route path="consultations" element={<Consultations />} />
-            <Route path="prescriptions" element={<Prescriptions />} />
-            <Route path="medication-plans" element={<MedicationPlans />} />
-            <Route path="adherence" element={<Adherence />} />
-          </Route>
+            {/* ── Doctor (nested) ── */}
+            <Route path="/doctor" element={
+              <ProtectedRoute allowedRoles={['doctor', 'admin']}>
+                <DoctorLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<DoctorDashboard />} />
+              <Route path="patients" element={<MyPatients />} />
+              <Route path="patients/:id" element={<PatientRecordDoctor />} />
+              <Route path="consultations" element={<Consultations />} />
+              <Route path="prescriptions" element={<Prescriptions />} />
+              <Route path="medication-plans" element={<MedicationPlans />} />
+            </Route>
 
-          {/* ── Nurse (nested) ── */}
-          <Route path="/nurse" element={
-            <ProtectedRoute allowedRoles={['nurse', 'admin']}>
-              <NurseLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<NurseDashboard />} />
-            <Route path="patients" element={<AssignedPatients />} />
-            <Route path="administration" element={<MedAdministration />} />
-            <Route path="scanner" element={<QrScanner />} />
-            <Route path="monitoring" element={<MedMonitoring />} />
-            <Route path="alerts" element={<AlertCenter />} />
-          </Route>
+            {/* ── Nurse (nested) ── */}
+            <Route path="/nurse" element={
+              <ProtectedRoute allowedRoles={['nurse', 'admin']}>
+                <NurseLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<NurseDashboard />} />
+              <Route path="patients" element={<AssignedPatients />} />
+              <Route path="administration" element={<MedAdministration />} />
+              <Route path="scanner" element={<QrScanner />} />
+              <Route path="monitoring" element={<MedMonitoring />} />
+              <Route path="alerts" element={<AlertCenter />} />
+            </Route>
 
-          {/* ── Patient (nested) ── */}
-          <Route path="/patient" element={
-            <ProtectedRoute allowedRoles={['patient', 'admin']}>
-              <PatientLayout />
-            </ProtectedRoute>
-          }>
-            <Route index element={<PatientDashboard />} />
-            <Route path="prescriptions" element={<MyPrescriptions />} />
-            <Route path="schedule" element={<MedicationSchedule />} />
-            <Route path="qr" element={<QrBinding />} />
-            <Route path="history" element={<AdherenceHistory />} />
-          </Route>
+            {/* ── Patient (nested) ── */}
+            <Route path="/patient" element={
+              <ProtectedRoute allowedRoles={['patient', 'admin']}>
+                <PatientLayout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<PatientDashboard />} />
+              <Route path="prescriptions" element={<MyPrescriptions />} />
+              <Route path="schedule" element={<MedicationSchedule />} />
+              <Route path="qr" element={<QrBinding />} />
+              <Route path="history" element={<AdherenceHistory />} />
+            </Route>
 
-          {/* ── Default ── */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+            {/* ── Default ── */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </SocketProvider>
       </AuthProvider>
     </BrowserRouter>
   );

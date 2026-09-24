@@ -48,15 +48,15 @@ exports.getDashboardStats = async (req, res) => {
     const totalSchedules = completedSchedules + missedSchedules + pendingSchedules;
     const medicationDistribution = totalSchedules > 0
       ? [
-          { name: 'Completed', value: Math.round((completedSchedules / totalSchedules) * 100) },
-          { name: 'Pending',   value: Math.round((pendingSchedules / totalSchedules) * 100) },
-          { name: 'Missed',    value: Math.round((missedSchedules / totalSchedules) * 100) },
-        ]
+        { name: 'Completed', value: Math.round((completedSchedules / totalSchedules) * 100) },
+        { name: 'Pending', value: Math.round((pendingSchedules / totalSchedules) * 100) },
+        { name: 'Missed', value: Math.round((missedSchedules / totalSchedules) * 100) },
+      ]
       : [
-          { name: 'Completed', value: 78 },
-          { name: 'Pending',   value: 15 },
-          { name: 'Missed',    value: 7 },
-        ];
+        { name: 'Completed', value: 78 },
+        { name: 'Pending', value: 15 },
+        { name: 'Missed', value: 7 },
+      ];
 
     // ── Chart 3: Patient Admission Trend ──
     const today = new Date();
@@ -143,7 +143,7 @@ exports.updateSettings = async (req, res) => {
   try {
     const { Setting } = require('../models');
     const settingsUpdates = req.body.settings;
-    
+
     if (!Array.isArray(settingsUpdates)) {
       return res.status(400).json({ success: false, message: 'Invalid format.' });
     }
@@ -151,6 +151,14 @@ exports.updateSettings = async (req, res) => {
     for (const item of settingsUpdates) {
       await Setting.upsert({ key: item.key, value: item.value });
     }
+
+    const { notifyAdmin } = require('../utils/notificationHelper');
+    await notifyAdmin({
+      type: 'system',
+      title: 'System Settings Updated',
+      message: 'The system configuration has been updated.',
+      priority: 'medium'
+    });
 
     res.json({ success: true, message: 'Settings updated successfully.' });
   } catch (error) {

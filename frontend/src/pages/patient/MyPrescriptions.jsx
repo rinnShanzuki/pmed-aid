@@ -12,7 +12,7 @@ export default function MyPrescriptions() {
         setLoading(true);
         const meRes = await api.get('/patients/me');
         const pId = meRes.data.data.id;
-        
+
         const presRes = await api.get('/prescriptions', { params: { patient_id: pId } });
         setPrescriptions(presRes.data.data || []);
       } catch (err) {
@@ -47,11 +47,11 @@ export default function MyPrescriptions() {
                   <div key={p.id} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 16 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                       <span className="badge active">Active</span>
-                      <span style={{ fontSize: '0.85rem', color: '#64748b' }}><Calendar size={12} style={{ display: 'inline', marginRight: 4 }}/> {new Date(p.created_at).toLocaleDateString()}</span>
+                      <span style={{ fontSize: '0.85rem', color: '#64748b' }}><Calendar size={12} style={{ display: 'inline', marginRight: 4 }} /> {new Date(p.created_at).toLocaleDateString()}</span>
                     </div>
                     <div style={{ color: '#0f172a', fontWeight: 600, marginBottom: 4 }}>Prescribed by: {p.doctor?.last_name}</div>
                     {p.notes && <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: 12 }}>"{p.notes}"</div>}
-                    
+
                     <div style={{ background: '#f8fafc', padding: 12, borderRadius: 6 }}>
                       <strong style={{ fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase' }}>Medications:</strong>
                       <ul style={{ margin: '8px 0 0 0', paddingLeft: 20, fontSize: '0.9rem', color: '#334155' }}>

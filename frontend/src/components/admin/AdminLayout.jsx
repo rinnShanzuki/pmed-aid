@@ -12,12 +12,12 @@ const navItems = [
   { section: 'Main' },
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { section: 'Management' },
-  { to: '/admin/users', icon: UserCog, label: 'Users' },
-  { to: '/admin/patients', icon: Users, label: 'Patients' },
+  { to: '/admin/users', icon: UserCog, label: 'User Management' },
+  { to: '/admin/patients', icon: Users, label: 'Patient Management' },
   { section: 'Insights' },
-  { to: '/admin/reports', icon: BarChart3, label: 'Reports' },
+  { to: '/admin/reports', icon: BarChart3, label: 'Reports & Analytics' },
   { section: 'Configuration' },
-  { to: '/admin/settings', icon: Settings, label: 'Settings' },
+  { to: '/admin/settings', icon: Settings, label: 'System Settings' },
 ];
 
 export default function AdminLayout() {
@@ -39,6 +39,14 @@ export default function AdminLayout() {
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [location.pathname]);
+
+  const getPageTitle = () => {
+    const current = navItems.find(item => {
+      if (!item.to) return false;
+      return item.end ? location.pathname === item.to : location.pathname.startsWith(item.to);
+    });
+    return current ? current.label : 'Dashboard';
+  };
 
   return (
     <div className="admin-layout">
@@ -118,7 +126,7 @@ export default function AdminLayout() {
             >
               <Menu size={20} />
             </button>
-            {/* Page title injected by child routes if needed */}
+            <h2 style={{ fontSize: '1.15rem', fontWeight: '700', color: 'var(--admin-text)' }}>{getPageTitle()}</h2>
           </div>
           <div className="admin-topbar-right">
             <NotificationBell />

@@ -19,6 +19,7 @@ Patient.init(
     allergies: { type: DataTypes.TEXT, allowNull: true },
     civil_status: { type: DataTypes.ENUM('single', 'married', 'divorced', 'widowed'), allowNull: true },
     age: { type: DataTypes.INTEGER, allowNull: true },
+    patient_type: { type: DataTypes.ENUM('none', 'outpatient', 'pending_admission', 'admitted'), defaultValue: 'none' },
   },
   {
     sequelize,

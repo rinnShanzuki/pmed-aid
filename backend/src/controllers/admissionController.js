@@ -49,6 +49,9 @@ exports.create = async (req, res, next) => {
       );
     }
 
+    // Update patient status
+    await Patient.update({ patient_type: 'admitted' }, { where: { id: patient_id } });
+
     // Auto-generate in-hospital QR code
     await QrCode.create({ patient_id, admission_id: admission.id, type: 'in_hospital' });
 
@@ -183,6 +186,9 @@ exports.discharge = async (req, res, next) => {
 
     // Free the room
     await Room.update({ is_occupied: false }, { where: { id: admission.room_id } });
+
+    // Update patient status
+    await Patient.update({ patient_type: 'none' }, { where: { id: admission.patient_id } });
 
     const dischargePrescription = await Prescription.findOne({
       where: {

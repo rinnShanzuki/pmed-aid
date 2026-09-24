@@ -130,6 +130,10 @@ exports.requestAdmission = async (req, res, next) => {
       status: 'completed',
     });
 
+    if (consultation.patient) {
+      await consultation.patient.update({ patient_type: 'pending_admission' });
+    }
+
     await notifyInfoDesk({
       type: 'alert',
       title: 'Admission Required',
@@ -208,6 +212,14 @@ exports.completeOutpatient = async (req, res, next) => {
       });
     } else if (prescription && qrCode.prescription_id !== prescription.id) {
       await qrCode.update({ prescription_id: prescription.id });
+    }
+
+    if (consultation.patient) {
+      if (prescription || req.body.handover === true) {
+        await consultation.patient.update({ patient_type: 'outpatient' });
+      } else {
+        await consultation.patient.update({ patient_type: 'none' });
+      }
     }
 
     await notifyInfoDesk({

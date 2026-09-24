@@ -36,6 +36,15 @@ exports.createUser = async (req, res, next) => {
     if (existing) return res.status(400).json({ success: false, message: 'Email already in use.' });
 
     const user = await User.create({ first_name, last_name, email, password, role });
+
+    const { notifyAdmin } = require('../utils/notificationHelper');
+    await notifyAdmin({
+      type: 'system',
+      title: 'New Staff User Created',
+      message: `${first_name} ${last_name} (${role}) has been added to the system.`,
+      priority: 'low'
+    });
+
     res.status(201).json({ success: true, data: user });
   } catch (error) { next(error); }
 };

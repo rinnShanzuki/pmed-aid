@@ -51,11 +51,24 @@ export default function NurseDashboard() {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <style>{`
+        .responsive-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+        }
+        @media (max-width: 1024px) {
+          .responsive-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+
+      <div className="responsive-grid">
         {/* Assigned Patients */}
-        <div className="id-card" style={{ gridColumn: '1 / 3' }}>
-          <div className="id-section-header">
-            <h3>Assigned Patients</h3>
+        <div className="id-card" style={{ gridColumn: '1 / -1' }}>
+          <div className="id-section-header" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
+            <h3 style={{ color: '#0f172a' }}>Assigned Patients</h3>
           </div>
           {myPatients.length === 0 ? (
             <p style={{ color: '#94a3b8', textAlign: 'center', padding: 24 }}>No assigned patients currently.</p>
@@ -80,22 +93,22 @@ export default function NurseDashboard() {
 
         {/* Upcoming Medications */}
         <div className="id-card">
-          <div className="id-section-header">
-            <h3><Clock size={18} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />Upcoming Medications</h3>
+          <div className="id-section-header" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
+            <h3 style={{ color: '#0f172a' }}><Clock size={18} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />Upcoming Medications</h3>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {schedules.flatMap(p => p.schedules.filter(s => s.status === 'pending').map(s => ({ ...s, patient_name: p.patient_name, room: p.room_number })))
               .slice(0, 5).map(s => (
-              <div key={s.id} style={{ padding: 16, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <strong>{s.medication_name} ({s.dosage})</strong>
-                  <span className="badge pending">Due Soon</span>
+                <div key={s.id} style={{ padding: 16, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <strong>{s.medication_name} ({s.dosage})</strong>
+                    <span className="badge pending">Due Soon</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                    {s.patient_name} — Room {s.room || 'N/A'}
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  {s.patient_name} — Room {s.room || 'N/A'}
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
 
@@ -107,16 +120,16 @@ export default function NurseDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {schedules.flatMap(p => p.schedules.filter(s => s.status === 'missed').map(s => ({ ...s, patient_name: p.patient_name, room: p.room_number })))
               .slice(0, 5).map(s => (
-              <div key={s.id} style={{ padding: 16, background: '#fef2f2', borderRadius: 10, border: '1px solid #fecaca' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <strong style={{ color: '#991b1b' }}>{s.medication_name} ({s.dosage})</strong>
-                  <span className="badge inactive">Missed</span>
+                <div key={s.id} style={{ padding: 16, background: '#fef2f2', borderRadius: 10, border: '1px solid #fecaca' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <strong style={{ color: '#991b1b' }}>{s.medication_name} ({s.dosage})</strong>
+                    <span className="badge inactive">Missed</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#991b1b' }}>
+                    {s.patient_name} — Room {s.room || 'N/A'}
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#991b1b' }}>
-                  {s.patient_name} — Room {s.room || 'N/A'}
-                </div>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       </div>

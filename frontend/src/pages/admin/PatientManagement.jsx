@@ -5,8 +5,8 @@ import { Search, Eye, Users } from 'lucide-react';
 
 export default function PatientManagement() {
   const [patients, setPatients] = useState([]);
-  const [search, setSearch]     = useState('');
-  const [loading, setLoading]   = useState(true);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,11 +27,24 @@ export default function PatientManagement() {
     return `${p.first_name?.[0] || ''}${p.last_name?.[0] || ''}`.toUpperCase();
   }
 
+  function getStatusBadge(type) {
+    switch (type) {
+      case 'admitted':
+        return <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600 }}>Admitted</span>;
+      case 'pending_admission':
+        return <span style={{ background: '#dbeafe', color: '#2563eb', padding: '4px 8px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600 }}>Pending Admission</span>;
+      case 'outpatient':
+        return <span style={{ background: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600 }}>Outpatient</span>;
+      default:
+        return <span style={{ background: '#f1f5f9', color: '#64748b', padding: '4px 8px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600 }}>None</span>;
+    }
+  }
+
   return (
     <>
       <div className="admin-table-card">
         <div className="table-header">
-          <h3><Users size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />Patient Management</h3>
+          <div></div>
           <div className="table-header-actions">
             <div className="table-search">
               <Search />
@@ -51,14 +64,15 @@ export default function PatientManagement() {
               <th>Gender</th>
               <th>Date of Birth</th>
               <th>Contact</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="5" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
+              <tr><td colSpan="6" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
             ) : patients.length === 0 ? (
-              <tr><td colSpan="5" style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>No patients found</td></tr>
+              <tr><td colSpan="6" style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>No patients found</td></tr>
             ) : (
               patients.map((p) => (
                 <tr key={p.id}>
@@ -78,6 +92,7 @@ export default function PatientManagement() {
                     {p.date_of_birth ? new Date(p.date_of_birth).toLocaleDateString() : '—'}
                   </td>
                   <td style={{ fontSize: '0.82rem' }}>{p.contact_number || '—'}</td>
+                  <td>{getStatusBadge(p.patient_type)}</td>
                   <td>
                     <div className="action-btns">
                       <button className="btn-action" title="View Details" onClick={() => navigate(`/admin/patients/${p.id}`)}>

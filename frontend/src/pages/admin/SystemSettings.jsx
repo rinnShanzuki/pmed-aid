@@ -21,10 +21,10 @@ const DEFAULT_SETTINGS = {
 
 export default function SystemSettings() {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [success, setSuccess]   = useState('');
-  const [error, setError]       = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     async function fetchSettings() {
@@ -70,10 +70,7 @@ export default function SystemSettings() {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b' }}>
-          <SettingsIcon size={20} style={{ display: 'inline', marginRight: 10, verticalAlign: 'text-bottom' }} />
-          System Settings
-        </h2>
+        <div></div>
         <button className="btn-save" onClick={handleSave} disabled={saving}>
           {saving ? 'Saving...' : 'Save All Settings'}
         </button>
