@@ -2,16 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
+import { StatCard, Card, Table, Badge } from '../../components';
+import theme from '../../styles/theme';
 
 export default function NurseDashboard() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    assignedPatients: 0,
-    upcomingMeds: 0,
-    missedDoses: 0,
-    completedMeds: 0
-  });
+  const [stats, setStats] = useState<any>(null);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [schedules, setSchedules] = useState<any[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -20,139 +19,235 @@ export default function NurseDashboard() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [schedulesRes, patientsRes] = await Promise.all([
-        api.get('/schedules'),
-        api.get('/patients')
+      const [overviewRes, admissionsRes, medStatusRes] = await Promise.all([
+        api.get('/dashboard/overview'),
+        api.get('/admissions', { params: { status: 'admitted' } }),
+        api.get('/dashboard/medication-status'),
       ]);
       
-      const schedules = schedulesRes.data.data || [];
-      const patients = patientsRes.data.data || [];
-      
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      const todaysSchedules = schedules.filter((s: any) => {
-        const d = new Date(s.scheduled_time);
-        return d >= today && d < tomorrow;
-      });
-      
-      setStats({
-        assignedPatients: patients.length,
-        upcomingMeds: todaysSchedules.filter((s: any) => s.status === 'pending').length,
-        missedDoses: todaysSchedules.filter((s: any) => s.status === 'missed').length,
-        completedMeds: todaysSchedules.filter((s: any) => s.status === 'completed').length
-      });
+      setStats(overviewRes.data.data);
+      setPatients(admissionsRes.data.data || []);
+      setSchedules(medStatusRes.data.data || []);
     } catch (err: any) {
       console.error('Dashboard fetch error:', err);
-      setStats({
-        assignedPatients: 0,
-        upcomingMeds: 0,
-        missedDoses: 0,
-        completedMeds: 0
-      });
     } finally {
       setLoading(false);
     }
   };
 
+  const myPatients = patients;
+
+  // Get upcoming and missed medications
+  const upcomingMeds = schedules
+    .flatMap((p: any) =>
+      p.schedules
+        .filter((s: any) => s.status === 'pending')
+        .map((s: any) => ({
+          ...s,
+          patient_name: p.patient_name,
+          room: p.room_number,
+        }))
+    )
+    .slice(0, 5);
+
+  const missedMeds = schedules
+    .flatMap((p: any) =>
+      p.schedules
+        .filter((s: any) => s.status === 'missed')
+        .map((s: any) => ({
+          ...s,
+          patient_name: p.patient_name,
+          room: p.room_number,
+        }))
+    )
+    .slice(0, 5);
+
+  const statCards = [
+    {
+      label: 'Assigned Patients',
+      value: myPatients.length,
+      iconBg: theme.colors.statCyan,
+      iconColor: theme.colors.statCyanIcon,
+      icon: '👥',
+    },
+    {
+      label: 'Upcoming Meds',
+      value: stats?.today?.pending || 0,
+      iconBg: theme.colors.statGreen,
+      iconColor: theme.colors.statGreenIcon,
+      icon: '🕐',
+    },
+    {
+      label: 'Missed Doses',
+      value: stats?.overdue_count || 0,
+      iconBg: theme.colors.statRed,
+      iconColor: theme.colors.statRedIcon,
+      icon: '⚠️',
+    },
+    {
+      label: 'Completed Meds',
+      value: stats?.today?.completed || 0,
+      iconBg: theme.colors.statBlue,
+      iconColor: theme.colors.statBlueIcon,
+      icon: '💊',
+    },
+  ];
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollContainer} 
+      <ScrollView
+        style={styles.scrollContainer}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Nurse Info Badge */}
-        <View style={styles.nurseBadge}>
-          <View style={styles.nurseAvatar}>
-            <Text style={styles.nurseInitials}>
-              {user?.first_name?.[0]}{user?.last_name?.[0]}
-            </Text>
-          </View>
-          <View style={styles.nurseInfo}>
-            <Text style={styles.nurseName}>{user?.first_name} {user?.last_name}</Text>
-            <Text style={styles.nurseRole}>Nurse</Text>
-          </View>
-        </View>
-
-        {/* Greeting */}
-        <View style={styles.greetingSection}>
+        {/* Header */}
+        <View style={styles.header}>
           <Text style={styles.greeting}>Welcome, {user?.first_name}</Text>
           <Text style={styles.subtitle}>Here's your nursing overview for today.</Text>
         </View>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - Matching Web Layout */}
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: '#dbeafe' }]}>
-              <Text style={styles.statIcon}>👥</Text>
-            </View>
-            <Text style={styles.statNumber}>{stats.assignedPatients}</Text>
-            <Text style={styles.statLabel}>Assigned Patients</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: '#d1fae5' }]}>
-              <Text style={styles.statIcon}>🕐</Text>
-            </View>
-            <Text style={styles.statNumber}>{stats.upcomingMeds}</Text>
-            <Text style={styles.statLabel}>Upcoming Meds</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: '#fee2e2' }]}>
-              <Text style={styles.statIcon}>⚠️</Text>
-            </View>
-            <Text style={styles.statNumber}>{stats.missedDoses}</Text>
-            <Text style={styles.statLabel}>Missed Doses</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, { backgroundColor: '#dbeafe' }]}>
-              <Text style={styles.statIcon}>💊</Text>
-            </View>
-            <Text style={styles.statNumber}>{stats.completedMeds}</Text>
-            <Text style={styles.statLabel}>Completed Meds</Text>
-          </View>
+          {statCards.map((card, index) => (
+            <StatCard
+              key={index}
+              label={card.label}
+              value={card.value}
+              icon={<Text style={styles.statIcon}>{card.icon}</Text>}
+              iconBg={card.iconBg}
+              iconColor={card.iconColor}
+              style={styles.statCardItem}
+            />
+          ))}
         </View>
 
-        {/* Assigned Patients Section */}
-        <View style={styles.section}>
+        {/* Assigned Patients - Full Width */}
+        <Card>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionIcon}>👥</Text>
             <Text style={styles.sectionTitle}>Assigned Patients</Text>
           </View>
-          <View style={styles.emptyState}>
+          {myPatients.length === 0 ? (
             <Text style={styles.emptyText}>No assigned patients currently.</Text>
-          </View>
-        </View>
+          ) : (
+            <Table
+              columns={[
+                {
+                  header: 'Patient',
+                  key: 'patient',
+                  width: 180,
+                  render: (val: any) => (
+                    <Text style={styles.patientName}>
+                      {val?.first_name} {val?.last_name}
+                    </Text>
+                  ),
+                },
+                {
+                  header: 'Room',
+                  key: 'room',
+                  width: 100,
+                  render: (val: any) => (
+                    <Text style={styles.dataText}>{val?.room_number || 'N/A'}</Text>
+                  ),
+                },
+                {
+                  header: 'Admission Date',
+                  key: 'admission_date',
+                  width: 140,
+                  render: (val: any) => (
+                    <Text style={styles.dateText}>
+                      {new Date(val).toLocaleDateString()}
+                    </Text>
+                  ),
+                },
+                {
+                  header: 'Attending Doctor',
+                  key: 'doctor',
+                  width: 150,
+                  render: (val: any) => (
+                    <Text style={styles.dataText}>
+                      {val ? `Dr. ${val.last_name}` : 'N/A'}
+                    </Text>
+                  ),
+                },
+              ]}
+              data={myPatients.slice(0, 5)}
+            />
+          )}
+        </Card>
 
-        {/* Upcoming Medications Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionIcon}>📋</Text>
-            <Text style={styles.sectionTitle}>Upcoming Medications</Text>
-          </View>
-          {/* Empty state or content here */}
-        </View>
+        {/* Two Column Layout for Medications */}
+        <View style={styles.twoColumnGrid}>
+          {/* Upcoming Medications */}
+          <Card style={styles.medCard}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>🕐</Text>
+              <Text style={styles.sectionTitle}>Upcoming Medications</Text>
+            </View>
+            {upcomingMeds.length === 0 ? (
+              <Text style={styles.emptyText}>No upcoming medications.</Text>
+            ) : (
+              <View style={styles.medList}>
+                {upcomingMeds.map((med: any, index: number) => (
+                  <View key={index} style={styles.medItem}>
+                    <View style={styles.medInfo}>
+                      <Text style={styles.medPatient}>{med.patient_name}</Text>
+                      <Text style={styles.medDetails}>
+                        {med.medication_name} — {med.dosage}
+                      </Text>
+                      <Text style={styles.medTime}>
+                        {new Date(med.scheduled_time).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        · Room {med.room}
+                      </Text>
+                    </View>
+                    <Badge variant="pending">Pending</Badge>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Card>
 
-        {/* Missed Medications Section */}
-        <View style={styles.alertSection}>
-          <View style={styles.alertHeader}>
-            <Text style={styles.alertIcon}>⚠️</Text>
-            <Text style={styles.alertTitle}>Missed Medications</Text>
-          </View>
-          {/* Empty state or list of missed meds here */}
+          {/* Missed Medications - Alert Style */}
+          <Card style={[styles.medCard, styles.alertCard] as any}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>⚠️</Text>
+              <Text style={[styles.sectionTitle, styles.alertTitle]}>Missed Medications</Text>
+            </View>
+            {missedMeds.length === 0 ? (
+              <Text style={styles.emptyText}>No missed medications.</Text>
+            ) : (
+              <View style={styles.medList}>
+                {missedMeds.map((med: any, index: number) => (
+                  <View key={index} style={styles.medItem}>
+                    <View style={styles.medInfo}>
+                      <Text style={styles.medPatient}>{med.patient_name}</Text>
+                      <Text style={styles.medDetails}>
+                        {med.medication_name} — {med.dosage}
+                      </Text>
+                      <Text style={styles.medTime}>
+                        {new Date(med.scheduled_time).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        · Room {med.room}
+                      </Text>
+                    </View>
+                    <Badge variant="inactive">Missed</Badge>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Card>
         </View>
       </ScrollView>
     </View>
@@ -162,173 +257,129 @@ export default function NurseDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.bgSecondary,
   },
   scrollContainer: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
+    padding: theme.spacing['4xl'],
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: theme.colors.bgSecondary,
   },
-  nurseBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-    alignSelf: 'flex-end',
-  },
-  nurseAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#3b82f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  nurseInitials: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  nurseInfo: {
-    justifyContent: 'center',
-  },
-  nurseName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  nurseRole: {
-    fontSize: 13,
-    color: '#64748b',
-  },
-  greetingSection: {
-    marginBottom: 24,
+  header: {
+    marginBottom: theme.spacing['2xl'],
   },
   greeting: {
-    fontSize: 24,
+    fontSize: theme.fontSize['3xl'],
     fontWeight: '700',
-    color: '#0f172a',
+    color: theme.colors.textPrimary,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#64748b',
+    fontSize: theme.fontSize.base,
+    color: theme.colors.textSecondary,
+    marginTop: 4,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
+    gap: theme.spacing.xl,
+    marginBottom: 28,
   },
-  statCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+  statCardItem: {
     flex: 1,
-    minWidth: '47%',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
+    minWidth: 220,
   },
   statIcon: {
-    fontSize: 24,
-  },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    textAlign: 'center',
-  },
-  section: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    fontSize: 22,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   sectionIcon: {
-    fontSize: 20,
-    marginRight: 8,
+    fontSize: 18,
+    marginRight: theme.spacing.sm,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: theme.fontSize.lg,
     fontWeight: '700',
-    color: '#0f172a',
-  },
-  emptyState: {
-    paddingVertical: 32,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#94a3b8',
-    textAlign: 'center',
-  },
-  alertSection: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    borderLeftWidth: 4,
-    borderLeftColor: '#ef4444',
-  },
-  alertHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  alertIcon: {
-    fontSize: 20,
-    marginRight: 8,
+    color: theme.colors.textPrimary,
   },
   alertTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#ef4444',
+    color: theme.colors.error,
+  },
+  emptyText: {
+    fontSize: theme.fontSize.base,
+    color: theme.colors.textTertiary,
+    textAlign: 'center',
+    paddingVertical: theme.spacing['2xl'],
+  },
+  patientName: {
+    fontSize: theme.fontSize.base,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  dataText: {
+    fontSize: theme.fontSize.base,
+    color: theme.colors.slate700,
+  },
+  dateText: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.textSecondary,
+  },
+  twoColumnGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing['2xl'],
+  },
+  medCard: {
+    flex: 1,
+    minWidth: 300,
+  },
+  alertCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: theme.colors.error,
+  },
+  medList: {
+    gap: theme.spacing.md,
+  },
+  medItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.bgTertiary,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.borderLight,
+  },
+  medInfo: {
+    flex: 1,
+    marginRight: theme.spacing.md,
+  },
+  medPatient: {
+    fontSize: theme.fontSize.base,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  medDetails: {
+    fontSize: theme.fontSize.sm,
+    color: theme.colors.slate700,
+    marginBottom: 2,
+  },
+  medTime: {
+    fontSize: theme.fontSize.xs,
+    color: theme.colors.textSecondary,
   },
 });

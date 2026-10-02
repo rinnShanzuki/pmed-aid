@@ -53,11 +53,11 @@ export default function MedicationManagement() {
   };
 
   const filteredMedications = medications.filter(med => {
-    const matchesSearch = 
+    const matchesSearch =
       med.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       med.generic_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       med.category?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     return matchesSearch;
   });
 
@@ -77,7 +77,7 @@ export default function MedicationManagement() {
           <Text style={styles.headerIcon}>💊</Text>
           <Text style={styles.headerTitle}>Medication Catalog</Text>
         </View>
-        
+
         <View style={styles.controls}>
           <View style={styles.searchContainer}>
             <Text style={styles.searchIcon}>🔍</Text>
@@ -89,7 +89,7 @@ export default function MedicationManagement() {
               placeholderTextColor="#94a3b8"
             />
           </View>
-          
+
           <TouchableOpacity style={styles.addButton}>
             <Text style={styles.addButtonIcon}>+</Text>
             <Text style={styles.addButtonText}>Add Medication</Text>

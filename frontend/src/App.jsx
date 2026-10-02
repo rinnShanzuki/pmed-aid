@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
+import { RealtimeSyncProvider } from './contexts/RealtimeSyncContext';
 import { useAuth } from './hooks/useAuth';
 import ProtectedRoute from './components/ProtectedRoute';
 import AuthPage from './pages/AuthPage';
@@ -141,6 +142,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <SocketProvider>
+          <RealtimeSyncProvider>
           <Routes>
             {/* ── Public ── */}
             <Route path="/login" element={<AuthPage />} />
@@ -239,6 +241,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
+          </RealtimeSyncProvider>
         </SocketProvider>
       </AuthProvider>
     </BrowserRouter>

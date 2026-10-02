@@ -2,6 +2,7 @@ const { Consultation, Patient, User, QrCode, AuditLog, Prescription, Notificatio
 const { validationResult } = require('express-validator');
 const { notifyInfoDesk } = require('../utils/notificationHelper');
 const sequelize = require('../config/db');
+const { getIo } = require('../socket');
 
 exports.create = async (req, res, next) => {
   try {
@@ -10,6 +11,7 @@ exports.create = async (req, res, next) => {
     const consultation = await Consultation.create({
       patient_id,
       doctor_id,
+      status: 'waiting', // Explicitly set to waiting - NEW CONSULTATIONS START HERE
       notes,
       department,
       chief_complaint,
@@ -47,6 +49,14 @@ exports.create = async (req, res, next) => {
         { model: User, as: 'doctor', attributes: ['id', 'first_name', 'last_name'] },
       ],
     });
+    
+    // Emit real-time event to all connected clients
+    const io = getIo();
+    io.emit('consultation:created', {
+      consultation: full,
+      timestamp: new Date()
+    });
+    
     res.status(201).json({ success: true, data: full });
   } catch (error) { next(error); }
 };
@@ -105,7 +115,22 @@ exports.update = async (req, res, next) => {
     if (!consultation) return res.status(404).json({ success: false, message: 'Consultation not found.' });
 
     await consultation.update(req.body);
-    res.json({ success: true, data: consultation });
+    
+    const updated = await Consultation.findByPk(consultation.id, {
+      include: [
+        { model: Patient, as: 'patient' },
+        { model: User, as: 'doctor', attributes: ['id', 'first_name', 'last_name'] },
+      ],
+    });
+    
+    // Emit real-time event
+    const io = getIo();
+    io.emit('consultation:updated', {
+      consultation: updated,
+      timestamp: new Date()
+    });
+    
+    res.json({ success: true, data: updated });
   } catch (error) { next(error); }
 };
 
@@ -167,6 +192,18 @@ exports.requestAdmission = async (req, res, next) => {
       entity_id: consultation.id,
       details: { patient_id: consultation.patient_id },
       ip_address: req.ip,
+    });
+
+    // Emit real-time event
+    const io = getIo();
+    io.emit('consultation:admission_requested', {
+      consultation: await Consultation.findByPk(consultation.id, {
+        include: [
+          { model: Patient, as: 'patient' },
+          { model: User, as: 'doctor', attributes: ['id', 'first_name', 'last_name'] },
+        ],
+      }),
+      timestamp: new Date()
     });
 
     res.json({ success: true, message: 'Admission requested successfully.', data: consultation });

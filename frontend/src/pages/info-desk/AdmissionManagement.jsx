@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useRealtimeSync } from '../../contexts/RealtimeSyncContext';
 import { Search, Plus, Pencil, X, BedDouble, UserCheck, LogOut as DischargeIcon, User, QrCode, CheckCircle, Clock, ClipboardList } from 'lucide-react';
+
+// Helper function to format date input as MM/DD/YYYY
+function formatDateInput(value) {
+  // Remove non-digits
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+}
 
 const PRESCRIPTION_CSS = `
 /* --- Screen preview wrapper --- */
@@ -41,6 +52,7 @@ const PRESCRIPTION_CSS = `
 `;
 
 export default function AdmissionManagement() {
+  const { on, off } = useRealtimeSync();
   const [admissions, setAdmissions] = useState([]);
   const [consultations, setConsultations] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -113,7 +125,30 @@ export default function AdmissionManagement() {
     } catch (err) { console.error(err); }
   }
 
-  useEffect(() => { fetchData(); }, [activeTab]);
+  useEffect(() => { 
+    fetchData();
+    
+    // Set up real-time listeners
+    on('admission:created', (data) => {
+      setAdmissions((prev) => [data.admission, ...prev]);
+    });
+
+    on('consultation:created', (data) => {
+      setConsultations((prev) => [data.consultation, ...prev]);
+    });
+
+    on('consultation:admission_requested', (data) => {
+      setConsultations((prev) =>
+        prev.map((c) => (c.id === data.consultation.id ? data.consultation : c))
+      );
+    });
+
+    return () => {
+      off('admission:created');
+      off('consultation:created');
+      off('consultation:admission_requested');
+    };
+  }, [activeTab, on, off]);
   useEffect(() => { fetchDropdowns(); }, []);
 
   function openNewConsultation() {
@@ -460,8 +495,21 @@ export default function AdmissionManagement() {
                 <div><label style={lbl}>Last Name <span style={{ color: '#ef4444' }}>*</span></label><input style={inp} value={patientForm.last_name} onChange={e => setPatientForm({ ...patientForm, last_name: e.target.value })} placeholder="e.g. Dela Cruz" /></div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                <div><label style={lbl}>Date of Birth</label><input type="date" style={inp} value={patientForm.date_of_birth} onChange={e => setPatientForm({ ...patientForm, date_of_birth: e.target.value })} /></div>
-                <div><label style={lbl}>Gender</label><select style={inp} value={patientForm.gender} onChange={e => setPatientForm({ ...patientForm, gender: e.target.value })}><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></div>
+                <div><label style={lbl}>Date of Birth</label>
+                  <input 
+                    type="text" 
+                    style={inp} 
+                    value={formatDateInput(patientForm.date_of_birth)} 
+                    onChange={e => setPatientForm({ ...patientForm, date_of_birth: formatDateInput(e.target.value) })}
+                    placeholder="MM/DD/YYYY"
+                    maxLength="10"
+                  />
+                </div>
+                <div><label style={lbl}>Gender</label>
+                  <select style={inp} value={patientForm.gender} onChange={e => setPatientForm({ ...patientForm, gender: e.target.value })}>
+                    <option value="male">Male</option><option value="female">Female</option>
+                  </select>
+                </div>
               </div>
               <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 20 }}>
                 <div style={sectionLabel}>Contact Details</div>

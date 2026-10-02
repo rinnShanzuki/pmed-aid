@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,28 @@ import {
   Platform,
   Alert,
   ScrollView,
-  Image,
 } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 
-export default function AuthScreen({ navigation }: any) {
+export default function AuthScreen({ navigation, route }: any) {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check if we received a QR code from deep link
+    if (route?.params?.qrCode) {
+      setQrCode(route.params.qrCode);
+      Alert.alert(
+        'QR Code Scanned',
+        'Please log in with your credentials to proceed.'
+      );
+    }
+  }, [route?.params?.qrCode]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -35,6 +46,13 @@ export default function AuthScreen({ navigation }: any) {
     setLoading(true);
     try {
       await login(email, password);
+      
+      // If we have a QR code from deep link, trigger QR binding
+      if (qrCode) {
+        // Navigate to QR binding screen or process binding based on user role
+        console.log('Processing QR code binding:', qrCode);
+        Alert.alert('Success', 'QR code will be processed.');
+      }
     } catch (error: any) {
       Alert.alert('Login Failed', error.response?.data?.message || 'Invalid credentials');
     } finally {
@@ -48,24 +66,15 @@ export default function AuthScreen({ navigation }: any) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Blue Header Card */}
-        <View style={styles.headerCard}>
-          <Text style={styles.welcomeText}>Welcome to</Text>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoPlus}>+</Text>
-            </View>
-          </View>
-          <Text style={styles.brandName}>PMed-Aid</Text>
-          <Text style={styles.tagline}>
-            Manage hospital operations, track patient medications, and connect with healthcare
-            professionals in one unified platform.
-          </Text>
-        </View>
-
-        {/* White Login Card */}
+        {/* Login Card */}
         <View style={styles.loginCard}>
           <Text style={styles.welcomeBack}>Welcome back</Text>
+
+          {qrCode && (
+            <View style={styles.qrBanner}>
+              <Text style={styles.qrBannerText}>📱 QR Code Scanned</Text>
+            </View>
+          )}
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>Email address</Text>
@@ -143,64 +152,42 @@ export default function AuthScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#f8fafc',
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
-    paddingTop: 40,
-  },
-  headerCard: {
-    backgroundColor: '#1d64c1',
-    borderRadius: 20,
-    padding: 40,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  welcomeText: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '300',
-    marginBottom: 20,
-  },
-  logoContainer: {
-    marginBottom: 20,
-  },
-  logoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#fff',
+    padding: 24,
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoPlus: {
-    fontSize: 60,
-    color: '#1d64c1',
-    fontWeight: 'bold',
-  },
-  brandName: {
-    color: '#fff',
-    fontSize: 36,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  tagline: {
-    color: '#e0f2fe',
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
   },
   loginCard: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 32,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   welcomeBack: {
     fontSize: 24,
     fontWeight: '600',
     color: '#334155',
     marginBottom: 24,
+    textAlign: 'center',
+  },
+  qrBanner: {
+    backgroundColor: '#dbeafe',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1d64c1',
+  },
+  qrBannerText: {
+    color: '#1d64c1',
+    fontSize: 14,
+    fontWeight: '600',
     textAlign: 'center',
   },
   formGroup: {

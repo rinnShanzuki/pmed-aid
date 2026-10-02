@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useAuth } from '../hooks/useAuth';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Admin Screens
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import UserManagement from '../screens/admin/UserManagement';
 import PatientManagement from '../screens/admin/PatientManagement';
+import PatientRecord from '../screens/admin/PatientRecord';
 import MedicationManagement from '../screens/admin/MedicationManagement';
 import ReportsAnalytics from '../screens/admin/ReportsAnalytics';
 import SystemSettings from '../screens/admin/SystemSettings';
@@ -15,22 +17,47 @@ const Drawer = createDrawerNavigator();
 
 // Custom Drawer Content
 function CustomDrawerContent({ navigation }: any) {
-  const handleSignOut = async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Auth' }],
-      });
-    } catch (error) {
-      console.error('Sign out error:', error);
+  const { logout } = useAuth();
+  const [activeRoute, setActiveRoute] = useState('AdminDashboard');
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      setActiveRoute(navigation.getState().routeNames[navigation.getState().index]);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  const menuSections = [
+    {
+      label: 'MAIN',
+      items: [
+        { name: 'AdminDashboard', label: 'Dashboard', icon: 'view-dashboard' }
+      ]
+    },
+    {
+      label: 'MANAGEMENT',
+      items: [
+        { name: 'UserManagement', label: 'User Management', icon: 'account-multiple' },
+        { name: 'PatientManagement', label: 'Patient Management', icon: 'hospital-box' }
+      ]
+    },
+    {
+      label: 'INSIGHTS',
+      items: [
+        { name: 'ReportsAnalytics', label: 'Reports & Analytics', icon: 'chart-bar' }
+      ]
+    },
+    {
+      label: 'CONFIGURATION',
+      items: [
+        { name: 'SystemSettings', label: 'System Settings', icon: 'cog' }
+      ]
     }
-  };
+  ];
 
   return (
     <View style={styles.drawerContainer}>
-      {/* Header */}
+      {/* Header with Logo */}
       <View style={styles.drawerHeader}>
         <View style={styles.logoContainer}>
           <View style={styles.logoIcon}>
@@ -38,73 +65,50 @@ function CustomDrawerContent({ navigation }: any) {
           </View>
           <View>
             <Text style={styles.logoTitle}>PMed-Aid</Text>
-            <Text style={styles.logoSubtitle}>Admin Panel</Text>
+            <Text style={styles.logoSubtitle}>Admin Portal</Text>
           </View>
         </View>
       </View>
 
       {/* Menu Items */}
-      <View style={styles.menuContainer}>
-        {/* MAIN Section */}
-        <Text style={styles.sectionLabel}>MAIN</Text>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('AdminDashboard')}
-        >
-          <Text style={styles.menuIcon}>📊</Text>
-          <Text style={styles.menuText}>Dashboard</Text>
-        </TouchableOpacity>
-
-        {/* MANAGEMENT Section */}
-        <Text style={styles.sectionLabel}>MANAGEMENT</Text>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('PatientManagement')}
-        >
-          <Text style={styles.menuIcon}>🏥</Text>
-          <Text style={styles.menuText}>Patients</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('MedicationManagement')}
-        >
-          <Text style={styles.menuIcon}>💊</Text>
-          <Text style={styles.menuText}>Medications</Text>
-        </TouchableOpacity>
-
-        {/* INSIGHTS Section */}
-        <Text style={styles.sectionLabel}>INSIGHTS</Text>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('ReportsAnalytics')}
-        >
-          <Text style={styles.menuIcon}>📈</Text>
-          <Text style={styles.menuText}>Reports</Text>
-        </TouchableOpacity>
-
-        {/* CONFIGURATION Section */}
-        <Text style={styles.sectionLabel}>CONFIGURATION</Text>
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('SystemSettings')}
-        >
-          <Text style={styles.menuIcon}>⚙️</Text>
-          <Text style={styles.menuText}>Settings</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.menuItem}
-          onPress={() => navigation.navigate('UserManagement')}
-        >
-          <Text style={styles.menuIcon}>👥</Text>
-          <Text style={styles.menuText}>Users</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView style={styles.menuContainer} showsVerticalScrollIndicator={false}>
+        {menuSections.map((section) => (
+          <View key={section.label}>
+            <Text style={styles.sectionLabel}>{section.label}</Text>
+            {section.items.map((item) => {
+              const isActive = activeRoute === item.name;
+              return (
+                <TouchableOpacity
+                  key={item.name}
+                  style={[
+                    styles.menuItem,
+                    isActive && styles.menuItemActive,
+                  ]}
+                  onPress={() => navigation.navigate(item.name)}
+                >
+                  <MaterialCommunityIcons 
+                    name={item.icon as any} 
+                    size={20} 
+                    color={isActive ? '#3b82f6' : '#cbd5e1'} 
+                  />
+                  <Text
+                    style={[
+                      styles.menuText,
+                      isActive && styles.menuTextActive,
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </ScrollView>
 
       {/* Sign Out Button */}
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutIcon}>🚪</Text>
+      <TouchableOpacity style={styles.signOutButton} onPress={logout}>
+        <MaterialCommunityIcons name="logout" size={20} color="#f87171" />
         <Text style={styles.signOutText}>Sign Out</Text>
       </TouchableOpacity>
     </View>
@@ -125,7 +129,7 @@ export default function AdminDrawerNavigator() {
         },
         drawerStyle: {
           backgroundColor: '#0f172a',
-          width: 280,
+          width: 260,
         },
       }}
     >
@@ -143,6 +147,11 @@ export default function AdminDrawerNavigator() {
         name="PatientManagement" 
         component={PatientManagement}
         options={{ title: 'Patient Management' }}
+      />
+      <Drawer.Screen 
+        name="PatientRecord" 
+        component={PatientRecord}
+        options={{ title: 'Patient Record', drawerItemStyle: { display: 'none' } }}
       />
       <Drawer.Screen 
         name="MedicationManagement" 
@@ -173,6 +182,8 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 50,
     paddingBottom: 30,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a2540',
   },
   logoContainer: {
     flexDirection: 'row',
@@ -203,33 +214,43 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     flex: 1,
-    paddingTop: 10,
+    paddingTop: 20,
+    paddingHorizontal: 12,
   },
   sectionLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#64748b',
-    letterSpacing: 0.5,
-    marginTop: 20,
-    marginBottom: 8,
-    marginLeft: 20,
+    letterSpacing: 0.8,
+    marginTop: 24,
+    marginBottom: 12,
+    marginLeft: 8,
+    textTransform: 'uppercase',
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     backgroundColor: 'transparent',
+    gap: 14,
+    marginBottom: 4,
+    borderRadius: 8,
+    marginHorizontal: 4,
   },
-  menuIcon: {
-    fontSize: 20,
-    marginRight: 14,
-    width: 28,
+  menuItemActive: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderLeftWidth: 3,
+    borderLeftColor: '#3b82f6',
   },
   menuText: {
     fontSize: 15,
     color: '#cbd5e1',
     fontWeight: '400',
+  },
+  menuTextActive: {
+    color: '#3b82f6',
+    fontWeight: '600',
   },
   signOutButton: {
     flexDirection: 'row',
@@ -239,10 +260,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 20,
     borderRadius: 8,
-  },
-  signOutIcon: {
-    fontSize: 20,
-    marginRight: 12,
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#1a2540',
   },
   signOutText: {
     fontSize: 15,

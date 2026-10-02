@@ -2,6 +2,7 @@ import React from 'react';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Patient Screens
 import PatientDashboard from '../screens/patient/PatientDashboard';
@@ -34,7 +35,7 @@ function CustomDrawerContent(props: any) {
           style={styles.logoutButton} 
           onPress={logout}
         >
-          <Text style={styles.logoutIcon}>⎋</Text>
+          <MaterialCommunityIcons name="logout" size={20} color="#dc2626" />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
@@ -72,7 +73,7 @@ export default function PatientDrawerNavigator() {
         component={PatientDashboard}
         options={{
           title: 'Patient Dashboard',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>▦</Text>,
+          drawerIcon: ({ color }) => <MaterialCommunityIcons name="view-dashboard" size={20} color={color} />,
         }}
       />
       <Drawer.Screen 
@@ -80,7 +81,7 @@ export default function PatientDrawerNavigator() {
         component={MedicationSchedule}
         options={{
           title: 'Medication Schedule',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📅</Text>,
+          drawerIcon: ({ color }) => <MaterialCommunityIcons name="calendar" size={20} color={color} />,
         }}
       />
       <Drawer.Screen 
@@ -88,7 +89,7 @@ export default function PatientDrawerNavigator() {
         component={MyPrescriptions}
         options={{
           title: 'Prescription List View',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📋</Text>,
+          drawerIcon: ({ color }) => <MaterialCommunityIcons name="clipboard-list" size={20} color={color} />,
         }}
       />
       <Drawer.Screen 
@@ -96,7 +97,7 @@ export default function PatientDrawerNavigator() {
         component={AdherenceHistory}
         options={{
           title: 'Adherence History',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📈</Text>,
+          drawerIcon: ({ color }) => <MaterialCommunityIcons name="chart-line" size={20} color={color} />,
         }}
       />
     </Drawer.Navigator>
@@ -144,10 +145,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 12,
     justifyContent: 'center',
-  },
-  logoutIcon: {
-    fontSize: 20,
-    color: '#dc2626',
   },
   logoutText: {
     fontSize: 15,

@@ -1,21 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import api from '../../services/api';
 
 interface ReportStats {
   totalPatients: number;
   totalDoctors: number;
   totalNurses: number;
+  activePatients: number;
   adherenceRate: number;
+  adherenceTrend?: any[];
+  medicationDistribution?: any[];
+  admissionTrend?: { daily: any[]; weekly: any[]; monthly: any[] };
 }
 
 export default function ReportsAnalytics() {
   const [loading, setLoading] = useState(true);
+  const [admissionView, setAdmissionView] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
   const [stats, setStats] = useState<ReportStats>({
-    totalPatients: 1,
-    totalDoctors: 1,
-    totalNurses: 1,
+    totalPatients: 0,
+    totalDoctors: 0,
+    totalNurses: 0,
+    activePatients: 0,
     adherenceRate: 0,
+    adherenceTrend: [],
+    medicationDistribution: [],
+    admissionTrend: { daily: [], weekly: [], monthly: [] },
   });
 
   useEffect(() => {
@@ -25,16 +41,16 @@ export default function ReportsAnalytics() {
   const fetchReportData = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/reports');
+      const res = await api.get('/admin/dashboard');
       setStats(res.data.data || {
-        totalPatients: 1,
-        totalDoctors: 1,
-        totalNurses: 1,
+        totalPatients: 0,
+        totalDoctors: 0,
+        totalNurses: 0,
+        activePatients: 0,
         adherenceRate: 0,
       });
     } catch (err: any) {
       console.error('Fetch reports error:', err);
-      // Use default stats if API fails
     } finally {
       setLoading(false);
     }
@@ -44,6 +60,7 @@ export default function ReportsAnalytics() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={styles.loadingText}>Loading reports...</Text>
       </View>
     );
   }
@@ -56,95 +73,196 @@ export default function ReportsAnalytics() {
         <Text style={styles.headerTitle}>Reports & Analytics</Text>
       </View>
 
-      {/* Charts Grid */}
-      <View style={styles.chartsGrid}>
-        {/* Medication Adherence Report */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartIcon}>📈</Text>
-            <Text style={styles.chartTitle}>Medication Adherence Report</Text>
-          </View>
-          <View style={styles.lineChartContainer}>
-            <View style={styles.lineChartPlaceholder}>
-              <View style={styles.lineChartAxis} />
-            </View>
+      {/* KPI Cards */}
+      <View style={styles.kpiGrid}>
+        <KPICard label="Total Patients" value={stats.totalPatients} icon="👥" color="#3b82f6" />
+        <KPICard label="Active Patients" value={stats.activePatients} icon="📈" color="#d946ef" />
+        <KPICard label="Total Doctors" value={stats.totalDoctors} icon="🩺" color="#22c55e" />
+        <KPICard label="Total Nurses" value={stats.totalNurses} icon="❤️" color="#f97316" />
+      </View>
+
+      {/* Medication Adherence Trend */}
+      <View style={styles.chartCard}>
+        <View style={styles.chartHeader}>
+          <Text style={styles.chartIcon}>📈</Text>
+          <Text style={styles.chartTitle}>Medication Adherence Trend</Text>
+        </View>
+        <SimpleBarChart data={stats.adherenceTrend || []} />
+      </View>
+
+      {/* Medication Status Distribution */}
+      <View style={styles.chartCard}>
+        <View style={styles.chartHeader}>
+          <Text style={styles.chartIcon}>📊</Text>
+          <Text style={styles.chartTitle}>Medication Status Distribution</Text>
+        </View>
+        <SimpleProgressChart data={stats.medicationDistribution || []} />
+      </View>
+
+      {/* Patient Admission Trend with Toggle */}
+      <View style={styles.chartCard}>
+        <View style={styles.chartHeaderWithToggle}>
+          <View style={styles.chartHeaderLeft}>
+            <Text style={styles.chartIcon}>📅</Text>
+            <Text style={styles.chartTitle}>Patient Admission Trend</Text>
           </View>
         </View>
 
-        {/* Hospital Admissions Over Time */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Hospital Admissions Over Time</Text>
-          </View>
-          <View style={styles.lineChartContainer}>
-            <View style={styles.lineChartPlaceholder}>
-              <View style={styles.lineChartAxis} />
-            </View>
-          </View>
+        {/* Toggle buttons */}
+        <View style={styles.toggleBar}>
+          {(['daily', 'weekly', 'monthly'] as const).map((view) => (
+            <TouchableOpacity
+              key={view}
+              style={[styles.toggleBtn, admissionView === view && styles.toggleBtnActive]}
+              onPress={() => setAdmissionView(view)}
+            >
+              <Text
+                style={[
+                  styles.toggleBtnText,
+                  admissionView === view && styles.toggleBtnTextActive,
+                ]}
+              >
+                {view.charAt(0).toUpperCase() + view.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Staff & Patient Distribution */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Staff & Patient Distribution</Text>
-          </View>
-          <View style={styles.donutContainer}>
-            <View style={styles.donutChart}>
-              {/* Blue segment - Doctors */}
-              <View style={[styles.donutSegment, styles.segmentDoctors]} />
-              {/* Green segment - Nurses */}
-              <View style={[styles.donutSegment, styles.segmentNurses]} />
-              {/* Orange segment - Patients */}
-              <View style={[styles.donutSegment, styles.segmentPatients]} />
-              <View style={styles.donutHole} />
-            </View>
-            <View style={styles.donutLegend}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#3b82f6' }]} />
-                <Text style={styles.legendText}>Doctors: {stats.totalDoctors}</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#10b981' }]} />
-                <Text style={styles.legendText}>Nurses: {stats.totalNurses}</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: '#f97316' }]} />
-                <Text style={styles.legendText}>Patients: {stats.totalPatients}</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        <SimpleBarChart data={stats.admissionTrend?.[admissionView] || []} />
+      </View>
 
-        {/* Hospital Statistics Summary */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <Text style={styles.chartTitle}>Hospital Statistics Summary</Text>
-          </View>
-          <View style={styles.statsContainer}>
-            <View style={styles.statRow}>
-              <View style={styles.statDot} style={[styles.statDot, { backgroundColor: '#3b82f6' }]} />
-              <Text style={styles.statLabel}>Total Patients</Text>
-              <Text style={styles.statValue}>{stats.totalPatients}</Text>
+      {/* Overall Adherence Rate */}
+      <View style={styles.chartCard}>
+        <View style={styles.chartHeader}>
+          <Text style={styles.chartIcon}>📈</Text>
+          <Text style={styles.chartTitle}>Overall Medication Adherence</Text>
+        </View>
+        <Text style={styles.chartSubtext}>Current tracking of patient adherence percentage</Text>
+        <View style={styles.overallRow}>
+          <Text style={styles.overallValue}>{stats.adherenceRate}%</Text>
+          <View style={{ flex: 1, marginLeft: 20, justifyContent: 'center' }}>
+            <View style={{ height: 4, backgroundColor: '#f1f5f9', borderRadius: 2, overflow: 'hidden' }}>
+              <View
+                style={{
+                  height: '100%',
+                  width: `${stats.adherenceRate}%`,
+                  backgroundColor: '#a855f7',
+                }}
+              />
             </View>
-            <View style={styles.statRow}>
-              <View style={[styles.statDot, { backgroundColor: '#10b981' }]} />
-              <Text style={styles.statLabel}>Total Doctors</Text>
-              <Text style={styles.statValue}>{stats.totalDoctors}</Text>
-            </View>
-            <View style={styles.statRow}>
-              <View style={[styles.statDot, { backgroundColor: '#f97316' }]} />
-              <Text style={styles.statLabel}>Total Nurses</Text>
-              <Text style={styles.statValue}>{stats.totalNurses}</Text>
-            </View>
-            <View style={styles.statRow}>
-              <View style={[styles.statDot, { backgroundColor: '#a855f7' }]} />
-              <Text style={styles.statLabel}>Adherence Rate</Text>
-              <Text style={styles.statValue}>{stats.adherenceRate}%</Text>
-            </View>
+            <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+              Adherence Progress
+            </Text>
           </View>
         </View>
       </View>
+
+      {/* Staff Distribution */}
+      <View style={styles.chartCard}>
+        <View style={styles.chartHeader}>
+          <Text style={styles.chartTitle}>Staff & Patient Distribution</Text>
+        </View>
+        <View style={styles.statsGrid}>
+          <StatItem label="Doctors" value={stats.totalDoctors} color="#3b82f6" />
+          <StatItem label="Nurses" value={stats.totalNurses} color="#10b981" />
+          <StatItem label="Patients" value={stats.totalPatients} color="#f97316" />
+        </View>
+      </View>
     </ScrollView>
+  );
+}
+
+// Helper Components
+function KPICard({ label, value, icon, color }: { label: string; value: number; icon: string; color: string }) {
+  return (
+    <View style={styles.kpiCard}>
+      <View style={[styles.kpiIcon, { backgroundColor: `${color}20` }]}>
+        <Text style={{ fontSize: 24 }}>{icon}</Text>
+      </View>
+      <Text style={styles.kpiLabel}>{label}</Text>
+      <Text style={[styles.kpiValue, { color }]}>{value}</Text>
+    </View>
+  );
+}
+
+function SimpleBarChart({ data }: { data: any[] }) {
+  if (!data.length) {
+    return <Text style={styles.emptyText}>No data available</Text>;
+  }
+
+  const maxVal = Math.max(...data.map(d => d.value || d.rate || 0), 1);
+
+  return (
+    <View style={styles.chartPlaceholder}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 150 }}>
+        {data.map((d, i) => {
+          const val = d.value || d.rate || 0;
+          const height = (val / maxVal) * 130;
+          return (
+            <View key={i} style={{ flex: 1, alignItems: 'center' }}>
+              <View
+                style={{
+                  width: '100%',
+                  height: Math.max(height, 4),
+                  backgroundColor: '#3b82f6',
+                  borderRadius: 3,
+                  marginBottom: 8,
+                }}
+              />
+              <Text style={{ fontSize: 9, color: '#94a3b8', textAlign: 'center' }}>
+                {d.month || d.label || `${i}`}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+function SimpleProgressChart({ data }: { data: any[] }) {
+  if (!data.length) {
+    return <Text style={styles.emptyText}>No data available</Text>;
+  }
+
+  const PIE_COLORS = ['#22c55e', '#3b82f6', '#f43f5e'];
+  const total = data.reduce((sum, d) => sum + (d.value || 0), 0) || 1;
+
+  return (
+    <View style={styles.chartPlaceholder}>
+      {data.map((d, i) => {
+        const percentage = (d.value / total) * 100;
+        return (
+          <View key={i} style={{ marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ fontSize: 12, color: '#64748b', fontWeight: '600' }}>{d.name}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#1e293b' }}>{d.value}%</Text>
+            </View>
+            <View style={{ height: 8, backgroundColor: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}>
+              <View
+                style={{
+                  height: '100%',
+                  width: `${percentage}%`,
+                  backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
+                }}
+              />
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+function StatItem({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <View style={styles.statItem}>
+      <View style={[styles.statDot, { backgroundColor: color }]} />
+      <View>
+        <Text style={styles.statLabel}>{label}</Text>
+        <Text style={styles.statValue}>{value}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -163,6 +281,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f8fafc',
   },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#64748b',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -177,136 +300,144 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1e293b',
   },
-  chartsGrid: {
-    gap: 16,
+  // KPI Cards
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
   },
+  kpiCard: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  kpiIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  kpiLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  kpiValue: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+  // Chart Cards
   chartCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   chartHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  chartHeaderWithToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  chartHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   chartIcon: {
-    fontSize: 18,
+    fontSize: 16,
     marginRight: 8,
   },
   chartTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1e293b',
   },
-  lineChartContainer: {
-    height: 200,
+  chartSubtext: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 12,
   },
-  lineChartPlaceholder: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  lineChartAxis: {
-    height: '100%',
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#fafbfc',
-  },
-  donutContainer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-  donutChart: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    marginBottom: 20,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  donutSegment: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-  },
-  segmentDoctors: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#3b82f6',
-    transform: [{ rotate: '0deg' }],
-  },
-  segmentNurses: {
-    width: 70,
-    height: 140,
-    backgroundColor: '#10b981',
-    position: 'absolute',
-    left: 0,
-    borderTopLeftRadius: 70,
-    borderBottomLeftRadius: 70,
-  },
-  segmentPatients: {
-    width: 70,
-    height: 70,
-    backgroundColor: '#f97316',
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    borderBottomRightRadius: 70,
-  },
-  donutHole: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#fff',
-    position: 'absolute',
-    top: 30,
-    left: 30,
-  },
-  donutLegend: {
-    gap: 12,
-    width: '100%',
-  },
-  legendItem: {
+  // Toggle Bar
+  toggleBar: {
     flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    padding: 4,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 6,
     alignItems: 'center',
-    gap: 8,
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  toggleBtnActive: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  legendText: {
-    fontSize: 13,
+  toggleBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
     color: '#64748b',
   },
-  statsContainer: {
+  toggleBtnTextActive: {
+    color: '#0f172a',
+  },
+  // Overall Row
+  overallRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  overallValue: {
+    fontSize: 40,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+  chartPlaceholder: {
+    paddingVertical: 16,
+  },
+  emptyText: {
+    fontSize: 13,
+    color: '#94a3b8',
+    textAlign: 'center',
+    paddingVertical: 32,
+  },
+  statsGrid: {
     gap: 16,
   },
-  statRow: {
+  statItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    gap: 12,
   },
   statDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 12,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   statLabel: {
-    flex: 1,
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748b',
+    marginBottom: 2,
   },
   statValue: {
     fontSize: 16,
@@ -314,4 +445,3 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
 });
-

@@ -31,8 +31,6 @@ export default function PatientDrawer({ navigation, currentRoute }: PatientDrawe
     },
     { 
       key: 'AdherenceHistory',
-      label: 'Adherence History', 
-      icon: '📈',
       route: 'AdherenceHistory' 
     },
   ];

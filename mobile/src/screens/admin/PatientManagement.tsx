@@ -1,62 +1,93 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  TextInput,
+  ActivityIndicator,
+  useWindowDimensions,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 
 interface Patient {
   id: number;
   first_name: string;
   last_name: string;
-  email: string;
-  date_of_birth: string;
-  gender: string;
-  phone_number?: string;
+  date_of_birth?: string;
+  gender?: string;
+  contact_number?: string;
+  patient_type?: string;
+  user?: { email?: string };
 }
 
 export default function PatientManagement() {
+  const navigation = useNavigation<any>();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
+
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  // Fixed column widths for horizontal scroll
+  const TABLE_WIDTH = 820;
+  const COL_PATIENT = 260;
+  const COL_GENDER = 100;
+  const COL_DOB = 130;
+  const COL_CONTACT = 150;
+  const COL_STATUS = 120;
+  const COL_ACTIONS = 80;
 
   useEffect(() => {
     fetchPatients();
-  }, []);
+  }, [search]);
 
-  const fetchPatients = async () => {
+  async function fetchPatients() {
     try {
       setLoading(true);
-      const res = await api.get('/admin/patients');
-      setPatients(res.data.data || []);
-    } catch (err: any) {
-      console.error('Fetch patients error:', err);
-      Alert.alert('Error', 'Failed to load patients');
+      const { data } = await api.get('/patients', { params: { search } });
+      setPatients(data.data || []);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
+  function getInitials(p: Patient) {
+    return `${p.first_name?.[0] || ''}${p.last_name?.[0] || ''}`.toUpperCase();
+  }
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
-  };
+  // Matches web's getStatusBadge exactly
+  function StatusBadge({ type }: { type?: string }) {
+    let bg = '#f1f5f9';
+    let color = '#64748b';
+    let label = 'None';
 
-  const filteredPatients = patients.filter(patient => {
-    const matchesSearch = 
-      patient.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.last_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesSearch;
-  });
+    switch (type) {
+      case 'admitted':
+        bg = '#dcfce7';
+        color = '#16a34a';
+        label = 'Admitted';
+        break;
+      case 'pending_admission':
+        bg = '#dbeafe';
+        color = '#2563eb';
+        label = 'Pending Admission';
+        break;
+      case 'outpatient':
+        bg = '#fef3c7';
+        color = '#d97706';
+        label = 'Outpatient';
+        break;
+    }
 
-  if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View style={[styles.badge, { backgroundColor: bg }]}>
+        <Text style={[styles.badgeText, { color }]}>{label}</Text>
       </View>
     );
   }
@@ -65,186 +96,221 @@ export default function PatientManagement() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={styles.headerIcon}>🏥</Text>
-          <Text style={styles.headerTitle}>Patient Management</Text>
-        </View>
-        
+        <Text style={styles.headerTitle}>🏥 Patient Management</Text>
+
         <View style={styles.searchContainer}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={styles.searchInput}
             placeholder="Search patients..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            value={search}
+            onChangeText={setSearch}
             placeholderTextColor="#94a3b8"
+            autoCapitalize="none"
           />
         </View>
       </View>
 
       {/* Table */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-        <View style={styles.tableContainer}>
-          {/* Table Header */}
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderText, styles.colPatient]}>PATIENT</Text>
-            <Text style={[styles.tableHeaderText, styles.colGender]}>GENDER</Text>
-            <Text style={[styles.tableHeaderText, styles.colDob]}>DATE OF BIRTH</Text>
-            <Text style={[styles.tableHeaderText, styles.colContact]}>CONTACT</Text>
-            <Text style={[styles.tableHeaderText, styles.colActions]}>ACTIONS</Text>
-          </View>
-
-          {/* Table Rows */}
-          <ScrollView style={styles.tableBody} showsVerticalScrollIndicator={false}>
-            {filteredPatients.map((patient) => (
-              <View key={patient.id} style={styles.tableRow}>
-                <View style={[styles.tableCell, styles.colPatient]}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>
-                      {getInitials(patient.first_name, patient.last_name)}
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={styles.patientName}>{patient.first_name} {patient.last_name}</Text>
-                    <Text style={styles.patientEmail}>{patient.email}</Text>
-                  </View>
-                </View>
-
-                <View style={[styles.tableCell, styles.colGender]}>
-                  <Text style={styles.genderText}>{patient.gender || 'N/A'}</Text>
-                </View>
-
-                <View style={[styles.tableCell, styles.colDob]}>
-                  <Text style={styles.dobText}>{formatDate(patient.date_of_birth)}</Text>
-                </View>
-
-                <View style={[styles.tableCell, styles.colContact]}>
-                  <Text style={styles.contactText}>{patient.phone_number || 'N/A'}</Text>
-                </View>
-
-                <View style={[styles.tableCell, styles.colActions]}>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Text style={styles.actionIcon}>👁️</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
         </View>
-      </ScrollView>
-
-      {filteredPatients.length === 0 && (
+      ) : patients.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>No patients found</Text>
         </View>
+      ) : (
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator
+            style={styles.tableScroll}
+          >
+            <View style={{ width: TABLE_WIDTH }}>
+              {/* Table Header */}
+              <View style={styles.tableHeader}>
+                <Text style={[styles.th, { width: COL_PATIENT }]}>Patient</Text>
+                <Text style={[styles.th, { width: COL_GENDER }]}>Gender</Text>
+                <Text style={[styles.th, { width: COL_DOB }]}>
+                  Date of Birth
+                </Text>
+                <Text style={[styles.th, { width: COL_CONTACT }]}>Contact</Text>
+                <Text style={[styles.th, { width: COL_STATUS }]}>Status</Text>
+                <Text style={[styles.th, { width: COL_ACTIONS }]}>
+                  Actions
+                </Text>
+              </View>
+
+              {/* Table Rows */}
+              <ScrollView
+                style={styles.tableBody}
+                showsVerticalScrollIndicator
+                nestedScrollEnabled
+              >
+                {patients.map((p, idx) => (
+                  <View
+                    key={p.id}
+                    style={[
+                      styles.tableRow,
+                      idx % 2 === 0 && styles.tableRowEven,
+                    ]}
+                  >
+                    {/* Patient */}
+                    <View
+                      style={[styles.patientCell, { width: COL_PATIENT }]}
+                    >
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarText}>
+                          {getInitials(p)}
+                        </Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={styles.patientName}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {p.first_name} {p.last_name}
+                        </Text>
+                        <Text
+                          style={styles.patientEmail}
+                          numberOfLines={1}
+                          ellipsizeMode="tail"
+                        >
+                          {p.user?.email || '—'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Gender */}
+                    <Text
+                      style={[
+                        styles.td,
+                        { width: COL_GENDER, textTransform: 'capitalize' },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {p.gender || '—'}
+                    </Text>
+
+                    {/* DOB */}
+                    <Text
+                      style={[styles.tdMuted, { width: COL_DOB }]}
+                      numberOfLines={1}
+                    >
+                      {p.date_of_birth
+                        ? new Date(p.date_of_birth).toLocaleDateString()
+                        : '—'}
+                    </Text>
+
+                    {/* Contact */}
+                    <Text
+                      style={[styles.tdMuted, { width: COL_CONTACT }]}
+                      numberOfLines={1}
+                    >
+                      {p.contact_number || '—'}
+                    </Text>
+
+                    {/* Status */}
+                    <View style={{ width: COL_STATUS }}>
+                      <StatusBadge type={p.patient_type} />
+                    </View>
+
+                    {/* Actions */}
+                    <View
+                      style={[styles.actionsCell, { width: COL_ACTIONS }]}
+                    >
+                      <TouchableOpacity
+                        style={styles.actionBtn}
+                        onPress={() =>
+                          navigation.navigate('PatientRecord', {
+                            patientId: p.id,
+                          })
+                        }
+                      >
+                        <Text style={styles.actionIcon}>👁</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          </ScrollView>
+
+          {!isTablet ? (
+            <Text style={styles.scrollHint}>← Swipe to see more →</Text>
+          ) : null}
+        </>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
   },
+
+  // Header
   header: {
     backgroundColor: '#fff',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
     gap: 12,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerIcon: {
-    fontSize: 24,
-    marginRight: 8,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#1e293b' },
+
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f1f5f9',
     borderRadius: 8,
     paddingHorizontal: 12,
-    height: 40,
+    height: 42,
   },
-  searchIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1e293b',
-  },
-  tableContainer: {
-    backgroundColor: '#fff',
-    margin: 16,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
+  searchIcon: { fontSize: 15, marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 14, color: '#1e293b' },
+
+  // Table
+  tableScroll: { flex: 1, padding: 16 },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#f8fafc',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
   },
-  tableHeaderText: {
+  th: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748b',
+    color: '#475569',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
-  tableBody: {
-    maxHeight: 600,
-  },
+  tableBody: { maxHeight: 600 },
   tableRow: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
     alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    backgroundColor: '#fff',
   },
-  tableCell: {
-    justifyContent: 'center',
-  },
-  colPatient: {
-    width: 250,
+  tableRowEven: { backgroundColor: '#fafbfc' },
+
+  patientCell: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  colGender: {
-    width: 100,
-  },
-  colDob: {
-    width: 120,
-  },
-  colContact: {
-    width: 150,
-  },
-  colActions: {
-    width: 80,
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
   },
   avatar: {
     width: 40,
@@ -254,51 +320,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#fff',
+  avatarText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  patientName: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
+  patientEmail: { fontSize: 12, color: '#64748b', marginTop: 2 },
+
+  td: { fontSize: 14, color: '#1e293b' },
+  tdMuted: { fontSize: 13, color: '#64748b' },
+
+  // Status badge
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
   },
-  patientName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 2,
-  },
-  patientEmail: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  genderText: {
-    fontSize: 13,
-    color: '#64748b',
-  },
-  dobText: {
-    fontSize: 13,
-    color: '#64748b',
-  },
-  contactText: {
-    fontSize: 13,
-    color: '#64748b',
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 6,
+  badgeText: { fontSize: 11, fontWeight: '700' },
+
+  // Actions
+  actionsCell: { alignItems: 'center', justifyContent: 'center' },
+  actionBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
     backgroundColor: '#f8fafc',
-  },
-  actionIcon: {
-    fontSize: 16,
-  },
-  emptyState: {
-    padding: 40,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  emptyText: {
-    fontSize: 14,
+  actionIcon: { fontSize: 16 },
+
+  // Empty
+  emptyState: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 14, color: '#94a3b8' },
+
+  scrollHint: {
+    fontSize: 11,
     color: '#94a3b8',
+    textAlign: 'center',
+    paddingVertical: 8,
+    fontStyle: 'italic',
   },
 });
-
