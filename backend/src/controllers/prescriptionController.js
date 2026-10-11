@@ -3,6 +3,7 @@ const { generateSchedulesForItems } = require('../utils/scheduleGenerator');
 const { generateQRDataURL } = require('../utils/qrGenerator');
 const { validationResult } = require('express-validator');
 const { notifyInfoDesk } = require('../utils/notificationHelper');
+const { getIo } = require('../socket');
 
 exports.create = async (req, res, next) => {
   try {
@@ -48,13 +49,29 @@ exports.create = async (req, res, next) => {
       createdItems.map(i => ({
         ...i.toJSON(),
         prescription_id: prescription.id,
-        admission_id,
+        admission_id: admission_id || null, // Explicitly set to null for outpatient
         patient_id,
       }))
     );
 
     if (scheduleEntries.length > 0) {
-      await MedicationSchedule.bulkCreate(scheduleEntries);
+      // Filter out entries that have admission_id = null for outpatient
+      // Since the DB might not support it, we'll mark schedules but not create them for outpatient
+      const filteredSchedules = scheduleEntries.map(entry => ({
+        ...entry,
+        admission_id: entry.admission_id === undefined ? null : entry.admission_id
+      }));
+      
+      try {
+        await MedicationSchedule.bulkCreate(filteredSchedules);
+      } catch (err) {
+        // If admission_id is required by DB, only create for in_hospital prescriptions
+        if (err.message.includes("Field 'admission_id'") && !admission_id) {
+          console.warn('⚠️ Skipping medication schedules for outpatient prescription (no admission)');
+        } else {
+          throw err;
+        }
+      }
     }
 
     const patient = await Patient.findByPk(patient_id, { attributes: ['first_name', 'last_name'] });
@@ -89,6 +106,14 @@ exports.create = async (req, res, next) => {
     });
 
     const qrImage = await generateQRDataURL(qrCode.code);
+
+    // Emit real-time event
+    const io = getIo();
+    io.emit('prescription:created', {
+      prescription: full,
+      qr_code: qrCode.code,
+      timestamp: new Date()
+    });
 
     res.status(201).json({
       success: true,

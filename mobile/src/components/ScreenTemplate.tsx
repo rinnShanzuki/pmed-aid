@@ -16,10 +16,6 @@ export default function ScreenTemplate({ title, children }: ScreenTemplateProps)
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>{title}</Text>
-      </View>
-      
       <View style={styles.content}>
         {children || (
           <View style={styles.placeholder}>
@@ -39,16 +35,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-  },
-  header: {
-    backgroundColor: '#1d64c1',
-    padding: 20,
-    paddingTop: 50,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
   },
   content: {
     flex: 1,

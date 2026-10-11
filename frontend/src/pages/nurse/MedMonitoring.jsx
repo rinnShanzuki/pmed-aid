@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { Activity, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 
 export default function MedMonitoring() {
   const [schedules, setSchedules] = useState([]);
@@ -13,8 +13,8 @@ export default function MedMonitoring() {
   async function fetchStatus() {
     try {
       setLoading(true);
-      const { data } = await api.get('/dashboard/medication-status');
-      setSchedules(data.data);
+      const { data } = await api.get('/schedules');
+      setSchedules(data.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -23,204 +23,360 @@ export default function MedMonitoring() {
   }
 
   const now = new Date();
-  const allMeds = schedules.flatMap(p =>
-    p.schedules.map(s => ({
-      ...s,
-      patient_name: p.patient_name,
-      room_number: p.room_number,
-      isOverdue: s.status === 'pending' && new Date(s.scheduled_time) < now,
-      isDueSoon: s.status === 'pending' && new Date(s.scheduled_time) >= now,
-    }))
-  );
+  const soonThreshold = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
 
-  const overdue = allMeds.filter(m => m.isOverdue).sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
-  const dueSoon = allMeds.filter(m => m.isDueSoon).sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+  const overdue = schedules
+    .filter((s) => s.status === 'pending' && new Date(s.scheduled_time) < now)
+    .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
+
+  const dueSoon = schedules
+    .filter((s) => s.status === 'pending' && new Date(s.scheduled_time) >= now && new Date(s.scheduled_time) <= soonThreshold)
+    .sort((a, b) => new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime());
 
   return (
-    <div style={{ padding: '8px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={{ padding: '12px', maxWidth: '1200px', margin: '0 auto' }}>
       <style>{`
-        .med-monitoring-grid {
+        .med-monitoring-container {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        
+        .med-cards-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 32px;
+          gap: 16px;
         }
-        @media (max-width: 1024px) {
-          .med-monitoring-grid {
+        
+        @media (max-width: 768px) {
+          .med-cards-grid {
             grid-template-columns: 1fr;
+            gap: 12px;
           }
         }
+        
         .monitor-card {
           background: white;
-          border-radius: 20px;
+          border-radius: 12px;
           border: 1px solid #e2e8f0;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+          border-top: 4px solid;
           overflow: hidden;
           display: flex;
           flex-direction: column;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
+        
+        .monitor-card.overdue {
+          border-top-color: #ef4444;
+        }
+        
+        .monitor-card.due-soon {
+          border-top-color: #f59e0b;
+        }
+        
         .monitor-card-header {
-          padding: 24px 32px;
+          padding: 16px 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           border-bottom: 1px solid #e2e8f0;
         }
-        .med-item {
-          background: white;
-          border-radius: 16px;
-          padding: 24px;
+        
+        .card-header-left {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .card-icon-bg {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .card-icon-bg.overdue {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+        
+        .card-icon-bg.due-soon {
+          background: #fef3c7;
+          color: #d97706;
+        }
+        
+        .card-title {
+          margin: 0;
+          font-size: 1rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        
+        .card-title.overdue {
+          color: #991b1b;
+        }
+        
+        .card-title.due-soon {
+          color: #b45309;
+        }
+        
+        .badge {
+          background: #f3f4f6;
+          color: #374151;
+          padding: 4px 12px;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 0.875rem;
+        }
+        
+        .card-content {
+          padding: 20px;
+          flex: 1;
+          background: #fafafa;
+        }
+        
+        .empty-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 200px;
+          text-align: center;
+        }
+        
+        .empty-icon {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 16px;
+        }
+        
+        .empty-icon.success {
+          background: #d1fae5;
+          color: #10b981;
+        }
+        
+        .empty-icon.neutral {
+          background: #f1f5f9;
+          color: #64748b;
+        }
+        
+        .med-list {
           display: flex;
           flex-direction: column;
           gap: 12px;
-          transition: all 0.2s ease;
+        }
+        
+        .med-item {
+          background: white;
+          border-radius: 8px;
+          padding: 16px;
+          border-left: 3px solid #3b82f6;
           border: 1px solid #e2e8f0;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-          position: relative;
-          overflow: hidden;
+          border-left: 3px solid;
+          transition: all 0.2s ease;
         }
-        .med-item:hover {
-          box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08);
-          transform: translateY(-2px);
+        
+        .med-item.overdue {
+          border-left-color: #ef4444;
         }
-        .med-item.overdue::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 6px;
-          background: #ef4444;
+        
+        .med-item.due-soon {
+          border-left-color: #f59e0b;
         }
-        .med-item.due-soon::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 6px;
-          background: #f59e0b;
+        
+        .med-item-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 12px;
+        }
+        
+        .med-item-info {
+          flex: 1;
+        }
+        
+        .med-medication-name {
+          margin: 0 0 8px;
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        
+        .med-patient-room {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.85rem;
+          color: #64748b;
+        }
+        
+        .med-patient-room strong {
+          color: #0f172a;
+          font-weight: 600;
+        }
+        
+        .med-time-badge {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 700;
+          font-size: 0.95rem;
+          padding: 4px 10px;
+          border-radius: 6px;
+          white-space: nowrap;
+        }
+        
+        .med-time-badge.overdue {
+          background: #fee2e2;
+          color: #dc2626;
+        }
+        
+        .med-time-badge.due-soon {
+          background: #fef3c7;
+          color: #d97706;
+        }
+        
+        .med-details {
+          display: flex;
+          gap: 16px;
+          flex-wrap: wrap;
+          font-size: 0.85rem;
+          color: #475569;
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid #f1f5f9;
+        }
+        
+        .med-detail {
+          display: flex;
+          gap: 4px;
+        }
+        
+        .med-detail strong {
+          color: #0f172a;
+        }
+        
+        @media (max-width: 640px) {
+          .med-details {
+            flex-direction: column;
+            gap: 8px;
+          }
+          
+          .monitor-card-header {
+            padding: 12px 16px;
+          }
+          
+          .card-content {
+            padding: 16px;
+          }
+          
+          .med-item {
+            padding: 12px;
+          }
         }
       `}</style>
 
-
-
-      <div className="med-monitoring-grid">
-
-        {/* OVERDUE COLUMN */}
-        <div className="monitor-card">
-          <div className="monitor-card-header" style={{ background: '#fef2f2' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ padding: 8, background: '#fee2e2', color: '#dc2626', borderRadius: 12 }}>
-                <AlertTriangle size={24} />
-              </div>
-              <h3 style={{ margin: 0, color: '#991b1b', fontSize: '1.25rem', fontWeight: 700 }}>Overdue Medications</h3>
-            </div>
-            <div style={{ background: '#dc2626', color: 'white', padding: '4px 12px', borderRadius: 9999, fontWeight: 700, fontSize: '0.9rem', boxShadow: '0 2px 4px rgba(220, 38, 38, 0.3)' }}>
-              {overdue.length}
-            </div>
+      <div className="med-monitoring-container">
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94a3b8' }}>
+            Loading medication schedules...
           </div>
-
-          <div style={{ padding: 32, flex: 1, background: '#fafafa' }}>
-            {loading ? <p style={{ textAlign: 'center', color: '#94a3b8' }}>Loading schedules...</p> : overdue.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200, color: '#10b981' }}>
-                <div style={{ width: 80, height: 80, background: '#d1fae5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                  <CheckCircle size={40} />
+        ) : (
+          <div className="med-cards-grid">
+            {/* OVERDUE MEDICATIONS */}
+            <div className={`monitor-card overdue`}>
+              <div className="monitor-card-header">
+                <div className="card-header-left">
+                  <div className="card-icon-bg overdue">
+                    <AlertTriangle size={18} />
+                  </div>
+                  <h3 className="card-title overdue">Overdue Medications</h3>
                 </div>
-                <h4 style={{ margin: '0 0 8px', fontSize: '1.2rem', color: '#065f46' }}>All Clear!</h4>
-                <p style={{ margin: 0, color: '#059669', fontWeight: 500 }}>No overdue medications. Great job!</p>
+                <div className="badge">{overdue.length}</div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {overdue.map(m => (
-                  <div key={m.id} className="med-item overdue">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <h4 style={{ margin: '0 0 6px', fontSize: '1.2rem', color: '#0f172a', fontWeight: 700 }}>{m.medication_name}</h4>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ color: '#0f172a', fontWeight: 600 }}>{m.patient_name}</span>
-                          <span style={{ color: '#cbd5e1' }}>|</span>
-                          <span style={{ color: '#64748b' }}>Room {m.room_number || 'N/A'}</span>
+
+              <div className="card-content">
+                {overdue.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon success">
+                      <CheckCircle size={40} />
+                    </div>
+                    <h4 style={{ margin: '0 0 8px', fontSize: '1.05rem', color: '#10b981', fontWeight: 700 }}>All Clear!</h4>
+                    <p style={{ margin: 0, color: '#059669', fontWeight: 500, fontSize: '0.9rem' }}>No overdue medications. Great job!</p>
+                  </div>
+                ) : (
+                  <div className="med-list">
+                    {overdue.map((med, index) => (
+                      <div key={index} className="med-item overdue">
+                        <div className="med-item-header">
+                          <div className="med-item-info">
+                            <h4 className="med-medication-name">{med.prescriptionItem?.medication_name}</h4>
+                            <div className="med-patient-room">
+                              <strong>{med.patient?.first_name} {med.patient?.last_name}</strong>
+                            </div>
+                          </div>
+                          <div className="med-time-badge overdue">
+                            <Clock size={14} />
+                            {new Date(med.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#dc2626', fontWeight: 700, fontSize: '1.1rem', background: '#fee2e2', padding: '4px 12px', borderRadius: 8 }}>
-                          <Clock size={16} />
-                          {new Date(m.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <span style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Past Due</span>
-                      </div>
-                    </div>
-
-                    <div style={{ height: 1, background: '#f1f5f9', margin: '4px 0' }}></div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#475569', fontSize: '0.95rem' }}>
-                      <div><strong>Dosage:</strong> {m.dosage}</div>
-                      <div><strong>Route:</strong> {m.route ? m.route.replace('_', ' ') : 'N/A'}</div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* DUE SOON COLUMN */}
-        <div className="monitor-card">
-          <div className="monitor-card-header" style={{ background: '#fffbeb' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ padding: 8, background: '#fef3c7', color: '#d97706', borderRadius: 12 }}>
-                <Clock size={24} />
-              </div>
-              <h3 style={{ margin: 0, color: '#b45309', fontSize: '1.25rem', fontWeight: 700 }}>Due Soon</h3>
             </div>
-            <div style={{ background: '#f59e0b', color: 'white', padding: '4px 12px', borderRadius: 9999, fontWeight: 700, fontSize: '0.9rem', boxShadow: '0 2px 4px rgba(245, 158, 11, 0.3)' }}>
-              {dueSoon.length}
-            </div>
-          </div>
 
-          <div style={{ padding: 32, flex: 1, background: '#fafafa' }}>
-            {loading ? <p style={{ textAlign: 'center', color: '#94a3b8' }}>Loading schedules...</p> : dueSoon.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200, color: '#94a3b8' }}>
-                <div style={{ width: 80, height: 80, background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
-                  <Clock size={40} />
+            {/* DUE SOON MEDICATIONS */}
+            <div className={`monitor-card due-soon`}>
+              <div className="monitor-card-header">
+                <div className="card-header-left">
+                  <div className="card-icon-bg due-soon">
+                    <Clock size={18} />
+                  </div>
+                  <h3 className="card-title due-soon">Due Soon</h3>
                 </div>
-                <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 500 }}>No medications due in the near future.</p>
+                <div className="badge">{dueSoon.length}</div>
               </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {dueSoon.map(m => (
-                  <div key={m.id} className="med-item due-soon">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <h4 style={{ margin: '0 0 6px', fontSize: '1.2rem', color: '#0f172a', fontWeight: 700 }}>{m.medication_name}</h4>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ color: '#0f172a', fontWeight: 600 }}>{m.patient_name}</span>
-                          <span style={{ color: '#cbd5e1' }}>|</span>
-                          <span style={{ color: '#64748b' }}>Room {m.room_number || 'N/A'}</span>
+
+              <div className="card-content">
+                {dueSoon.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-icon neutral">
+                      <Clock size={40} />
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: 500, color: '#64748b' }}>No medications due in the near future.</p>
+                  </div>
+                ) : (
+                  <div className="med-list">
+                    {dueSoon.map((med, index) => (
+                      <div key={index} className="med-item due-soon">
+                        <div className="med-item-header">
+                          <div className="med-item-info">
+                            <h4 className="med-medication-name">{med.prescriptionItem?.medication_name}</h4>
+                            <div className="med-patient-room">
+                              <strong>{med.patient?.first_name} {med.patient?.last_name}</strong>
+                            </div>
+                          </div>
+                          <div className="med-time-badge due-soon">
+                            <Clock size={14} />
+                            {new Date(med.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#d97706', fontWeight: 700, fontSize: '1.1rem', background: '#fef3c7', padding: '4px 12px', borderRadius: 8 }}>
-                          <Clock size={16} />
-                          {new Date(m.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <span style={{ fontSize: '0.8rem', color: '#d97706', marginTop: 6, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Upcoming</span>
-                      </div>
-                    </div>
-
-                    <div style={{ height: 1, background: '#f1f5f9', margin: '4px 0' }}></div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#475569', fontSize: '0.95rem' }}>
-                      <div><strong>Dosage:</strong> {m.dosage}</div>
-                      <div><strong>Route:</strong> {m.route ? m.route.replace('_', ' ') : 'N/A'}</div>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
-
+        )}
       </div>
     </div>
   );

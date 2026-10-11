@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useRealtimeSync } from '../../contexts/RealtimeSyncContext';
 import { Stethoscope, Search, Plus, Save, CheckCircle, LogOut, AlertCircle, Pill, ArrowLeft, Trash2, User, Clock, FileText, BedDouble, Send } from 'lucide-react';
 
 export default function Consultations() {
+  const { on, off } = useRealtimeSync();
   const [consultations, setConsultations] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,36 @@ export default function Consultations() {
   useEffect(() => {
     fetchData();
     fetchMedications();
-  }, [activeTab]);
+    
+    // Set up real-time listeners
+    on('consultation:created', (data) => {
+      setConsultations((prev) => [data.consultation, ...prev]);
+      setSuccess('New consultation received!');
+      setTimeout(() => setSuccess(''), 3000);
+    });
+
+    on('consultation:updated', (data) => {
+      setConsultations((prev) =>
+        prev.map((c) => (c.id === data.consultation.id ? data.consultation : c))
+      );
+      setSuccess('Consultation updated!');
+      setTimeout(() => setSuccess(''), 3000);
+    });
+
+    on('consultation:admission_requested', (data) => {
+      setConsultations((prev) =>
+        prev.map((c) => (c.id === data.consultation.id ? data.consultation : c))
+      );
+      setSuccess('Admission requested!');
+      setTimeout(() => setSuccess(''), 3000);
+    });
+
+    return () => {
+      off('consultation:created');
+      off('consultation:updated');
+      off('consultation:admission_requested');
+    };
+  }, [activeTab, on, off]);
 
   async function fetchMedications() {
     try {

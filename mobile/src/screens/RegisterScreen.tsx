@@ -11,8 +11,18 @@ import {
   ScrollView,
 } from 'react-native';
 import api from '../services/api';
+import { useResponsive } from '../hooks/useResponsive';
+import { useOrientation } from '../hooks/useOrientation';
+import { ResponsiveContainer, FormSection } from '../components/ResponsiveContainer';
+import { createResponsiveStyles } from '../utils/responsiveStyles';
 
 export default function RegisterScreen({ navigation }: any) {
+  const responsive = useResponsive();
+  const styles = createResponsiveStyles(responsive);
+  
+  // Lock register screen to portrait mode (useOrientation doesn't accept arguments)
+  useOrientation();
+  
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -53,34 +63,41 @@ export default function RegisterScreen({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <ResponsiveContainer
+      scrollable
+      avoidKeyboard
+      horizontalPadding
+      verticalPadding
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.content}>
-          <Text style={styles.title}>PMed-Aid</Text>
-          <Text style={styles.subtitle}>Create Account</Text>
+      <View style={styles.centerContent}>
+        <Text style={styles.heading1}>PMed-Aid</Text>
+        <Text style={[styles.heading3, { marginBottom: responsive.spacing.lg }]}>
+          Create Account
+        </Text>
 
+        <FormSection gap={responsive.spacing.md}>
           <TextInput
-            style={styles.input}
+            style={[styles.inputLarge, { fontSize: responsive.fontSize.md }]}
             placeholder="First Name"
+            placeholderTextColor="#cbd5e1"
             value={form.first_name}
             onChangeText={(text) => setForm({ ...form, first_name: text })}
             editable={!loading}
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.inputLarge, { fontSize: responsive.fontSize.md }]}
             placeholder="Last Name"
+            placeholderTextColor="#cbd5e1"
             value={form.last_name}
             onChangeText={(text) => setForm({ ...form, last_name: text })}
             editable={!loading}
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.inputLarge, { fontSize: responsive.fontSize.md }]}
             placeholder="Email"
+            placeholderTextColor="#cbd5e1"
             value={form.email}
             onChangeText={(text) => setForm({ ...form, email: text })}
             keyboardType="email-address"
@@ -89,8 +106,9 @@ export default function RegisterScreen({ navigation }: any) {
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.inputLarge, { fontSize: responsive.fontSize.md }]}
             placeholder="Password"
+            placeholderTextColor="#cbd5e1"
             value={form.password}
             onChangeText={(text) => setForm({ ...form, password: text })}
             secureTextEntry
@@ -98,92 +116,42 @@ export default function RegisterScreen({ navigation }: any) {
           />
 
           <TextInput
-            style={styles.input}
+            style={[styles.inputLarge, { fontSize: responsive.fontSize.md }]}
             placeholder="Confirm Password"
+            placeholderTextColor="#cbd5e1"
             value={form.confirm}
             onChangeText={(text) => setForm({ ...form, confirm: text })}
             secureTextEntry
             editable={!loading}
           />
+        </FormSection>
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>
-              {loading ? 'Creating Account...' : 'Sign Up'}
-            </Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.buttonLarge, loading && registerStyles.buttonDisabled]}
+          onPress={handleRegister}
+          disabled={loading}
+        >
+          <Text style={styles.buttonText}>
+            {loading ? 'Creating Account...' : 'Sign Up'}
+          </Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.linkButton}
-            onPress={() => navigation.navigate('Auth')}
-          >
-            <Text style={styles.linkText}>Already have an account? Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <TouchableOpacity
+          style={{ marginTop: responsive.spacing.lg }}
+          onPress={() => navigation.navigate('Auth')}
+        >
+          <Text style={styles.bodyRegular}>
+            Already have an account?{' '}
+            <Text style={{ color: '#1d64c1', fontWeight: '600' }}>Sign In</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ResponsiveContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1d64c1',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  input: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
-  },
-  button: {
-    backgroundColor: '#1d64c1',
-    padding: 15,
-    borderRadius: 8,
-    marginTop: 10,
-  },
+const registerStyles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  linkButton: {
-    marginTop: 20,
-  },
-  linkText: {
-    color: '#1d64c1',
-    textAlign: 'center',
-    fontSize: 14,
   },
 });

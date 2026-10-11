@@ -1,42 +1,69 @@
 import React from 'react';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList } from '@react-navigation/drawer';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
+import { useOrientation } from '../hooks/useOrientation';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Info Desk Screens
 import InfoDeskDashboard from '../screens/info-desk/InfoDeskDashboard';
 import AdmissionManagement from '../screens/info-desk/AdmissionManagement';
 import PatientMonitoring from '../screens/info-desk/PatientMonitoring';
 import PatientRecords from '../screens/info-desk/PatientRecords';
+import PatientDetail from '../screens/info-desk/PatientDetail';
 import PrescriptionManagement from '../screens/info-desk/PrescriptionManagement';
-import BillingExpenses from '../screens/info-desk/BillingExpenses';
+import PrescriptionDetail from '../screens/info-desk/PrescriptionDetail';
 
 const Drawer = createDrawerNavigator();
 
 function CustomDrawerContent(props: any) {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const { width, height, isLandscape } = useOrientation();
+  
+  // Responsive drawer width
+  const drawerWidth = isLandscape ? Math.min(280, width * 0.35) : '70%';
 
   return (
-    <DrawerContentScrollView {...props} style={styles.drawerContainer} contentContainerStyle={styles.contentContainer}>
+    <DrawerContentScrollView 
+      {...props} 
+      style={styles.drawerContainer} 
+      contentContainerStyle={styles.contentContainer}
+      scrollEnabled={true}
+    >
       {/* Brand Header */}
       <View style={styles.brandSection}>
-        <Text style={styles.brandIcon}>+</Text>
-        <Text style={styles.brandName}>PMed-Aid</Text>
+        <View style={styles.brandIcon}>
+          <Text style={styles.brandIconText}>A</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.brandName}>PMed-Aid</Text>
+          <Text style={styles.brandRole}>Information Desk</Text>
+        </View>
       </View>
 
-      {/* Drawer Menu Items */}
-      <View style={styles.menuSection}>
+      {/* Drawer Menu Items - Scrollable */}
+      <ScrollView style={styles.menuSection} scrollEnabled={true}>
         <DrawerItemList {...props} />
-      </View>
+      </ScrollView>
 
-      {/* Sign Out Button */}
-      <View style={styles.logoutSection}>
+      {/* User Profile Card */}
+      <View style={styles.profileSection}>
+        <View style={styles.profileCard}>
+          <View style={styles.profileAvatar}>
+            <Text style={styles.profileInitials}>
+              {user?.first_name?.[0]}{user?.last_name?.[0]}
+            </Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{user?.first_name} {user?.last_name}</Text>
+            <Text style={styles.profileRole}>{user?.role?.replace('_', ' ')}</Text>
+          </View>
+        </View>
         <TouchableOpacity 
           style={styles.logoutButton} 
           onPress={logout}
         >
-          <Text style={styles.logoutIcon}>⎋</Text>
-          <Text style={styles.logoutText}>Sign Out</Text>
+          <MaterialCommunityIcons name="logout" size={18} color="#ef4444" />
         </TouchableOpacity>
       </View>
     </DrawerContentScrollView>
@@ -44,6 +71,11 @@ function CustomDrawerContent(props: any) {
 }
 
 export default function InfoDeskDrawerNavigator() {
+  const { width, height, isLandscape } = useOrientation();
+  
+  // Responsive drawer width
+  const drawerWidth = isLandscape ? Math.min(280, width * 0.35) : '70%';
+
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}
@@ -56,18 +88,22 @@ export default function InfoDeskDrawerNavigator() {
           fontWeight: '700',
         },
         drawerStyle: {
-          backgroundColor: '#1e3a5f',
+          backgroundColor: '#0f1117',
+          width: drawerWidth,
         },
-        drawerActiveTintColor: '#fff',
-        drawerInactiveTintColor: '#94a3b8',
-        drawerActiveBackgroundColor: '#3b82f6',
+        drawerActiveTintColor: '#3b82f6',
+        drawerInactiveTintColor: '#cbd5e1',
+        drawerActiveBackgroundColor: 'rgba(59, 130, 246, 0.15)',
         drawerLabelStyle: {
-          fontSize: 15,
-          fontWeight: '600',
+          fontSize: 13,
+          fontWeight: '500',
+          marginLeft: -12,
         },
         drawerItemStyle: {
-          borderRadius: 8,
-          marginVertical: 2,
+          borderRadius: 6,
+          marginVertical: 6,
+          marginHorizontal: 12,
+          paddingVertical: 10,
         },
       }}
     >
@@ -76,7 +112,7 @@ export default function InfoDeskDrawerNavigator() {
         component={InfoDeskDashboard}
         options={{
           title: 'Dashboard',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>▦</Text>,
+          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="view-dashboard" size={size} color={color} />,
         }}
       />
       <Drawer.Screen 
@@ -84,23 +120,7 @@ export default function InfoDeskDrawerNavigator() {
         component={AdmissionManagement}
         options={{
           title: 'Admission Management',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>🛏️</Text>,
-        }}
-      />
-      <Drawer.Screen 
-        name="PatientMonitoring" 
-        component={PatientMonitoring}
-        options={{
-          title: 'Patient Monitoring',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📊</Text>,
-        }}
-      />
-      <Drawer.Screen 
-        name="PatientRecords" 
-        component={PatientRecords}
-        options={{
-          title: 'Patient Records',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>👥</Text>,
+          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="hospital-box" size={size} color={color} />,
         }}
       />
       <Drawer.Screen 
@@ -108,15 +128,39 @@ export default function InfoDeskDrawerNavigator() {
         component={PrescriptionManagement}
         options={{
           title: 'Prescription Management',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>📋</Text>,
+          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="clipboard-list" size={size} color={color} />,
         }}
       />
       <Drawer.Screen 
-        name="BillingManagement" 
-        component={BillingExpenses}
+        name="PrescriptionDetail" 
+        component={PrescriptionDetail}
         options={{
-          title: 'Billing Management',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20, color }}>💰</Text>,
+          title: 'Prescription Detail',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen 
+        name="PatientRecords" 
+        component={PatientRecords}
+        options={{
+          title: 'Patient Records',
+          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="file-document" size={size} color={color} />,
+        }}
+      />
+      <Drawer.Screen 
+        name="PatientDetail" 
+        component={PatientDetail}
+        options={{
+          title: 'Patient Detail',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen 
+        name="PatientMonitoring" 
+        component={PatientMonitoring}
+        options={{
+          title: 'Patient Monitoring',
+          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="heart-pulse" size={size} color={color} />,
         }}
       />
     </Drawer.Navigator>
@@ -125,58 +169,97 @@ export default function InfoDeskDrawerNavigator() {
 
 const styles = StyleSheet.create({
   drawerContainer: {
-    backgroundColor: '#1e3a5f',
+    backgroundColor: '#0f1117',
+    flex: 1,
   },
   contentContainer: {
-    flex: 1,
+    flexGrow: 1,
+    justifyContent: 'space-between',
   },
   brandSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    gap: 12,
+    padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#2d4a6f',
-    marginBottom: 10,
+    borderBottomColor: '#1e293b',
+    marginBottom: 12,
   },
   brandIcon: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#3b82f6',
-    marginRight: 8,
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  brandName: {
-    fontSize: 22,
+  brandIconText: {
+    fontSize: 20,
     fontWeight: '700',
     color: '#fff',
   },
+  brandName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  brandRole: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
   menuSection: {
     flex: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 4,
   },
-  logoutSection: {
+  profileSection: {
     borderTopWidth: 1,
-    borderTopColor: '#2d4a6f',
-    padding: 16,
-    marginTop: 12,
+    borderTopColor: '#1e293b',
+    padding: 12,
+    marginTop: 8,
   },
-  logoutButton: {
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderRadius: 8,
     gap: 12,
+    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  profileAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#3b82f6',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#ef4444',
+    alignItems: 'center',
+    flexShrink: 0,
   },
-  logoutIcon: {
-    fontSize: 20,
-    color: '#ef4444',
+  profileInitials: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
   },
-  logoutText: {
-    fontSize: 15,
+  profileInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  profileName: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#ef4444',
+    color: '#fff',
+  },
+  profileRole: {
+    fontSize: 10,
+    color: '#94a3b8',
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  logoutButton: {
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

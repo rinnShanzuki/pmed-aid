@@ -1,7 +1,9 @@
 import React from 'react';
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
+import { useOrientation } from '../hooks/useOrientation';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // Patient Screens
 import PatientDashboard from '../screens/patient/PatientDashboard';
@@ -16,17 +18,22 @@ function CustomDrawerContent(props: any) {
   const { user, logout } = useAuth();
 
   return (
-    <DrawerContentScrollView {...props} style={styles.drawerContainer}>
+    <DrawerContentScrollView 
+      {...props} 
+      style={styles.drawerContainer}
+      contentContainerStyle={styles.contentContainer}
+      scrollEnabled={true}
+    >
       {/* Brand Header */}
       <View style={styles.brandSection}>
         <Text style={styles.brandIcon}>+</Text>
         <Text style={styles.brandName}>PMed-Aid</Text>
       </View>
 
-      {/* Drawer Menu Items */}
-      <View style={styles.menuSection}>
+      {/* Drawer Menu Items - Scrollable */}
+      <ScrollView style={styles.menuSection} scrollEnabled={true}>
         <DrawerItemList {...props} />
-      </View>
+      </ScrollView>
 
       {/* Sign Out Button */}
       <View style={styles.logoutSection}>
@@ -34,7 +41,7 @@ function CustomDrawerContent(props: any) {
           style={styles.logoutButton} 
           onPress={logout}
         >
-          <Text style={styles.logoutIcon}>⎋</Text>
+          <MaterialCommunityIcons name="logout" size={20} color="#dc2626" />
           <Text style={styles.logoutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
@@ -43,6 +50,11 @@ function CustomDrawerContent(props: any) {
 }
 
 export default function PatientDrawerNavigator() {
+  const { width, height, isLandscape } = useOrientation();
+  
+  // Responsive drawer width
+  const drawerWidth = isLandscape ? Math.min(280, width * 0.35) : 260;
+
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}
@@ -53,6 +65,10 @@ export default function PatientDrawerNavigator() {
         headerTintColor: '#fff',
         headerTitleStyle: {
           fontWeight: '700',
+        },
+        drawerStyle: {
+          backgroundColor: '#fff',
+          width: drawerWidth,
         },
         drawerActiveTintColor: '#10b981',
         drawerInactiveTintColor: '#64748b',
@@ -72,7 +88,7 @@ export default function PatientDrawerNavigator() {
         component={PatientDashboard}
         options={{
           title: 'Patient Dashboard',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>▦</Text>,
+          drawerIcon: ({ color }) => <MaterialCommunityIcons name="view-dashboard" size={20} color={color} />,
         }}
       />
       <Drawer.Screen 
@@ -80,7 +96,7 @@ export default function PatientDrawerNavigator() {
         component={MedicationSchedule}
         options={{
           title: 'Medication Schedule',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📅</Text>,
+          drawerIcon: ({ color }) => <MaterialCommunityIcons name="calendar" size={20} color={color} />,
         }}
       />
       <Drawer.Screen 
@@ -88,7 +104,7 @@ export default function PatientDrawerNavigator() {
         component={MyPrescriptions}
         options={{
           title: 'Prescription List View',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📋</Text>,
+          drawerIcon: ({ color }) => <MaterialCommunityIcons name="clipboard-list" size={20} color={color} />,
         }}
       />
       <Drawer.Screen 
@@ -96,7 +112,7 @@ export default function PatientDrawerNavigator() {
         component={AdherenceHistory}
         options={{
           title: 'Adherence History',
-          drawerIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📈</Text>,
+          drawerIcon: ({ color }) => <MaterialCommunityIcons name="chart-line" size={20} color={color} />,
         }}
       />
     </Drawer.Navigator>
@@ -106,6 +122,11 @@ export default function PatientDrawerNavigator() {
 const styles = StyleSheet.create({
   drawerContainer: {
     backgroundColor: '#fff',
+    flex: 1,
+  },
+  contentContainer: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
   },
   brandSection: {
     flexDirection: 'row',
@@ -144,10 +165,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 12,
     justifyContent: 'center',
-  },
-  logoutIcon: {
-    fontSize: 20,
-    color: '#dc2626',
   },
   logoutText: {
     fontSize: 15,

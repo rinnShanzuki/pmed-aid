@@ -1,33 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { useNavigation } from '@react-navigation/native';
+import { useOrientation } from '../../hooks/useOrientation';
 import api from '../../services/api';
 
 export default function PrescriptionManagement() {
   const { user } = useAuth();
+  const navigation = useNavigation();
+  const { width, height, isLandscape } = useOrientation();
+  
   const [loading, setLoading] = useState(true);
   const [prescriptions, setPrescriptions] = useState([]);
   const [filteredPrescriptions, setFilteredPrescriptions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'outpatient' | 'admitted'>('outpatient');
   const [handoverCount, setHandoverCount] = useState(0);
 
   useEffect(() => {
+    console.log('Current logged-in user:', {
+      id: user?.id,
+      email: user?.email,
+      role: user?.role,
+      name: `${user?.first_name} ${user?.last_name}`
+    });
     fetchPrescriptions();
   }, []);
 
   useEffect(() => {
     filterPrescriptions();
-  }, [searchQuery, prescriptions]);
+  }, [searchQuery, prescriptions, activeTab]);
 
   const fetchPrescriptions = async () => {
     try {
       setLoading(true);
       const response = await api.get('/prescriptions');
       const data = response.data.data || [];
-      setPrescriptions(data);
       
-      // Count handover prescriptions
-      const handoverRx = data.filter((p: any) => p.type === 'handover' && p.status === 'active');
+      // Create deep copy to avoid reference issues
+      const deepCopiedData = JSON.parse(JSON.stringify(data));
+      
+      // Debug: Log all prescriptions
+      console.log('Total prescriptions fetched:', deepCopiedData.length);
+      console.log('Prescriptions data:', deepCopiedData.map((p: any) => ({
+        id: p.id,
+        patient: `${p.patient?.first_name} ${p.patient?.last_name}`,
+        type: p.type,
+        status: p.status,
+        admission_id: p.admission_id
+      })));
+      
+      setPrescriptions(deepCopiedData);
+
+      // Count handover prescriptions (pending encoding status)
+      const handoverRx = deepCopiedData.filter((p: any) => p.status === 'pending_encoding');
       setHandoverCount(handoverRx.length);
     } catch (err: any) {
       console.error('Prescriptions fetch error:', err);
@@ -39,17 +65,43 @@ export default function PrescriptionManagement() {
   };
 
   const filterPrescriptions = () => {
+    let filtered = prescriptions;
+
+    // Apply visibility filter (match web behavior)
+    // Outpatient: always visible | In-hospital: only if linked to admission
+    filtered = filtered.filter((p: any) => {
+      if (p.type === 'outpatient') return true;
+      return p.admission_id != null; // In-hospital only if admission confirmed
+    });
+
+    // Filter by status (only show active prescriptions)
+    filtered = filtered.filter((p: any) => p.status === 'active');
+
+    // Filter by tab
+    if (activeTab === 'outpatient') {
+      filtered = filtered.filter((p: any) => p.type === 'outpatient');
+    } else if (activeTab === 'admitted') {
+      filtered = filtered.filter((p: any) => p.type === 'in_hospital');
+    }
+
+    // Filter by search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      const filtered = prescriptions.filter((p: any) => {
+      filtered = filtered.filter((p: any) => {
         const patientName = `${p.patient?.first_name} ${p.patient?.last_name}`.toLowerCase();
         const doctorName = `${p.doctor?.first_name} ${p.doctor?.last_name}`.toLowerCase();
         return patientName.includes(query) || doctorName.includes(query);
       });
-      setFilteredPrescriptions(filtered);
-    } else {
-      setFilteredPrescriptions(prescriptions);
     }
+
+    console.log(`Filtered prescriptions (tab=${activeTab}, search="${searchQuery}"):`, filtered.map((p: any) => ({
+      id: p.id,
+      patient: `${p.patient?.first_name} ${p.patient?.last_name}`,
+      type: p.type,
+      admission_id: p.admission_id
+    })));
+
+    setFilteredPrescriptions(filtered);
   };
 
   if (loading) {
@@ -60,124 +112,156 @@ export default function PrescriptionManagement() {
     );
   }
 
+  // Calculate responsive column widths
+  // In landscape, use more of the available width
+  const availableWidth = isLandscape ? width - 40 : width - 24; // Account for padding and margins
+  const numberOfColumns = 6;
+  const minColWidth = 90;
+  const maxTotalWidth = availableWidth;
+  
+  // Calculate column width: either divide equally or use min width if that's larger
+  const equalWidth = maxTotalWidth / numberOfColumns;
+  const colWidth = Math.max(minColWidth, Math.floor(equalWidth));
+  const totalTableWidth = colWidth * numberOfColumns;
+  
+  // Allow horizontal scroll only if necessary (content doesn't fit)
+  const needsHorizontalScroll = totalTableWidth > maxTotalWidth;
+
   return (
     <View style={styles.container}>
       <ScrollView 
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          isLandscape && styles.scrollContentLandscape
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Staff Badge */}
-        <View style={styles.staffBadge}>
-          <View style={styles.staffAvatar}>
-            <Text style={styles.staffInitials}>
-              {user?.first_name?.[0]}{user?.last_name?.[0]}
-            </Text>
+        {/* Search and Handover Button */}
+        <View style={styles.searchRow}>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search…"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholderTextColor="#94a3b8"
+            />
           </View>
-          <View style={styles.staffInfo}>
-            <Text style={styles.staffName}>{user?.first_name} {user?.last_name}</Text>
-            <Text style={styles.staffRole}>Information Desk</Text>
-          </View>
+          <TouchableOpacity style={styles.handoverButton}>
+            <Text style={styles.handoverButtonText}>Handover ({handoverCount})</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Main Card */}
         <View style={styles.mainCard}>
-          {/* Header */}
-          <View style={styles.cardHeader}>
-            <View style={styles.titleRow}>
-              <Text style={styles.headerIcon}>📋</Text>
-              <Text style={styles.headerTitle}>Prescription Management</Text>
-            </View>
-          </View>
-
-          {/* Search and Handover Button */}
-          <View style={styles.searchRow}>
-            <View style={styles.searchContainer}>
-              <Text style={styles.searchIcon}>🔍</Text>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search..."
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
-            <TouchableOpacity style={styles.handoverButton}>
-              <Text style={styles.handoverIcon}>✈️</Text>
-              <Text style={styles.handoverButtonText}>Handover ({handoverCount})</Text>
+          {/* Tabs */}
+          <View style={styles.tabsContainer}>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'outpatient' && styles.tabActive]}
+              onPress={() => setActiveTab('outpatient')}
+            >
+              <Text style={[styles.tabText, activeTab === 'outpatient' && styles.tabTextActive]}>
+                Outpatient ({prescriptions.filter((p: any) => p.type === 'outpatient' && p.status === 'active').length})
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'admitted' && styles.tabActive]}
+              onPress={() => setActiveTab('admitted')}
+            >
+              <Text style={[styles.tabText, activeTab === 'admitted' && styles.tabTextActive]}>
+                Admitted ({prescriptions.filter((p: any) => p.type === 'in_hospital' && p.admission_id !== null && p.status === 'active').length})
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* Table Container with Horizontal Scroll */}
+          {/* Table - Responsive scrolling only if needed */}
           <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={true}
-            style={styles.tableScrollContainer}
+            horizontal={needsHorizontalScroll} 
+            showsHorizontalScrollIndicator={needsHorizontalScroll}
+            style={styles.horizontalScroll}
+            contentContainerStyle={{
+              width: needsHorizontalScroll ? totalTableWidth : '100%'
+            }}
           >
-            <View style={styles.tableContainer}>
+            <View style={[
+              styles.tableWrapper,
+              isLandscape && styles.tableWrapperLandscape
+            ]}>
               {/* Table Header */}
               <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderText, styles.colPatient]}>PATIENT</Text>
-                <Text style={[styles.tableHeaderText, styles.colDoctor]}>DOCTOR</Text>
-                <Text style={[styles.tableHeaderText, styles.colType]}>TYPE</Text>
-                <Text style={[styles.tableHeaderText, styles.colItems]}>ITEMS</Text>
-                <Text style={[styles.tableHeaderText, styles.colStatus]}>STATUS</Text>
-                <Text style={[styles.tableHeaderText, styles.colDate]}>DATE</Text>
-                <Text style={[styles.tableHeaderText, styles.colActions]}>ACTIONS</Text>
+                <Text style={[styles.th, { width: colWidth }]}>PATIENT</Text>
+                <Text style={[styles.th, { width: colWidth }]}>DOCTOR</Text>
+                <Text style={[styles.th, { width: colWidth }]}>ITEMS</Text>
+                <Text style={[styles.th, { width: colWidth }]}>STATUS</Text>
+                <Text style={[styles.th, { width: colWidth }]}>DATE</Text>
+                <Text style={[styles.th, { width: colWidth }]}>ACTIONS</Text>
               </View>
 
-              {/* Table Body */}
-              <View style={styles.tableBody}>
-                {filteredPrescriptions.length === 0 ? (
-                  <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>No prescriptions found</Text>
-                  </View>
-                ) : (
-                  filteredPrescriptions.map((prescription: any) => (
-                    <View key={prescription.id} style={styles.tableRow}>
-                      <Text style={[styles.tableCellText, styles.colPatient]}>
-                        {prescription.patient?.first_name} {prescription.patient?.last_name}
-                      </Text>
-                      <Text style={[styles.tableCellText, styles.colDoctor]}>
-                        Dr. {prescription.doctor?.last_name || 'N/A'}
-                      </Text>
-                      <View style={[styles.tableCell, styles.colType]}>
-                        <View style={[
-                          styles.typeBadge,
-                          prescription.type === 'in-hospital' && styles.typeInHospital,
-                          prescription.type === 'handover' && styles.typeHandover
-                        ]}>
-                          <Text style={styles.typeText}>
-                            {prescription.type === 'in-hospital' ? 'In-Hospital' : 'Handover'}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={[styles.tableCellText, styles.colItems]}>
-                        {prescription.items?.length || 0} items
-                      </Text>
-                      <View style={[styles.tableCell, styles.colStatus]}>
-                        <View style={[
-                          styles.statusBadge,
-                          prescription.status === 'active' && styles.statusActive,
-                          prescription.status === 'completed' && styles.statusCompleted
-                        ]}>
-                          <Text style={styles.statusText}>
-                            {prescription.status === 'active' ? 'Active' : 
-                             prescription.status === 'completed' ? 'Completed' : 
-                             'Pending'}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={[styles.tableCellText, styles.colDate]}>
-                        {new Date(prescription.created_at || prescription.date).toLocaleDateString()}
-                      </Text>
-                      <View style={[styles.tableCell, styles.colActions]}>
-                        <TouchableOpacity style={styles.actionButton}>
-                          <Text style={styles.actionButtonText}>•••</Text>
-                        </TouchableOpacity>
+              {/* Table Rows */}
+              {filteredPrescriptions.length === 0 ? (
+                <Text style={styles.emptyState}>No prescriptions found</Text>
+              ) : (
+                filteredPrescriptions.map((prescription: any, rowIdx) => {
+                  const display = {
+                    id: prescription.id,
+                    patientName: `${prescription.patient?.first_name} ${prescription.patient?.last_name}`,
+                    patientId: prescription.patient?.id,
+                    type: prescription.type,
+                    status: prescription.status,
+                    admissionId: prescription.admission_id
+                  };
+                  console.log(`Row ${rowIdx}:`, display);
+                  
+                  return (
+                  <View key={`rx-${prescription.id}`} style={styles.tableRow}>
+                    <Text 
+                      style={[styles.td, { width: colWidth }]} 
+                      numberOfLines={2}
+                    >
+                      {prescription.patient?.first_name} {prescription.patient?.last_name}
+                    </Text>
+                    <Text 
+                      style={[styles.td, { width: colWidth }]} 
+                      numberOfLines={1}
+                    >
+                      Dr. {prescription.doctor?.last_name || 'N/A'}
+                    </Text>
+                    <Text style={[styles.td, { width: colWidth }]}>
+                      {prescription.items?.length || 0} items
+                    </Text>
+                    <View style={[styles.td, { width: colWidth, justifyContent: 'center' }]}>
+                      <View style={[
+                        styles.statusBadge,
+                        prescription.status === 'active' && styles.statusActive,
+                        prescription.status === 'completed' && styles.statusCompleted
+                      ]}>
+                        <Text style={styles.statusText} numberOfLines={1}>
+                          {prescription.status === 'active' ? 'Active' : 'Completed'}
+                        </Text>
                       </View>
                     </View>
-                  ))
-                )}
-              </View>
+                    <Text style={[styles.td, { width: colWidth }]}>
+                      {new Date(prescription.created_at || prescription.date).toLocaleDateString('en-US', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        year: 'numeric'
+                      }).replace(/\//g, '/')}
+                    </Text>
+                    <View style={[styles.td, { width: colWidth, justifyContent: 'center' }]}>
+                      <TouchableOpacity 
+                        style={styles.viewButton}
+                        onPress={() => {
+                          console.log(`Navigating to PrescriptionDetail with ID: ${prescription.id}, Patient: ${prescription.patient?.first_name} ${prescription.patient?.last_name}`);
+                          navigation.navigate('PrescriptionDetail', { prescriptionId: prescription.id });
+                        }}
+                      >
+                        <Text style={styles.viewButtonText}>View Record</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  );
+                })
+              )}
             </View>
           </ScrollView>
         </View>
@@ -192,8 +276,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   scrollContent: {
-    padding: 16,
+    padding: 12,
     paddingBottom: 40,
+  },
+  scrollContentLandscape: {
+    padding: 16,
+    paddingBottom: 20,
   },
   loadingContainer: {
     flex: 1,
@@ -201,195 +289,118 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f8fafc',
   },
-  staffBadge: {
+  searchRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  searchContainer: {
+    flex: 1,
+  },
+  searchInput: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 13,
+    color: '#0f172a',
+  },
+  handoverButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  handoverButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  mainCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
-    alignSelf: 'flex-end',
   },
-  staffAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#3b82f6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  staffInitials: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  staffInfo: {
-    justifyContent: 'center',
-  },
-  staffName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  staffRole: {
-    fontSize: 13,
-    color: '#64748b',
-  },
-  mainCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  cardHeader: {
-    marginBottom: 20,
-  },
-  titleRow: {
+  tabsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerIcon: {
-    fontSize: 24,
-    marginRight: 10,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  searchIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: '#0f172a',
-  },
-  handoverButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    gap: 6,
-  },
-  handoverIcon: {
-    fontSize: 18,
-  },
-  handoverButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tableScrollContainer: {
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
-  },
-  tableContainer: {
-    minWidth: 950,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
-  tableHeaderText: {
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    alignItems: 'center',
+  },
+  tabActive: {
+    borderBottomColor: '#3b82f6',
+  },
+  tabText: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  tabTextActive: {
+    color: '#3b82f6',
+    fontWeight: '700',
+  },
+  horizontalScroll: {
+    marginHorizontal: -12,
+    paddingHorizontal: 12,
+  },
+  tableWrapper: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 6,
+    minWidth: '100%',
+  },
+  tableWrapperLandscape: {
+    width: '100%',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  th: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748b',
-    textTransform: 'uppercase',
-  },
-  colPatient: {
-    width: 150,
-  },
-  colDoctor: {
-    width: 130,
-  },
-  colType: {
-    width: 130,
-  },
-  colItems: {
-    width: 100,
-  },
-  colStatus: {
-    width: 110,
-  },
-  colDate: {
-    width: 120,
-  },
-  colActions: {
-    width: 80,
-  },
-  tableBody: {
-    minHeight: 200,
+    color: '#475569',
+    paddingHorizontal: 6,
+    textAlign: 'center',
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-    alignItems: 'center',
+    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#fff',
   },
-  tableCell: {
-    justifyContent: 'center',
-  },
-  tableCellText: {
-    fontSize: 13,
+  td: {
+    fontSize: 12,
     color: '#0f172a',
-  },
-  typeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#f1f5f9',
-    alignSelf: 'flex-start',
-  },
-  typeInHospital: {
-    backgroundColor: '#e0e7ff',
-  },
-  typeHandover: {
-    backgroundColor: '#fef3c7',
-  },
-  typeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748b',
+    paddingHorizontal: 6,
+    textAlign: 'center',
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 12,
     backgroundColor: '#f1f5f9',
-    alignSelf: 'flex-start',
   },
   statusActive: {
     backgroundColor: '#d1fae5',
@@ -400,22 +411,25 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#0f172a',
   },
-  actionButton: {
-    padding: 4,
+  viewButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#f8fafc',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  actionButtonText: {
-    fontSize: 18,
-    color: '#64748b',
-    fontWeight: '700',
+  viewButtonText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#3b82f6',
   },
   emptyState: {
-    paddingVertical: 60,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 14,
+    fontSize: 11,
     color: '#94a3b8',
+    textAlign: 'center',
+    paddingVertical: 20,
   },
 });

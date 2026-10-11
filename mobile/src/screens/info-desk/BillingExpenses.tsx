@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { useOrientation } from '../../hooks/useOrientation';
 import api from '../../services/api';
 
 export default function BillingExpenses() {
   const { user } = useAuth();
+  const { width, height, isLandscape } = useOrientation();
+  
   const [loading, setLoading] = useState(true);
   const [bills, setBills] = useState([]);
   const [filteredBills, setFilteredBills] = useState([]);
@@ -54,6 +57,15 @@ export default function BillingExpenses() {
     );
   }
 
+  // Calculate responsive table layout
+  const availableWidth = isLandscape ? width - 40 : width - 24;
+  const numberOfColumns = 6;
+  const minColWidth = 80;
+  const equalWidth = availableWidth / numberOfColumns;
+  const colWidth = Math.max(minColWidth, Math.floor(equalWidth));
+  const totalTableWidth = colWidth * numberOfColumns;
+  const needsHorizontalScroll = totalTableWidth > availableWidth;
+
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -102,19 +114,25 @@ export default function BillingExpenses() {
 
           {/* Table Container with Horizontal Scroll */}
           <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={true}
+            horizontal={needsHorizontalScroll}
+            showsHorizontalScrollIndicator={needsHorizontalScroll}
             style={styles.tableScrollContainer}
+            contentContainerStyle={{
+              width: needsHorizontalScroll ? totalTableWidth : '100%'
+            }}
           >
-            <View style={styles.tableContainer}>
+            <View style={[
+              styles.tableContainer,
+              isLandscape && { width: '100%' }
+            ]}>
               {/* Table Header */}
               <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderText, styles.colPatient]}>PATIENT</Text>
-                <Text style={[styles.tableHeaderText, styles.colAdmission]}>ADMISSION</Text>
-                <Text style={[styles.tableHeaderText, styles.colTotal]}>TOTAL</Text>
-                <Text style={[styles.tableHeaderText, styles.colStatus]}>STATUS</Text>
-                <Text style={[styles.tableHeaderText, styles.colDate]}>DATE</Text>
-                <Text style={[styles.tableHeaderText, styles.colActions]}>ACTIONS</Text>
+                <Text style={[styles.tableHeaderText, { width: colWidth }]}>PATIENT</Text>
+                <Text style={[styles.tableHeaderText, { width: colWidth }]}>ADMISSION</Text>
+                <Text style={[styles.tableHeaderText, { width: colWidth }]}>TOTAL</Text>
+                <Text style={[styles.tableHeaderText, { width: colWidth }]}>STATUS</Text>
+                <Text style={[styles.tableHeaderText, { width: colWidth }]}>DATE</Text>
+                <Text style={[styles.tableHeaderText, { width: colWidth }]}>ACTIONS</Text>
               </View>
 
               {/* Table Body */}
@@ -126,19 +144,19 @@ export default function BillingExpenses() {
                 ) : (
                   filteredBills.map((bill: any) => (
                     <View key={bill.id} style={styles.tableRow}>
-                      <Text style={[styles.tableCellText, styles.colPatient]}>
+                      <Text style={[styles.tableCellText, { width: colWidth }]}>
                         {bill.patient?.first_name} {bill.patient?.last_name}
                       </Text>
-                      <Text style={[styles.tableCellText, styles.colAdmission]}>
+                      <Text style={[styles.tableCellText, { width: colWidth }]}>
                         #{bill.admission_id || 'N/A'}
                       </Text>
-                      <Text style={[styles.tableCellText, styles.colTotal, styles.totalAmount]}>
+                      <Text style={[styles.tableCellText, styles.totalAmount, { width: colWidth }]}>
                         ₱{parseFloat(bill.total_amount || 0).toLocaleString('en-US', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2
                         })}
                       </Text>
-                      <View style={[styles.tableCell, styles.colStatus]}>
+                      <View style={[styles.tableCell, { width: colWidth }]}>
                         <View style={[
                           styles.statusBadge,
                           bill.status === 'paid' && styles.statusPaid,
@@ -153,10 +171,10 @@ export default function BillingExpenses() {
                           </Text>
                         </View>
                       </View>
-                      <Text style={[styles.tableCellText, styles.colDate]}>
+                      <Text style={[styles.tableCellText, { width: colWidth }]}>
                         {new Date(bill.created_at || bill.date).toLocaleDateString()}
                       </Text>
-                      <View style={[styles.tableCell, styles.colActions]}>
+                      <View style={[styles.tableCell, { width: colWidth }]}>
                         <TouchableOpacity style={styles.actionButton}>
                           <Text style={styles.actionButtonText}>•••</Text>
                         </TouchableOpacity>
@@ -231,7 +249,7 @@ const styles = StyleSheet.create({
   mainCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 20,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -239,7 +257,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardHeader: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   titleRow: {
     flexDirection: 'row',
@@ -256,11 +274,13 @@ const styles = StyleSheet.create({
   },
   searchRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
   },
   searchContainer: {
     flex: 1,
+    minWidth: 160,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f8fafc',
@@ -282,6 +302,7 @@ const styles = StyleSheet.create({
   generateButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#3b82f6',
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -299,8 +320,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tableScrollContainer: {
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
   },
   tableContainer: {
     minWidth: 850,

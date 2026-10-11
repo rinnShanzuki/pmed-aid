@@ -3,7 +3,7 @@
     "name": "PMED-AID",
     "slug": "pmedaid",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -14,17 +14,27 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pmedaid.app"
+      "bundleIdentifier": "com.pmedaid.app",
+      "orientationLock": "ALL_BUT_UPSIDE_DOWN"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1d64c1"
       },
-      "package": "com.pmedaid.app"
+      "package": "com.pmedaid.app",
+      "orientationLock": "default"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "DEFAULT"
+        }
+      ]
+    ]
   }
 }

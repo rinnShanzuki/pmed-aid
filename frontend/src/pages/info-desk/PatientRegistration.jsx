@@ -9,6 +9,30 @@ const INITIAL_FORM = {
   emergency_contact_number: '', blood_type: '', allergies: ''
 };
 
+// Helper function to format date input as MM/DD/YYYY
+function formatDateInput(value) {
+  // Remove non-digits
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+}
+
+// Helper function to convert MM/DD/YYYY to YYYY-MM-DD for date input
+function formatToDateInput(dateString) {
+  if (!dateString) return '';
+  if (dateString.includes('-')) return dateString; // Already in YYYY-MM-DD format
+  const parts = dateString.split('/');
+  if (parts.length === 3) {
+    const [month, day, year] = parts;
+    if (year && year.length === 4) {
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+  }
+  return dateString;
+}
+
 export default function PatientRegistration() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
@@ -108,11 +132,21 @@ export default function PatientRegistration() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div><label style={lbl}>First Name *</label><input style={inp} value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} required /></div>
                   <div><label style={lbl}>Last Name *</label><input style={inp} value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} required /></div>
-                  <div><label style={lbl}>Date of Birth *</label><input type="date" style={inp} value={form.date_of_birth} onChange={e => setForm({ ...form, date_of_birth: e.target.value })} required /></div>
+                  <div><label style={lbl}>Date of Birth *</label>
+                    <input 
+                      type="text" 
+                      style={inp} 
+                      value={formatDateInput(form.date_of_birth)} 
+                      onChange={e => setForm({ ...form, date_of_birth: formatDateInput(e.target.value) })}
+                      placeholder="MM/DD/YYYY"
+                      maxLength="10"
+                    />
+                  </div>
                   <div><label style={lbl}>Gender *</label>
                     <select style={inp} value={form.gender} onChange={e => setForm({ ...form, gender: e.target.value })}>
-                      <option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
-                    </select></div>
+                      <option value="male">Male</option><option value="female">Female</option>
+                    </select>
+                  </div>
                   <div><label style={lbl}>Civil Status *</label>
                     <select style={inp} value={form.civil_status} onChange={e => setForm({ ...form, civil_status: e.target.value })}>
                       <option value="single">Single</option><option value="married">Married</option><option value="divorced">Divorced</option><option value="widowed">Widowed</option>

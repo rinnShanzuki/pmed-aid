@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import { useRealtimeSync } from '../../contexts/RealtimeSyncContext';
 import { Search, FileSignature, Eye, ArrowLeft, Pill, Edit, Activity } from 'lucide-react';
 
 export default function Prescriptions() {
   const { user } = useAuth();
+  const { on, off } = useRealtimeSync();
   const [prescriptions, setPrescriptions] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -38,7 +40,35 @@ export default function Prescriptions() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { fetchPrescriptions(); }, []);
+  useEffect(() => { 
+    fetchPrescriptions();
+    
+    // Set up real-time listeners
+    on('prescription:created', (data) => {
+      if (String(data.prescription.doctor_id) === String(user?.id)) {
+        setPrescriptions((prev) => [data.prescription, ...prev]);
+      }
+    });
+
+    on('prescription:updated', (data) => {
+      if (String(data.prescription.doctor_id) === String(user?.id)) {
+        setPrescriptions((prev) =>
+          prev.map(p => p.id === data.prescription.id ? data.prescription : p)
+        );
+      }
+    });
+
+    on('admission:created', () => {
+      // Refresh prescriptions when new admission is created
+      fetchPrescriptions();
+    });
+
+    return () => {
+      off('prescription:created');
+      off('prescription:updated');
+      off('admission:created');
+    };
+  }, [user, on, off]);
 
   async function openView(id) {
     try {

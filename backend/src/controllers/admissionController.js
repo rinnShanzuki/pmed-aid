@@ -1,6 +1,7 @@
 const { Admission, Patient, Room, User, QrCode, AuditLog, Prescription, Consultation } = require('../models');
 const { validationResult } = require('express-validator');
 const { notifyInfoDesk } = require('../utils/notificationHelper');
+const { getIo } = require('../socket');
 
 exports.create = async (req, res, next) => {
   try {
@@ -72,6 +73,14 @@ exports.create = async (req, res, next) => {
         { model: User, as: 'dischargeRequestedBy', attributes: ['id', 'first_name', 'last_name'] },
       ],
     });
+    
+    // Emit real-time event
+    const io = getIo();
+    io.emit('admission:created', {
+      admission: full,
+      timestamp: new Date()
+    });
+    
     res.status(201).json({ success: true, data: full });
   } catch (error) { next(error); }
 };

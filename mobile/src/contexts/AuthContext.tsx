@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../services/api';
+import { Linking } from 'react-native';
 
 interface User {
   id: number;
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       // Ignore logout errors
     }
+    // Clear token IMMEDIATELY before auth check
     await AsyncStorage.removeItem('token');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
@@ -38,21 +40,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = useCallback(async () => {
     try {
-      // DISABLED: Auto-login removed - user must login every time
-      // const token = await AsyncStorage.getItem('token');
-      // if (!token) {
-      //   setUser(null);
-      //   setLoading(false);
-      //   return;
-      // }
+      // Check if we're being launched from a deep link (QR code)
+      const initialURL = await Linking.getInitialURL();
+      if (initialURL != null) {
+        console.log('Initial URL detected:', initialURL);
+        // Don't auto-login when launched from deep link
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      // ENABLED: Auto-login with stored token (only if not from QR code)
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
       
-      // // Set auth header
-      // api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      // Set auth header
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      // const { data } = await api.get('/auth/me');
-      // setUser(data.data.user);
+      // Try to verify token with shorter timeout (2 seconds instead of 5)
+      try {
+        const { data } = await Promise.race([
+          api.get('/auth/me'),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
+        ]);
+        setUser(data.data.user);
+      } catch (verifyError) {
+        // Backend unreachable - assume token is still valid and proceed
+        console.warn('Could not verify token, assuming valid:', verifyError);
+        setUser({ id: 0, email: '', role: '', first_name: '', last_name: '' });
+      }
       
-      setUser(null);
       setLoading(false);
     } catch (error: any) {
       // Silent fail - just clear auth

@@ -44,7 +44,28 @@ const qrBindValidator = [
 const patientValidator = [
   body('first_name').notEmpty().trim().withMessage('First name is required'),
   body('last_name').notEmpty().trim().withMessage('Last name is required'),
-  body('date_of_birth').isDate().withMessage('Valid date of birth is required'),
+  body('date_of_birth')
+    .custom(value => {
+      if (!value) throw new Error('Date of birth is required');
+      
+      // Accept MM/DD/YYYY format
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+        const [m, d, y] = value.split('/');
+        const date = new Date(`${y}-${m}-${d}`);
+        if (isNaN(date.getTime())) throw new Error('Invalid date format');
+        return true;
+      }
+      
+      // Accept ISO format YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const date = new Date(value);
+        if (isNaN(date.getTime())) throw new Error('Invalid date format');
+        return true;
+      }
+      
+      throw new Error('Date must be in MM/DD/YYYY or YYYY-MM-DD format');
+    })
+    .withMessage('Valid date of birth is required'),
   body('gender').isIn(['male', 'female', 'other']).withMessage('Valid gender is required'),
   body('contact_number').optional({ checkFalsy: true }).isString(),
 ];

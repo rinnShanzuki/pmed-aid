@@ -3,6 +3,7 @@ import { StatusBar } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { SocketProvider } from './src/contexts/SocketContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
@@ -10,8 +11,10 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar barStyle="light-content" backgroundColor="#1d64c1" />
-          <AppNavigator />
+          <SocketProvider>
+            <StatusBar barStyle="light-content" backgroundColor="#1d64c1" />
+            <AppNavigator />
+          </SocketProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

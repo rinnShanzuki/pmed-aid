@@ -55,19 +55,23 @@ exports.getPendingPickups = async (req, res, next) => {
         },
         {
           model: PrescriptionItem, as: 'items',
-          where: { status: 'active' },
-          required: false,
-          attributes: ['id', 'medication_name', 'dosage', 'frequency', 'frequency_unit', 'duration', 'route', 'instructions'],
+          attributes: ['id', 'medication_name', 'dosage', 'frequency', 'frequency_unit', 'duration', 'route', 'instructions', 'status'],
+          separate: true,
         },
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['created_at', 'DESC']],
     });
 
-    // Filter to only prescriptions that have at least 1 active item
-    const pending = prescriptions.filter(p => p.items && p.items.length > 0);
+    // Filter to only prescriptions that have at least 1 active/pending item (not completed)
+    const pending = prescriptions.filter(p => 
+      p.items && p.items.length > 0 && p.items.some(item => item.status !== 'completed')
+    );
 
     res.json({ success: true, data: pending });
-  } catch (error) { next(error); }
+  } catch (error) { 
+    console.error('Pharmacy getPendingPickups error:', error);
+    next(error); 
+  }
 };
 
 // ─── Dispense medication (deduct stock) ──────────────────────────────────
