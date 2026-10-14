@@ -1,4 +1,4 @@
-const { Admission, Prescription, Patient, User, QrCode, AuditLog, Room, MedicationSchedule, PrescriptionItem } = require('../models');
+const { Admission, Prescription, Patient, User, QrCode, AuditLog, Room, MedicationSchedule, PrescriptionItem, Consultation } = require('../models');
 const { Op } = require('sequelize');
 const { notifyInfoDesk, createNotification } = require('../utils/notificationHelper');
 
@@ -214,14 +214,11 @@ exports.getDashboardStats = async (req, res, next) => {
       where: { status: 'discharged' }
     });
 
-    // Pending Registrations (patients missing contact info)
-    const pendingRegistrationsCount = await Patient.count({
+    // Pending Admissions
+    const pendingAdmissionsCount = await Consultation.count({
       where: {
-        [Op.or]: [
-          { contact_number: null },
-          { address: null },
-          { emergency_contact_name: null }
-        ]
+        admission_required: true,
+        admission_id: null
       }
     });
 
@@ -330,7 +327,7 @@ exports.getDashboardStats = async (req, res, next) => {
         newAdmissions,
         activePatients: activePatientsCount,
         dischargedPatients: dischargedPatientsCount,
-        pendingRegistrations: pendingRegistrationsCount,
+        pendingAdmissions: pendingAdmissionsCount,
         recentPrescriptions,
         pendingDischargeRequests,
         admissionTrend,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import {
   ArrowLeft, User, Stethoscope, Bed, Pill,
@@ -10,7 +10,9 @@ import '../../styles/patient-record.css'; // Will create this
 export default function PatientRecord() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('timeline');
+  const [sortOption, setSortOption] = useState('recent-old');
 
   // Data states
   const [loading, setLoading] = useState(true);
@@ -20,6 +22,13 @@ export default function PatientRecord() {
   const [prescriptions, setPrescriptions] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [qrCodes, setQrCodes] = useState([]);
+
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     async function fetchAllData() {
@@ -64,6 +73,23 @@ export default function PatientRecord() {
     { id: 'timeline', label: 'Record Timeline', icon: <Clock size={18} /> },
   ];
 
+  const getSorted = (arr, dateField = 'created_at') => {
+    return [...arr].sort((a, b) => {
+      const dateA = new Date(a[dateField] || 0).getTime();
+      const dateB = new Date(b[dateField] || 0).getTime();
+      const idA = a.id || 0;
+      const idB = b.id || 0;
+
+      switch (sortOption) {
+        case 'old-recent': return dateA - dateB;
+        case 'id-asc': return idA - idB;
+        case 'id-desc': return idB - idA;
+        case 'recent-old':
+        default: return dateB - dateA;
+      }
+    });
+  };
+
   if (loading) {
     return (
       <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
@@ -104,6 +130,16 @@ export default function PatientRecord() {
             </div>
           </div>
         </div>
+        <div className="pr-header-right" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {activeTab !== 'info' && (
+            <select value={sortOption} onChange={e => setSortOption(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.85rem', outline: 'none', background: '#fff', color: '#0f172a' }}>
+              <option value="recent-old">Sort by: Newest First</option>
+              <option value="old-recent">Sort by: Oldest First</option>
+              {activeTab !== 'timeline' && <option value="id-desc">Sort by: ID (High to Low)</option>}
+              {activeTab !== 'timeline' && <option value="id-asc">Sort by: ID (Low to High)</option>}
+            </select>
+          )}
+        </div>
       </div>
 
       <div className="pr-body">
@@ -124,13 +160,13 @@ export default function PatientRecord() {
         <main className="pr-content">
           <div className="pr-content-card">
             {activeTab === 'info' && <TabInformation patient={patient} />}
-            {activeTab === 'consultations' && <TabConsultations consultations={consultations} />}
-            {activeTab === 'admissions' && <TabAdmissions admissions={admissions} />}
-            {activeTab === 'prescriptions' && <TabPrescriptions prescriptions={prescriptions} />}
-            {activeTab === 'medications' && <TabMedications prescriptions={prescriptions} />}
-            {activeTab === 'administrations' && <TabAdministrations schedules={schedules} />}
-            {activeTab === 'discharges' && <TabDischarges admissions={admissions} />}
-            {activeTab === 'qrcodes' && <TabQrCodes qrCodes={qrCodes} />}
+            {activeTab === 'consultations' && <TabConsultations consultations={getSorted(consultations)} />}
+            {activeTab === 'admissions' && <TabAdmissions admissions={getSorted(admissions, 'admission_date')} />}
+            {activeTab === 'prescriptions' && <TabPrescriptions prescriptions={getSorted(prescriptions)} />}
+            {activeTab === 'medications' && <TabMedications prescriptions={prescriptions} sortOption={sortOption} />}
+            {activeTab === 'administrations' && <TabAdministrations schedules={getSorted(schedules, 'scheduled_time')} />}
+            {activeTab === 'discharges' && <TabDischarges admissions={getSorted(admissions, 'discharge_date')} />}
+            {activeTab === 'qrcodes' && <TabQrCodes qrCodes={getSorted(qrCodes)} />}
             {activeTab === 'timeline' && (
               <TabTimeline
                 consultations={consultations}
@@ -138,6 +174,7 @@ export default function PatientRecord() {
                 prescriptions={prescriptions}
                 schedules={schedules}
                 qrCodes={qrCodes}
+                sortOption={sortOption}
               />
             )}
           </div>
@@ -227,6 +264,8 @@ function TabAdmissions({ admissions }) {
 }
 
 function TabPrescriptions({ prescriptions }) {
+  const navigate = useNavigate();
+
   if (prescriptions.length === 0) return <EmptyState title="No Prescription History" />;
   return (
     <div>
@@ -239,8 +278,20 @@ function TabPrescriptions({ prescriptions }) {
               <span className="pr-date">{new Date(p.created_at).toLocaleString()}</span>
             </div>
             <div className="pr-card-body">
-              <p><strong>Doctor:</strong> Dr. {p.doctor?.first_name} {p.doctor?.last_name}</p>
-              <p><strong>Notes:</strong> {p.notes || '—'}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                  <p style={{ margin: '0 0 4px 0' }}><strong>Doctor:</strong> Dr. {p.doctor?.first_name} {p.doctor?.last_name}</p>
+                  <p style={{ margin: 0 }}><strong>Notes:</strong> {p.notes || '—'}</p>
+                </div>
+                <button
+                  className="action-btn outline"
+                  onClick={() => navigate('/info-desk/prescriptions', { state: { viewPrescriptionId: p.id } })}
+                  title="View Prescription Record"
+                  style={{ fontSize: '0.8rem', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: 6 }}
+                >
+                  <FileText size={14} /> View Record
+                </button>
+              </div>
               <div className="pr-nested-table">
                 <table>
                   <thead><tr><th>Medication</th><th>Dosage</th><th>Frequency</th></tr></thead>
@@ -263,11 +314,26 @@ function TabPrescriptions({ prescriptions }) {
   );
 }
 
-function TabMedications({ prescriptions }) {
+function TabMedications({ prescriptions, sortOption }) {
   // Extract all items from all prescriptions
   const allMeds = prescriptions.flatMap(p => p.items?.map(i => ({ ...i, prescription: p })) || []);
 
-  if (allMeds.length === 0) return <EmptyState title="No Medication History" />;
+  const sortedMeds = [...allMeds].sort((a, b) => {
+    const dateA = new Date(a.prescription.created_at || 0).getTime();
+    const dateB = new Date(b.prescription.created_at || 0).getTime();
+    const idA = a.id || 0;
+    const idB = b.id || 0;
+
+    switch (sortOption) {
+      case 'old-recent': return dateA - dateB;
+      case 'id-asc': return idA - idB;
+      case 'id-desc': return idB - idA;
+      case 'recent-old':
+      default: return dateB - dateA;
+    }
+  });
+
+  if (sortedMeds.length === 0) return <EmptyState title="No Medication History" />;
   return (
     <div>
       <h3 className="pr-section-title">E. Medication History</h3>
@@ -283,7 +349,7 @@ function TabMedications({ prescriptions }) {
           </tr>
         </thead>
         <tbody>
-          {allMeds.map(m => (
+          {sortedMeds.map(m => (
             <tr key={m.id}>
               <td>{new Date(m.prescription.created_at).toLocaleDateString()}</td>
               <td><strong>{m.medication_name}</strong></td>
@@ -396,7 +462,7 @@ function TabQrCodes({ qrCodes }) {
   );
 }
 
-function TabTimeline({ consultations, admissions, prescriptions, schedules, qrCodes }) {
+function TabTimeline({ consultations, admissions, prescriptions, schedules, qrCodes, sortOption }) {
   // Aggregate all events into a unified timeline
   const events = useMemo(() => {
     const list = [];
@@ -453,8 +519,11 @@ function TabTimeline({ consultations, admissions, prescriptions, schedules, qrCo
     });
 
     // Sort descending
-    return list.sort((a, b) => b.date - a.date);
-  }, [consultations, admissions, prescriptions, schedules]);
+    return list.sort((a, b) => {
+      if (sortOption === 'old-recent') return a.date - b.date;
+      return b.date - a.date;
+    });
+  }, [consultations, admissions, prescriptions, schedules, sortOption]);
 
   if (events.length === 0) return <EmptyState title="No Activity Timeline" />;
 

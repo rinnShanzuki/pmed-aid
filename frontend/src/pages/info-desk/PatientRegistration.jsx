@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
-import { Search, Plus, Pencil, X, UserPlus, Eye } from 'lucide-react';
+import { Search, Plus, Pencil, X, UserPlus, Eye, Power, PowerOff } from 'lucide-react';
 
 const INITIAL_FORM = {
   first_name: '', last_name: '', date_of_birth: '', gender: 'male',
@@ -37,6 +37,8 @@ export default function PatientRegistration() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState('');
+  const [sortOption, setSortOption] = useState('recent-old');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
@@ -76,6 +78,41 @@ export default function PatientRegistration() {
     } catch (err) { setError(err.response?.data?.message || 'Operation failed.'); }
   }
 
+  async function toggleStatus(id, currentStatus) {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+    try {
+      await api.put(`/patients/${id}/status`, { status: newStatus });
+      setSuccess(`Patient marked as ${newStatus}!`);
+      fetchPatients();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) { setError(err.response?.data?.message || 'Failed to update status.'); }
+  }
+
+  const filteredPatients = patients.filter(p => {
+    if (statusFilter === 'active' && p.status !== 'active') return false;
+    if (statusFilter === 'inactive' && p.status === 'active') return false;
+    return true;
+  });
+
+  const sortedPatients = [...filteredPatients].sort((a, b) => {
+    const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+    const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+    const nameA = `${a.first_name || ''} ${a.last_name || ''}`.toLowerCase();
+    const nameB = `${b.first_name || ''} ${b.last_name || ''}`.toLowerCase();
+    const idA = a.id || 0;
+    const idB = b.id || 0;
+
+    switch (sortOption) {
+      case 'old-recent': return dateA - dateB;
+      case 'recent-old': return dateB - dateA;
+      case 'a-z': return nameA.localeCompare(nameB);
+      case 'z-a': return nameB.localeCompare(nameA);
+      case 'id-asc': return idA - idB;
+      case 'id-desc': return idB - idA;
+      default: return dateB - dateA;
+    }
+  });
+
   return (
     <>
       {success && <div style={{ padding: '12px 16px', background: '#dcfce7', color: '#166534', borderRadius: 8, marginBottom: 16, fontWeight: 600 }}>{success}</div>}
@@ -87,29 +124,53 @@ export default function PatientRegistration() {
             <div style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input placeholder="Search patients..." value={search} onChange={e => setSearch(e.target.value)}
-                style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 240 }} />
+                style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 200 }} />
             </div>
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', outline: 'none', background: '#fff', color: '#0f172a' }}>
+              <option value="all">All Status</option>
+              <option value="active">Active Only</option>
+              <option value="inactive">Inactive Only</option>
+            </select>
+            <select value={sortOption} onChange={e => setSortOption(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', outline: 'none', background: '#fff', color: '#0f172a' }}>
+              <option value="recent-old">Sort by: Newest First</option>
+              <option value="old-recent">Sort by: Oldest First</option>
+              <option value="a-z">Sort by: Patient (A-Z)</option>
+              <option value="z-a">Sort by: Patient (Z-A)</option>
+              <option value="id-asc">Sort by: ID (Low to High)</option>
+              <option value="id-desc">Sort by: ID (High to Low)</option>
+            </select>
           </div>
         </div>
 
         <div className="id-table-container">
           <table className="id-table">
-            <thead><tr><th>Patient</th><th>Age/DOB</th><th>Gender</th><th>Contact</th><th>Blood Type</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Patient</th><th>Age/DOB</th><th>Gender</th><th>Contact</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {loading ? (
                 <tr><td colSpan="6" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
-              ) : patients.length === 0 ? (
+              ) : sortedPatients.length === 0 ? (
                 <tr><td colSpan="6" style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>No patients found</td></tr>
-              ) : patients.map(p => (
+              ) : sortedPatients.map(p => (
                 <tr key={p.id}>
                   <td><strong>{p.first_name} {p.last_name}</strong></td>
                   <td>{p.age ? `${p.age} yrs` : p.date_of_birth}</td>
                   <td><span className={`badge ${p.gender === 'male' ? 'active' : 'pending'}`}>{p.gender}</span></td>
                   <td>{p.contact_number}</td>
-                  <td>{p.blood_type || '—'}</td>
                   <td>
+                    <span className={`badge ${p.status === 'active' ? 'active' : 'discharged'}`}>
+                      {p.status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td style={{ display: 'flex', gap: 6 }}>
                     <button className="action-btn outline" onClick={() => navigate(`/info-desk/patients/${p.id}`)}>
                       <Eye size={14} /> View Record
+                    </button>
+                    <button
+                      className="action-btn outline"
+                      onClick={() => toggleStatus(p.id, p.status || 'inactive')}
+                      title={p.status === 'active' ? "Mark Inactive" : "Mark Active"}
+                    >
+                      {p.status === 'active' ? <PowerOff size={14} color="#dc2626" /> : <Power size={14} color="#16a34a" />}
                     </button>
                   </td>
                 </tr>
@@ -133,10 +194,10 @@ export default function PatientRegistration() {
                   <div><label style={lbl}>First Name *</label><input style={inp} value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} required /></div>
                   <div><label style={lbl}>Last Name *</label><input style={inp} value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} required /></div>
                   <div><label style={lbl}>Date of Birth *</label>
-                    <input 
-                      type="text" 
-                      style={inp} 
-                      value={formatDateInput(form.date_of_birth)} 
+                    <input
+                      type="text"
+                      style={inp}
+                      value={formatDateInput(form.date_of_birth)}
                       onChange={e => setForm({ ...form, date_of_birth: formatDateInput(e.target.value) })}
                       placeholder="MM/DD/YYYY"
                       maxLength="10"

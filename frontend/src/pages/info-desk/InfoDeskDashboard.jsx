@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { BedDouble, Users, FileSignature, Clock } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 export default function InfoDeskDashboard() {
-  const [stats, setStats] = useState({ newAdmissions: 0, activePatients: 0, recentPrescriptions: 0, pendingRegistrations: 0, dischargedPatients: 0, admissionTrend: [], adherenceTrend: [] });
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({ newAdmissions: 0, activePatients: 0, recentPrescriptions: 0, pendingAdmissions: 0, dischargedPatients: 0, admissionTrend: [], adherenceTrend: [] });
 
   useEffect(() => {
     api.get('/info-desk/dashboard')
@@ -13,10 +15,10 @@ export default function InfoDeskDashboard() {
   }, []);
 
   const statCards = [
-    { label: 'New Admissions Today', value: stats.newAdmissions, sub: 'Patients admitted today', icon: <BedDouble size={24} />, bg: '#eff6ff', color: '#3b82f6' },
-    { label: 'Total Active Patients', value: stats.activePatients, sub: 'Currently in rooms', icon: <Users size={24} />, bg: '#fdf4ff', color: '#d946ef' },
-    { label: 'Recent Prescriptions', value: stats.recentPrescriptions, sub: 'Encoded in the last 7 days', icon: <FileSignature size={24} />, bg: '#f0fdf4', color: '#22c55e' },
-    { label: 'Pending Registrations', value: stats.pendingRegistrations, sub: 'Require profile completion', icon: <Clock size={24} />, bg: '#fff7ed', color: '#f97316' },
+    { label: 'New Admissions Today', value: stats.newAdmissions, sub: 'Patients admitted today', icon: <BedDouble size={24} />, bg: '#eff6ff', color: '#3b82f6', route: '/info-desk/admissions', state: { tab: 'admitted', filter: 'today' } },
+    { label: 'Total Active Patients', value: stats.activePatients, sub: 'Currently in rooms', icon: <Users size={24} />, bg: '#fdf4ff', color: '#d946ef', route: '/info-desk/monitoring' },
+    { label: 'Recent Prescriptions', value: stats.recentPrescriptions, sub: 'Encoded in the last 7 days', icon: <FileSignature size={24} />, bg: '#f0fdf4', color: '#22c55e', route: '/info-desk/prescriptions', state: { tab: 'all', filter: 'recent' } },
+    { label: 'Pending Admissions', value: stats.pendingAdmissions, sub: 'Require room assignment', icon: <Clock size={24} />, bg: '#fff7ed', color: '#f97316', route: '/info-desk/admissions', state: { tab: 'pending_admissions' } },
   ];
 
   const admissionTrendData = stats.admissionTrend && stats.admissionTrend.length > 0
@@ -32,7 +34,7 @@ export default function InfoDeskDashboard() {
   const patientStatusData = [
     { name: 'Admitted', value: stats.activePatients },
     { name: 'Discharged', value: stats.dischargedPatients },
-    { name: 'Pending Registration', value: stats.pendingRegistrations },
+    { name: 'Pending Admission', value: stats.pendingAdmissions },
   ];
 
   const COLORS = ['#3b82f6', '#22c55e', '#f97316'];
@@ -46,7 +48,14 @@ export default function InfoDeskDashboard() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '24px', minWidth: 0 }}>
         {statCards.map((card) => (
-          <div className="id-card" key={card.label} style={{ marginBottom: 0 }}>
+          <div
+            className="id-card hover-card"
+            key={card.label}
+            style={{ marginBottom: 0, cursor: 'pointer', transition: 'all 0.2s ease-in-out' }}
+            onClick={() => navigate(card.route, { state: card.state })}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
               <div style={{ background: card.bg, color: card.color, width: 48, height: 48, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {card.icon}

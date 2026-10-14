@@ -6,24 +6,36 @@ import { Search, Eye, User } from 'lucide-react';
 export default function MyPatients() {
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState('');
+  const [includeInactive, setIncludeInactive] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/patients', { params: { search } })
+    api.get('/patients', { params: { search, include_inactive: includeInactive } })
       .then(({ data }) => setPatients(data.data || []))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [search]);
+  }, [search, includeInactive]);
 
   return (
     <div className="id-card">
       <div className="doc-section-header">
         <h3><User size={18} /> My Patients</h3>
-        <div style={{ position: 'relative' }}>
-          <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-          <input placeholder="Search patients..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 240 }} />
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: '#64748b', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={includeInactive}
+              onChange={e => setIncludeInactive(e.target.checked)}
+              style={{ cursor: 'pointer' }}
+            />
+            Include Inactive/Archived Patients
+          </label>
+          <div style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input placeholder="Search patients..." value={search} onChange={e => setSearch(e.target.value)}
+              style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 240 }} />
+          </div>
         </div>
       </div>
       <div className="id-table-container">

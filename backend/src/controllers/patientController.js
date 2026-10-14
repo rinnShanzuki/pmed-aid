@@ -66,7 +66,15 @@ exports.getAll = async (req, res, next) => {
       }
     }
 
+    if (req.query.status) {
+      where.status = req.query.status;
+    }
+
     if (req.user && req.user.role === 'doctor') {
+      if (req.query.include_inactive !== 'true' && !req.query.status) {
+        where.status = 'active';
+      }
+
       const [consults, admits, prescs] = await Promise.all([
         Consultation.findAll({ where: { doctor_id: req.user.id }, attributes: ['patient_id'] }),
         Admission.findAll({ where: { attending_doctor_id: req.user.id }, attributes: ['patient_id'] }),
@@ -105,6 +113,29 @@ exports.update = async (req, res, next) => {
     if (!patient) return res.status(404).json({ success: false, message: 'Patient not found.' });
 
     await patient.update(req.body);
+    res.json({ success: true, data: patient });
+  } catch (error) { next(error); }
+};
+
+exports.updateStatus = async (req, res, next) => {
+  try {
+    const patient = await Patient.findByPk(req.params.id);
+    if (!patient) return res.status(404).json({ success: false, message: 'Patient not found.' });
+    if (!['active', 'inactive'].includes(req.body.status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status.' });
+    }
+
+    await patient.update({ status: req.body.status });
+
+    await AuditLog.create({
+      user_id: req.user.id,
+      action: 'patient_status_updated',
+      entity_type: 'patient',
+      entity_id: patient.id,
+      details: { new_status: req.body.status },
+      ip_address: req.ip,
+    });
+
     res.json({ success: true, data: patient });
   } catch (error) { next(error); }
 };
