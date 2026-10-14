@@ -105,7 +105,7 @@ export default function SystemSettings() {
     <View style={styles.container}>
       {/* Sticky Header with Save */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>System Settings</Text>
+        <Text style={styles.headerTitle}>⚙️ System Settings</Text>
         <TouchableOpacity
           style={[
             styles.saveBtn,
@@ -146,6 +146,7 @@ export default function SystemSettings() {
             {/* ── Notification Settings ── */}
             <View style={[styles.sectionCard, isTablet && styles.sectionCardTablet]}>
               <View style={styles.sectionHeader}>
+                <Text style={styles.sectionIcon}>🔔</Text>
                 <Text style={styles.sectionTitle}>Notification Settings</Text>
               </View>
 
@@ -189,6 +190,7 @@ export default function SystemSettings() {
             {/* ── Security Settings ── */}
             <View style={[styles.sectionCard, isTablet && styles.sectionCardTablet]}>
               <View style={styles.sectionHeader}>
+                <Text style={styles.sectionIcon}>🛡️</Text>
                 <Text style={styles.sectionTitle}>Security Settings</Text>
               </View>
 
@@ -230,6 +232,7 @@ export default function SystemSettings() {
             {/* ── QR Code Settings ── */}
             <View style={[styles.sectionCard, isTablet && styles.sectionCardTablet]}>
               <View style={styles.sectionHeader}>
+                <Text style={styles.sectionIcon}>📱</Text>
                 <Text style={styles.sectionTitle}>QR Code Settings</Text>
               </View>
 

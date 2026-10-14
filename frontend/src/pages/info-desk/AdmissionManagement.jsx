@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useRealtimeSync } from '../../contexts/RealtimeSyncContext';
-import { Search, Plus, Pencil, X, BedDouble, UserCheck, LogOut as DischargeIcon, User, QrCode, CheckCircle, Clock, ClipboardList } from 'lucide-react';
+import { Search, Plus, Pencil, X, BedDouble, UserCheck, LogOut as DischargeIcon, User, QrCode, CheckCircle, Clock, ClipboardList, FileText } from 'lucide-react';
 
 // Helper function to format date input as MM/DD/YYYY
 function formatDateInput(value) {
@@ -59,7 +60,11 @@ export default function AdmissionManagement() {
   const [rooms, setRooms] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [nurses, setNurses] = useState([]);
+  const location = useLocation();
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [sortOption, setSortOption] = useState('recent-old');
   const [activeTab, setActiveTab] = useState('arrivals'); // arrivals, pending_admissions, admitted, outpatient, discharged
   const [loading, setLoading] = useState(true);
   const [tabCounts, setTabCounts] = useState({});
@@ -113,7 +118,7 @@ export default function AdmissionManagement() {
   async function fetchDropdowns() {
     try {
       const [pRes, rRes, dRes, nRes] = await Promise.all([
-        api.get('/patients', { params: { exclude_active: true } }),
+        api.get('/patients', { params: { exclude_active: true, status: 'active' } }),
         api.get('/rooms/available'),
         api.get('/users', { params: { role: 'doctor' } }),
         api.get('/users', { params: { role: 'nurse' } })
@@ -125,9 +130,8 @@ export default function AdmissionManagement() {
     } catch (err) { console.error(err); }
   }
 
-  useEffect(() => { 
+  useEffect(() => {
     fetchData();
-    
     // Set up real-time listeners
     on('admission:created', (data) => {
       setAdmissions((prev) => [data.admission, ...prev]);
@@ -150,6 +154,17 @@ export default function AdmissionManagement() {
     };
   }, [activeTab, on, off]);
   useEffect(() => { fetchDropdowns(); }, []);
+
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+    if (location.state?.filter === 'today') {
+      setDateFilter('today');
+    } else {
+      setDateFilter('');
+    }
+  }, [location.state]);
 
   function openNewConsultation() {
     setPatientSearch(''); setSelectedPatient(null); setError(''); setModal('search-patient');
@@ -182,7 +197,7 @@ export default function AdmissionManagement() {
     try {
       let finalPatientId = selectedPatient.id;
       if (selectedPatient.isNew) {
-        const patientData = { ...selectedPatient };
+        const patientData = { ...selectedPatient, status: 'active' };
         delete patientData.isNew;
         const { data } = await api.post('/patients', patientData);
         finalPatientId = data.data.id;
@@ -350,9 +365,39 @@ export default function AdmissionManagement() {
   const displayList = activeTab === 'admitted' || activeTab === 'discharged' ? admissions : consultations;
 
   const filtered = displayList.filter(item => {
-    if (!search) return true;
-    const name = `${item.patient?.first_name} ${item.patient?.last_name}`.toLowerCase();
-    return name.includes(search.toLowerCase());
+    let matchSearch = true;
+    if (search) {
+      const name = `${item.patient?.first_name} ${item.patient?.last_name}`.toLowerCase();
+      matchSearch = name.includes(search.toLowerCase());
+    }
+
+    let matchDate = true;
+    if (dateFilter === 'today') {
+      const today = new Date().toDateString();
+      const itemDate = new Date(item.created_at || item.admission_date || 0).toDateString();
+      matchDate = itemDate === today;
+    }
+
+    return matchSearch && matchDate;
+  });
+
+  const sortedAndFiltered = [...filtered].sort((a, b) => {
+    const dateA = new Date(a.created_at || a.admission_date || 0).getTime();
+    const dateB = new Date(b.created_at || b.admission_date || 0).getTime();
+    const nameA = `${a.patient?.first_name || ''} ${a.patient?.last_name || ''}`.toLowerCase();
+    const nameB = `${b.patient?.first_name || ''} ${b.patient?.last_name || ''}`.toLowerCase();
+    const idA = a.id || 0;
+    const idB = b.id || 0;
+
+    switch (sortOption) {
+      case 'old-recent': return dateA - dateB;
+      case 'recent-old': return dateB - dateA;
+      case 'a-z': return nameA.localeCompare(nameB);
+      case 'z-a': return nameB.localeCompare(nameA);
+      case 'id-asc': return idA - idB;
+      case 'id-desc': return idB - idA;
+      default: return dateB - dateA;
+    }
   });
 
   return (
@@ -365,10 +410,24 @@ export default function AdmissionManagement() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
 
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              {dateFilter === 'today' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eff6ff', color: '#3b82f6', padding: '6px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600 }}>
+                  Showing Today Only
+                  <button onClick={() => setDateFilter('')} style={{ background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={14} /></button>
+                </div>
+              )}
               <div style={{ position: 'relative' }}>
                 <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                 <input placeholder="Search patient..." value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 200 }} />
               </div>
+              <select value={sortOption} onChange={e => setSortOption(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', outline: 'none', background: '#fff', color: '#0f172a' }}>
+                <option value="recent-old">Sort by: Newest First</option>
+                <option value="old-recent">Sort by: Oldest First</option>
+                <option value="a-z">Sort by: Patient (A-Z)</option>
+                <option value="z-a">Sort by: Patient (Z-A)</option>
+                <option value="id-asc">Sort by: ID (Low to High)</option>
+                <option value="id-desc">Sort by: ID (High to Low)</option>
+              </select>
               <button className="action-btn primary" onClick={openNewConsultation}>
                 <Plus size={16} /> Queue Patient
               </button>
@@ -415,9 +474,9 @@ export default function AdmissionManagement() {
             <tbody>
               {loading ? (
                 <tr><td colSpan="5" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
-              ) : filtered.length === 0 ? (
+              ) : sortedAndFiltered.length === 0 ? (
                 <tr><td colSpan="5" style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>No records found</td></tr>
-              ) : filtered.map(item => (
+              ) : sortedAndFiltered.map(item => (
                 <tr key={item.id}>
                   <td><strong>{item.patient?.first_name} {item.patient?.last_name}</strong></td>
 
@@ -451,6 +510,17 @@ export default function AdmissionManagement() {
                       {activeTab === 'pending_admissions' && (
                         <button className="action-btn" onClick={() => openAssignRoom(item)} style={{ background: '#3b82f6', color: '#fff', fontSize: '0.8rem', padding: '4px 8px' }}>
                           Admit Patient
+                        </button>
+                      )}
+
+                      {activeTab === 'outpatient' && (
+                        <button
+                          className="action-btn outline"
+                          onClick={() => navigate('/info-desk/prescriptions', { state: { viewConsultationId: item.id, viewPatientId: item.patient_id } })}
+                          title="View Prescription"
+                          style={{ color: '#0f172a', borderColor: '#cbd5e1' }}
+                        >
+                          <FileText size={14} style={{ marginRight: 6 }} /> View Prescription
                         </button>
                       )}
 
@@ -496,10 +566,10 @@ export default function AdmissionManagement() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div><label style={lbl}>Date of Birth</label>
-                  <input 
-                    type="text" 
-                    style={inp} 
-                    value={formatDateInput(patientForm.date_of_birth)} 
+                  <input
+                    type="text"
+                    style={inp}
+                    value={formatDateInput(patientForm.date_of_birth)}
                     onChange={e => setPatientForm({ ...patientForm, date_of_birth: formatDateInput(e.target.value) })}
                     placeholder="MM/DD/YYYY"
                     maxLength="10"

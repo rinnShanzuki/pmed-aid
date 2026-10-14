@@ -79,14 +79,14 @@ router.delete('/medications/:id', auth, roleGuard(['admin']), idParam, medicatio
 // ============================================================
 // BILLING  —  /api/billing & /api/bills  (admin & info_desk)
 // ============================================================
-router.get  ('/billing',            auth, roleGuard(['admin', 'info_desk']), billingController.getAll);
-router.get  ('/bills',              auth, roleGuard(['admin', 'info_desk']), billingController.getAll);
-router.post ('/billing/generate',   auth, roleGuard(['admin', 'info_desk']), billingController.generateBill);
-router.post ('/bills/generate',     auth, roleGuard(['admin', 'info_desk']), billingController.generateBill);
-router.get  ('/billing/:id',        auth, roleGuard(['admin', 'info_desk']), idParam, billingController.getById);
-router.get  ('/bills/:id',          auth, roleGuard(['admin', 'info_desk']), idParam, billingController.getById);
+router.get('/billing', auth, roleGuard(['admin', 'info_desk']), billingController.getAll);
+router.get('/bills', auth, roleGuard(['admin', 'info_desk']), billingController.getAll);
+router.post('/billing/generate', auth, roleGuard(['admin', 'info_desk']), billingController.generateBill);
+router.post('/bills/generate', auth, roleGuard(['admin', 'info_desk']), billingController.generateBill);
+router.get('/billing/:id', auth, roleGuard(['admin', 'info_desk']), idParam, billingController.getById);
+router.get('/bills/:id', auth, roleGuard(['admin', 'info_desk']), idParam, billingController.getById);
 router.patch('/billing/:id/status', auth, roleGuard(['admin', 'info_desk']), idParam, billingController.updateStatus);
-router.patch('/bills/:id/status',   auth, roleGuard(['admin', 'info_desk']), idParam, billingController.updateStatus);
+router.patch('/bills/:id/status', auth, roleGuard(['admin', 'info_desk']), idParam, billingController.updateStatus);
 
 // ============================================================
 // INFO DESK  —  /api/info-desk
@@ -107,6 +107,7 @@ router.get('/patients', auth, roleGuard(['info_desk', 'doctor', 'nurse', 'admin'
 router.get('/patients/me', auth, roleGuard(['patient']), patientController.getMe);
 router.get('/patients/:id', auth, roleGuard(['info_desk', 'doctor', 'nurse', 'admin']), idParam, patientController.getById);
 router.put('/patients/:id', auth, roleGuard(['info_desk', 'doctor', 'admin']), idParam, patientController.update);
+router.put('/patients/:id/status', auth, roleGuard(['info_desk', 'doctor', 'admin']), idParam, patientController.updateStatus);
 
 // ============================================================
 // ROOMS  —  /api/rooms

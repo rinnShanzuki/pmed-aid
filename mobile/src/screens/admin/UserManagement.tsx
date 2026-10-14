@@ -233,7 +233,6 @@ export default function UserManagement() {
     if (role === 'info_desk') return 'Info Desk';
     return role.charAt(0).toUpperCase() + role.slice(1);
   }
-
   // Filter logic matches web (server already filters, but we also client-filter for safety)
   const filtered = users.filter((u) => {
     const nameMatch = search
@@ -780,8 +779,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   checkbox: {
-    width: 18,
-    height: 18,
+    width: 20,
+    height: 20,
     borderWidth: 2,
     borderColor: '#cbd5e1',
     borderRadius: 3,
@@ -798,7 +797,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 6,
     justifyContent: 'center',
-    alignItems: 'center',
   },
   addBtnText: { color: '#fff', fontSize: 12, fontWeight: '700' },
 
@@ -825,7 +823,6 @@ const styles = StyleSheet.create({
     color: '#475569',
     textTransform: 'uppercase',
   },
-
   emptyContainer: {
     justifyContent: 'center',
     alignItems: 'center',

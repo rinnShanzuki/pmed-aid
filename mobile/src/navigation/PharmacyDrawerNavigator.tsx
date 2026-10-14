@@ -51,7 +51,6 @@ export default function PharmacyDrawerNavigator() {
   
   // Responsive drawer width
   const drawerWidth = isLandscape ? Math.min(280, width * 0.35) : 260;
-
   return (
     <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}

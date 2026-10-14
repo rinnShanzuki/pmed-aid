@@ -64,6 +64,7 @@ export default function AuthScreen({ navigation, route }: any) {
       
       // If we have a QR code from deep link, trigger QR binding
       if (qrCode) {
+        // Navigate to QR binding screen or process binding based on user role
         console.log('Processing QR code binding:', qrCode);
         Alert.alert('Success', 'QR code will be processed.');
       }
@@ -317,6 +318,7 @@ const authStyles = StyleSheet.create({
   },
   qrBanner: {
     backgroundColor: '#dbeafe',
+
     borderRadius: 8,
     marginBottom: 20,
     borderLeftWidth: 4,

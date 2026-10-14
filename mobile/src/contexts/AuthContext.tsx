@@ -73,7 +73,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('Could not verify token, assuming valid:', verifyError);
         setUser({ id: 0, email: '', role: '', first_name: '', last_name: '' });
       }
-      
       setLoading(false);
     } catch (error: any) {
       // Silent fail - just clear auth

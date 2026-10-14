@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useOrientation } from '../../hooks/useOrientation';
 import api from '../../services/api';
 
+const COL_WIDTH = 100;
+
 export default function PrescriptionManagement() {
   const { user } = useAuth();
   const navigation = useNavigation();
@@ -409,7 +411,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#e0e7ff',
   },
   statusText: {
-    fontSize: 11,
+    fontSize: 9,
     fontWeight: '600',
     color: '#0f172a',
   },

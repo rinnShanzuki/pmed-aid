@@ -19,7 +19,7 @@ import { Platform } from 'react-native';
  */
 
 export const API_CONFIG = {
-  LOCAL_IP: '192.168.1.28',
+  LOCAL_IP: process.env.EXPO_PUBLIC_LOCAL_IP || '192.168.1.28',
   PORT: '5000',
 };
 

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useOrientation } from '../../hooks/useOrientation';
 import api from '../../services/api';
 
@@ -16,11 +17,11 @@ const PIE_COLORS = ['#22c55e', '#3b82f6', '#f43f5e'];
 export default function AdminDashboard() {
   const { width, height, isLandscape } = useOrientation();
   const isTablet = width >= 768;
+  const navigation = useNavigation<any>();
 
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [admissionView, setAdmissionView] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
-
   // Responsive padding
   const paddingHorizontal = isLandscape ? 12 : 16;
 
@@ -55,6 +56,7 @@ export default function AdminDashboard() {
       bg: '#eff6ff',
       color: '#3b82f6',
       icon: 'account-multiple',
+      onPress: () => navigation.navigate('PatientManagement'),
     },
     {
       label: 'Active Patients',
@@ -63,6 +65,7 @@ export default function AdminDashboard() {
       bg: '#fdf4ff',
       color: '#d946ef',
       icon: 'hand-heart',
+      onPress: () => navigation.navigate('PatientManagement'),
     },
     {
       label: 'Total Doctors',
@@ -71,6 +74,7 @@ export default function AdminDashboard() {
       bg: '#f0fdf4',
       color: '#22c55e',
       icon: 'doctor',
+      onPress: () => navigation.navigate('UserManagement'),
     },
     {
       label: 'Total Nurses',
@@ -79,6 +83,7 @@ export default function AdminDashboard() {
       bg: '#fff7ed',
       color: '#f97316',
       icon: 'hospital-box',
+      onPress: () => navigation.navigate('UserManagement'),
     },
   ];
 
@@ -91,15 +96,20 @@ export default function AdminDashboard() {
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
-      <Text style={styles.pageTitle}>KPI Cards</Text>
+      <Text style={styles.pageTitle}>Top KPI Cards</Text>
 
       {/* ── Stat Cards ── */}
       <View style={styles.statsGrid}>
         {statCards.map((card) => (
-          <View key={card.label} style={[styles.statCard, { width: cardWidth }]}>
+          <TouchableOpacity
+            key={card.label}
+            onPress={card.onPress}
+            style={[styles.statCard, { width: cardWidth }]}
+            activeOpacity={0.7}
+          >
             <View style={styles.statCardTop}>
-              <View style={[styles.statCardIcon, { backgroundColor: card.bg, borderLeftWidth: 4, borderLeftColor: card.color }]}>
-                <MaterialCommunityIcons name={card.icon} size={22} color={card.color} />
+              <View style={[styles.statCardIcon, { backgroundColor: card.bg }]}>
+                <MaterialCommunityIcons name={card.icon as any} size={22} color={card.color} />
               </View>
               <View style={styles.statCardInfo}>
                 <Text style={styles.statCardLabel}>{card.label}</Text>
@@ -107,16 +117,17 @@ export default function AdminDashboard() {
               </View>
             </View>
             <Text style={styles.statCardSub}>{card.sub}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
 
-      <Text style={styles.pageTitle}>Charts</Text>
+      <Text style={styles.pageTitle}>Dashboard Charts</Text>
 
       {/* ── 1. Monthly Medication Adherence Trend (Line) ── */}
       <View style={styles.chartCard}>
         <View style={styles.chartHeader}>
-          <Text style={styles.chartTitle}>Medication Adherence Trend</Text>
+          <Text style={styles.chartIcon}>📈</Text>
+          <Text style={styles.chartTitle}>Monthly Medication Adherence Trend</Text>
         </View>
         <LineChart data={stats?.adherenceTrend || []} />
       </View>
@@ -124,6 +135,7 @@ export default function AdminDashboard() {
       {/* ── 2. Medication Status Distribution (Donut) ── */}
       <View style={styles.chartCard}>
         <View style={styles.chartHeader}>
+          <Text style={styles.chartIcon}>📊</Text>
           <Text style={styles.chartTitle}>Medication Status Distribution</Text>
         </View>
         <DonutChart data={stats?.medicationDistribution || []} />
@@ -133,6 +145,7 @@ export default function AdminDashboard() {
       <View style={styles.chartCard}>
         <View style={styles.chartHeaderWithToggle}>
           <View style={styles.chartHeaderLeft}>
+            <Text style={styles.chartIcon}>📅</Text>
             <Text style={styles.chartTitle}>Patient Admission Trend</Text>
           </View>
         </View>
@@ -166,6 +179,7 @@ export default function AdminDashboard() {
       {/* ── 4. Overall Medication Adherence (Big % + mini line) ── */}
       <View style={styles.chartCard}>
         <View style={styles.chartHeader}>
+          <Text style={styles.chartIcon}>📈</Text>
           <Text style={styles.chartTitle}>Overall Medication Adherence</Text>
         </View>
         <Text style={styles.chartSubtext}>
@@ -388,6 +402,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  statCardIconText: { fontSize: 22 },
   statCardInfo: { flex: 1 },
   statCardLabel: { fontSize: 12, color: '#64748b', marginBottom: 2 },
   statCardValue: { fontSize: 26, fontWeight: '800', color: '#0f172a', lineHeight: 30 },
@@ -420,6 +435,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   chartHeaderLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  chartIcon: { fontSize: 16, marginRight: 8 },
   chartTitle: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
   chartSubtext: {
     fontSize: 12,
@@ -451,6 +467,18 @@ const styles = StyleSheet.create({
   },
   toggleBtnText: { fontSize: 11, fontWeight: '600', color: '#64748b' },
   toggleBtnTextActive: { color: '#0f172a' },
+
+  // Donut legend
+  donutLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 12,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendLabel: { fontSize: 12, color: '#475569', fontWeight: '600' },
 
   // Overall adherence
   overallRow: {

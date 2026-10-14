@@ -74,9 +74,18 @@ export default function ReportsAnalytics() {
         <Text style={styles.headerTitle}>Reports & Analytics</Text>
       </View>
 
+      {/* KPI Cards */}
+      <View style={styles.kpiGrid}>
+        <KPICard label="Total Patients" value={stats.totalPatients} icon="👥" color="#3b82f6" />
+        <KPICard label="Active Patients" value={stats.activePatients} icon="📈" color="#d946ef" />
+        <KPICard label="Total Doctors" value={stats.totalDoctors} icon="🩺" color="#22c55e" />
+        <KPICard label="Total Nurses" value={stats.totalNurses} icon="❤️" color="#f97316" />
+      </View>
+
       {/* Medication Adherence Trend */}
       <View style={styles.chartCard}>
         <View style={styles.chartHeader}>
+          <Text style={styles.chartIcon}>📈</Text>
           <Text style={styles.chartTitle}>Medication Adherence Trend</Text>
         </View>
         <SimpleBarChart data={stats.adherenceTrend || []} />
@@ -85,6 +94,7 @@ export default function ReportsAnalytics() {
       {/* Medication Status Distribution */}
       <View style={styles.chartCard}>
         <View style={styles.chartHeader}>
+          <Text style={styles.chartIcon}>📊</Text>
           <Text style={styles.chartTitle}>Medication Status Distribution</Text>
         </View>
         <SimpleProgressChart data={stats.medicationDistribution || []} />
@@ -94,6 +104,7 @@ export default function ReportsAnalytics() {
       <View style={styles.chartCard}>
         <View style={styles.chartHeaderWithToggle}>
           <View style={styles.chartHeaderLeft}>
+            <Text style={styles.chartIcon}>📅</Text>
             <Text style={styles.chartTitle}>Patient Admission Trend</Text>
           </View>
         </View>
@@ -124,6 +135,7 @@ export default function ReportsAnalytics() {
       {/* Overall Adherence Rate */}
       <View style={styles.chartCard}>
         <View style={styles.chartHeader}>
+          <Text style={styles.chartIcon}>📈</Text>
           <Text style={styles.chartTitle}>Overall Medication Adherence</Text>
         </View>
         <Text style={styles.chartSubtext}>Current tracking of patient adherence percentage</Text>
@@ -162,6 +174,17 @@ export default function ReportsAnalytics() {
 }
 
 // Helper Components
+function KPICard({ label, value, icon, color }: { label: string; value: number; icon: string; color: string }) {
+  return (
+    <View style={styles.kpiCard}>
+      <View style={[styles.kpiIcon, { backgroundColor: `${color}20` }]}>
+        <Text style={{ fontSize: 24 }}>{icon}</Text>
+      </View>
+      <Text style={styles.kpiLabel}>{label}</Text>
+      <Text style={[styles.kpiValue, { color }]}>{value}</Text>
+    </View>
+  );
+}
 function SimpleBarChart({ data }: { data: any[] }) {
   if (!data.length) {
     return <Text style={styles.emptyText}>No data available</Text>;
@@ -275,6 +298,40 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
+    color: '#1e293b',
+  },
+  // KPI Cards
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  kpiCard: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  kpiIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  kpiLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  kpiValue: {
+    fontSize: 28,
+    fontWeight: '800',
     color: '#1e293b',
   },
   // Chart Cards

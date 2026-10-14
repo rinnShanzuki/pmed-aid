@@ -103,6 +103,7 @@ export default function PatientManagement() {
       {/* Header - Single title only */}
       <View style={styles.header}>
 
+
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -297,6 +298,7 @@ const styles = StyleSheet.create({
     color: '#475569',
     textTransform: 'uppercase',
   },
+  tableBody: { maxHeight: 600 },
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -324,7 +326,6 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 14, fontWeight: '700', color: '#fff' },
   patientName: { fontSize: 14, fontWeight: '600', color: '#1e293b' },
   patientEmail: { fontSize: 12, color: '#64748b', marginTop: 2 },
-
   td: { fontSize: 14, color: '#1e293b' },
   tdMuted: { fontSize: 13, color: '#64748b' },
 
@@ -348,7 +349,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionBtnText: { fontSize: 11, fontWeight: '600', color: '#fff' },
-
   // Empty
   emptyState: { padding: 40, alignItems: 'center' },
   emptyText: { fontSize: 14, color: '#94a3b8' },
@@ -358,5 +358,6 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
     paddingVertical: 8,
+
   },
 });

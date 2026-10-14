@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../../services/api';
 import { Search, Plus, Printer, X, FileSignature, Eye, QrCode, ArrowLeft, Send, Stethoscope, Clock, User } from 'lucide-react';
 
@@ -48,7 +49,10 @@ export default function PrescriptionManagement() {
   const [admissions, setAdmissions] = useState([]);
   const [nurses, setNurses] = useState([]);
   const [search, setSearch] = useState('');
-  const [activeTab, setActiveTab] = useState('outpatient');
+  const [sortOption, setSortOption] = useState('recent-old');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null); // 'add' | 'view' | 'handover' | null
   const [encodeStep, setEncodeStep] = useState(1); // 1: Form, 2: Review, 3: QR
@@ -87,6 +91,40 @@ export default function PrescriptionManagement() {
   }
 
   useEffect(() => { fetchPrescriptions(); fetchDropdowns(); }, []);
+
+  useEffect(() => {
+    if (location.state?.tab) {
+      setActiveTab(location.state.tab);
+    }
+    if (location.state?.filter === 'recent') {
+      setDateFilter('recent');
+    } else {
+      setDateFilter('');
+    }
+
+    if ((location.state?.viewConsultationId || location.state?.viewPatientId) && prescriptions.length > 0) {
+      const targetRx = prescriptions.find(rx =>
+        (location.state.viewConsultationId && String(rx.consultation_id) === String(location.state.viewConsultationId)) ||
+        (location.state.viewPatientId && String(rx.patient_id) === String(location.state.viewPatientId))
+      );
+      if (targetRx) {
+        api.get(`/prescriptions/${targetRx.id}`).then(({ data: rxData }) => {
+          setViewData(rxData.data);
+          setModal('view');
+          window.history.replaceState({}, document.title);
+        });
+      }
+    }
+
+    if (location.state?.viewPrescriptionId) {
+      api.get(`/prescriptions/${location.state.viewPrescriptionId}`).then(({ data: rxData }) => {
+        setViewData(rxData.data);
+        setModal('view');
+        window.history.replaceState({}, document.title);
+      });
+    }
+
+  }, [location.state, prescriptions]);
 
   function addItem() {
     setItems([...items, { medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
@@ -323,9 +361,20 @@ export default function PrescriptionManagement() {
 
   const filtered = prescriptions.filter(rx => {
     if (!isVisible(rx)) return false;
-    if (rx.status !== 'active') return false; // Show only ongoing medications
+
+    // In specific tabs, show only active. In 'all', show everything except pending_encoding (unless you want pending_encoding too).
+    // Let's show everything in 'all' since they asked for ALL records.
+    if (activeTab !== 'all' && rx.status !== 'active') return false;
+
     if (activeTab === 'outpatient' && rx.type !== 'outpatient') return false;
     if (activeTab === 'inpatient' && rx.type === 'outpatient') return false;
+
+    if (dateFilter === 'recent') {
+      const createdDate = new Date(rx.created_at || rx.createdAt).getTime();
+      const sevenDaysAgo = new Date().getTime() - (7 * 24 * 60 * 60 * 1000);
+      if (createdDate < sevenDaysAgo) return false;
+    }
+
     if (!search) return true;
     const name = `${rx.patient?.first_name} ${rx.patient?.last_name}`.toLowerCase();
     return name.includes(search.toLowerCase());
@@ -333,6 +382,26 @@ export default function PrescriptionManagement() {
 
   const outpatientCount = prescriptions.filter(rx => rx.status === 'active' && rx.type === 'outpatient' && isVisible(rx)).length;
   const inpatientCount = prescriptions.filter(rx => rx.status === 'active' && rx.type !== 'outpatient' && isVisible(rx)).length;
+  const allCount = prescriptions.filter(rx => isVisible(rx)).length;
+
+  const sortedAndFiltered = [...filtered].sort((a, b) => {
+    const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+    const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+    const nameA = `${a.patient?.first_name || ''} ${a.patient?.last_name || ''}`.toLowerCase();
+    const nameB = `${b.patient?.first_name || ''} ${b.patient?.last_name || ''}`.toLowerCase();
+    const idA = a.id || 0;
+    const idB = b.id || 0;
+
+    switch (sortOption) {
+      case 'old-recent': return dateA - dateB;
+      case 'recent-old': return dateB - dateA;
+      case 'a-z': return nameA.localeCompare(nameB);
+      case 'z-a': return nameB.localeCompare(nameA);
+      case 'id-asc': return idA - idB;
+      case 'id-desc': return idB - idA;
+      default: return dateB - dateA;
+    }
+  });
 
   if (modal === 'view' && viewData) {
     return (
@@ -531,11 +600,25 @@ export default function PrescriptionManagement() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
           <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}><FileSignature size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />Prescription Management</h3>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {dateFilter === 'recent' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', color: '#22c55e', padding: '6px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600 }}>
+                Showing Last 7 Days
+                <button onClick={() => setDateFilter('')} style={{ background: 'transparent', border: 'none', color: '#22c55e', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={14} /></button>
+              </div>
+            )}
             <div style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
               <input placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
                 style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 200 }} />
             </div>
+            <select value={sortOption} onChange={e => setSortOption(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', outline: 'none', background: '#fff', color: '#0f172a' }}>
+              <option value="recent-old">Sort by: Newest First</option>
+              <option value="old-recent">Sort by: Oldest First</option>
+              <option value="a-z">Sort by: Patient (A-Z)</option>
+              <option value="z-a">Sort by: Patient (Z-A)</option>
+              <option value="id-asc">Sort by: ID (Low to High)</option>
+              <option value="id-desc">Sort by: ID (High to Low)</option>
+            </select>
             <button
               className="action-btn primary"
               onClick={() => setModal('handover')}
@@ -555,6 +638,18 @@ export default function PrescriptionManagement() {
         </div>
 
         <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', gap: '4px', width: 'fit-content', margin: '0 24px 16px' }}>
+          <button
+            onClick={() => setActiveTab('all')}
+            style={{
+              padding: '6px 16px', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+              background: activeTab === 'all' ? '#fff' : 'transparent',
+              color: activeTab === 'all' ? '#0f172a' : '#64748b',
+              boxShadow: activeTab === 'all' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            All ({allCount})
+          </button>
           <button
             onClick={() => setActiveTab('outpatient')}
             style={{
@@ -587,9 +682,9 @@ export default function PrescriptionManagement() {
             <tbody>
               {loading ? (
                 <tr><td colSpan="7" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
-              ) : filtered.length === 0 ? (
+              ) : sortedAndFiltered.length === 0 ? (
                 <tr><td colSpan="7" style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>No prescriptions found</td></tr>
-              ) : filtered.map(rx => (
+              ) : sortedAndFiltered.map(rx => (
                 <tr key={rx.id}>
                   <td><strong>{rx.patient?.first_name} {rx.patient?.last_name}</strong></td>
                   <td>{rx.doctor?.first_name} {rx.doctor?.last_name}</td>

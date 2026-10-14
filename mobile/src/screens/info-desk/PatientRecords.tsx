@@ -5,6 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useOrientation } from '../../hooks/useOrientation';
 import api from '../../services/api';
 
+const COL_WIDTH = 100;
+
 export default function PatientRecords() {
   const { user } = useAuth();
   const navigation = useNavigation();
