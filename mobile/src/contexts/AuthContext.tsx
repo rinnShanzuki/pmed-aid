@@ -13,6 +13,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
@@ -24,6 +25,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const logout = useCallback(async () => {
@@ -32,10 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       // Ignore logout errors
     }
-    // Clear token IMMEDIATELY before auth check
+    // Clear token and cached user IMMEDIATELY before auth check
     await AsyncStorage.removeItem('token');
+    await AsyncStorage.removeItem('user');
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
+    setToken(null);
   }, []);
 
   const checkAuth = useCallback(async () => {
@@ -50,48 +54,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // ENABLED: Auto-login with stored token (only if not from QR code)
+      // Auto-login with stored token (only if not from QR code)
       const token = await AsyncStorage.getItem('token');
+      const savedUserStr = await AsyncStorage.getItem('user');
+      const savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
+
       if (!token) {
         setUser(null);
+        setToken(null);
         setLoading(false);
         return;
       }
       
       // Set auth header
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setToken(token);
       
       // Try to verify token with shorter timeout (2 seconds instead of 5)
       try {
-        const { data } = await Promise.race([
+        const { data } = await Promise.race<any>([
           api.get('/auth/me'),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2000))
         ]);
-        setUser(data.data.user);
+        if (data?.data?.user) {
+          await AsyncStorage.setItem('user', JSON.stringify(data.data.user));
+          setUser(data.data.user);
+        } else {
+          setUser(null);
+          setToken(null);
+        }
       } catch (verifyError) {
-        // Backend unreachable - assume token is still valid and proceed
-        console.warn('Could not verify token, assuming valid:', verifyError);
-        setUser({ id: 0, email: '', role: '', first_name: '', last_name: '' });
+        console.warn('Could not verify token with backend:', verifyError);
+        if (savedUser && savedUser.role) {
+          setUser(savedUser);
+        } else {
+          await AsyncStorage.removeItem('token');
+          await AsyncStorage.removeItem('user');
+          delete api.defaults.headers.common['Authorization'];
+          setUser(null);
+          setToken(null);
+        }
       }
       setLoading(false);
     } catch (error: any) {
       // Silent fail - just clear auth
       await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
       delete api.defaults.headers.common['Authorization'];
       setUser(null);
+      setToken(null);
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     checkAuth();
-    
-    // DEV ONLY: Uncomment to clear auth on hot reload during development
-    // if (__DEV__) {
-    //   AsyncStorage.removeItem('token');
-    //   setUser(null);
-    //   setLoading(false);
-    // }
   }, [checkAuth]);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -99,6 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data.data.token) {
       await AsyncStorage.setItem('token', data.data.token);
       api.defaults.headers.common['Authorization'] = `Bearer ${data.data.token}`;
+      setToken(data.data.token);
+    }
+    if (data.data.user) {
+      await AsyncStorage.setItem('user', JSON.stringify(data.data.user));
     }
     setUser(data.data.user);
     setLoading(false);
@@ -109,13 +130,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await api.post('/auth/qr-bind', payload);
     if (data.data.token) {
       await AsyncStorage.setItem('token', data.data.token);
+      setToken(data.data.token);
+    }
+    if (data.data.user) {
+      await AsyncStorage.setItem('user', JSON.stringify(data.data.user));
     }
     setUser(data.data.user);
     return data.data;
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, qrBind, checkAuth }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, qrBind, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );

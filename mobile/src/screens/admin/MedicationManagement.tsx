@@ -12,11 +12,27 @@ interface Medication {
   status: string;
 }
 
-export default function MedicationManagement() {
+const MED_TABS = [
+  { value: 'all', label: 'All' },
+  { value: 'available', label: 'Available' },
+  { value: 'low stock', label: 'Low Stock' },
+  { value: 'out of stock', label: 'Out of Stock' },
+];
+
+export default function MedicationManagement({ route }: any) {
   const { width, height, isLandscape } = useOrientation();
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const targetTab = route?.params?.initialTab || route?.params?.status || 'all';
+  const [activeTab, setActiveTab] = useState(targetTab);
+
+  useEffect(() => {
+    const newTab = route?.params?.initialTab || route?.params?.status;
+    if (newTab) {
+      setActiveTab(newTab);
+    }
+  }, [route?.params?.initialTab, route?.params?.status, route?.params?.timestamp]);
 
   useEffect(() => {
     fetchMedications();
@@ -60,7 +76,11 @@ export default function MedicationManagement() {
       med.generic_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       med.category?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesSearch;
+    const matchesStatus =
+      activeTab === 'all' ||
+      med.status?.toLowerCase() === activeTab.toLowerCase();
+
+    return matchesSearch && matchesStatus;
   });
 
   if (loading) {
@@ -79,6 +99,30 @@ export default function MedicationManagement() {
           <Text style={styles.headerIcon}>💊</Text>
           <Text style={styles.headerTitle}>Medication Catalog</Text>
         </View>
+
+        {/* Status Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsRow}
+        >
+          {MED_TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab.value}
+              onPress={() => setActiveTab(tab.value)}
+              style={[styles.tab, activeTab === tab.value && styles.tabActive]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.value && styles.tabTextActive,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         <View style={styles.controls}>
           <View style={styles.searchContainer}>
@@ -335,6 +379,32 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 14,
     color: '#94a3b8',
+  },
+  // Tabs
+  tabsRow: {
+    gap: 8,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  tab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  tabActive: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748b',
+  },
+  tabTextActive: {
+    color: '#3b82f6',
+    fontWeight: '700',
   },
 });
 

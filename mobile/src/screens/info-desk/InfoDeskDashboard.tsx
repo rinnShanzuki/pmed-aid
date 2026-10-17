@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useAuth } from '../../hooks/useAuth';
+import { useOrientation } from '../../hooks/useOrientation';
 import api from '../../services/api';
-import { StatCard, Card } from '../../components';
+import { Card } from '../../components';
 import theme from '../../styles/theme';
-
-const { width } = Dimensions.get('window');
 
 export default function InfoDeskDashboard() {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
+  const { width, isLandscape } = useOrientation();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<any>({
     newAdmissions: 0,
     activePatients: 0,
     recentPrescriptions: 0,
-    pendingRegistrations: 0,
+    pendingAdmissions: 0,
     dischargedPatients: 0,
     admissionTrend: [],
     adherenceTrend: [],
@@ -41,33 +44,41 @@ export default function InfoDeskDashboard() {
       label: 'New Admissions Today',
       value: stats.newAdmissions || 0,
       sub: 'Patients admitted today',
-      iconBg: theme.colors.statBlue,
-      iconColor: theme.colors.statBlueIcon,
-      icon: '🛏️',
+      iconBg: '#eff6ff',
+      iconColor: '#3b82f6',
+      iconName: 'bed-outline',
+      screen: 'AdmissionManagement',
+      params: { tab: 'admitted', filter: 'today' },
     },
     {
       label: 'Total Active Patients',
       value: stats.activePatients || 0,
       sub: 'Currently in rooms',
-      iconBg: theme.colors.statPurple,
-      iconColor: theme.colors.statPurpleIcon,
-      icon: '👥',
+      iconBg: '#fdf4ff',
+      iconColor: '#d946ef',
+      iconName: 'account-group-outline',
+      screen: 'PatientMonitoring',
+      params: undefined,
     },
     {
       label: 'Recent Prescriptions',
       value: stats.recentPrescriptions || 0,
       sub: 'Encoded in the last 7 days',
-      iconBg: theme.colors.statGreen,
-      iconColor: theme.colors.statGreenIcon,
-      icon: '📋',
+      iconBg: '#f0fdf4',
+      iconColor: '#16a34a',
+      iconName: 'clipboard-text-outline',
+      screen: 'PrescriptionManagement',
+      params: { tab: 'all', filter: 'recent' },
     },
     {
-      label: 'Pending Registrations',
-      value: stats.pendingRegistrations || 0,
-      sub: 'Require profile completion',
-      iconBg: theme.colors.statOrange,
-      iconColor: theme.colors.statOrangeIcon,
-      icon: '🕐',
+      label: 'Pending Admissions',
+      value: stats.pendingAdmissions || 0,
+      sub: 'Require room assignment',
+      iconBg: '#fff7ed',
+      iconColor: '#f97316',
+      iconName: 'clock-outline',
+      screen: 'AdmissionManagement',
+      params: { tab: 'pending_admissions' },
     },
   ];
 
@@ -75,20 +86,34 @@ export default function InfoDeskDashboard() {
     stats.admissionTrend && stats.admissionTrend.length > 0
       ? stats.admissionTrend
       : [
-          { day: 'Mon', admissions: 0 },
-          { day: 'Tue', admissions: 0 },
-          { day: 'Wed', admissions: 0 },
-          { day: 'Thu', admissions: 0 },
-          { day: 'Fri', admissions: 0 },
-        ];
+        { day: 'Mon', admissions: 0 },
+        { day: 'Tue', admissions: 0 },
+        { day: 'Wed', admissions: 0 },
+        { day: 'Thu', admissions: 0 },
+        { day: 'Fri', admissions: 0 },
+      ];
 
   const patientStatusData = [
-    { name: 'Admitted', value: stats.activePatients || 0, color: theme.colors.statBlueIcon },
-    { name: 'Discharged', value: stats.dischargedPatients || 0, color: theme.colors.statGreenIcon },
     {
-      name: 'Pending Registration',
-      value: stats.pendingRegistrations || 0,
-      color: theme.colors.statOrangeIcon,
+      name: 'Admitted',
+      value: stats.activePatients || 0,
+      color: '#3b82f6',
+      screen: 'AdmissionManagement',
+      params: { tab: 'admitted' },
+    },
+    {
+      name: 'Discharged',
+      value: stats.dischargedPatients || 0,
+      color: '#16a34a',
+      screen: 'AdmissionManagement',
+      params: { tab: 'discharged' },
+    },
+    {
+      name: 'Pending Admission',
+      value: stats.pendingAdmissions || 0,
+      color: '#f97316',
+      screen: 'AdmissionManagement',
+      params: { tab: 'pending_admissions' },
     },
   ];
 
@@ -115,23 +140,41 @@ export default function InfoDeskDashboard() {
           <Text style={styles.subtitle}>Welcome to the Information Desk Portal.</Text>
         </View>
 
-        {/* Stats Grid - 4 Cards */}
+        {/* Stats Grid - 4 Clickable Cards */}
         <View style={styles.statsGrid}>
           {statCards.map((card, index) => (
-            <View key={index} style={styles.statCardWrapper}>
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.statCardWrapper,
+                isLandscape || width > 600 ? styles.statCardWrapperHalf : styles.statCardWrapperFull,
+              ]}
+              activeOpacity={0.75}
+              onPress={() => {
+                if (card.screen) {
+                  navigation.navigate(card.screen, card.params);
+                }
+              }}
+            >
               <Card style={styles.statCardContainer}>
                 <View style={styles.statCardContent}>
                   <View style={[styles.statIconContainer, { backgroundColor: card.iconBg }]}>
-                    <Text style={[styles.statIconText, { color: card.iconColor }]}>{card.icon}</Text>
+                    <MaterialCommunityIcons name={card.iconName as any} size={24} color={card.iconColor} />
                   </View>
                   <View style={styles.statTextContainer}>
                     <Text style={styles.statLabel}>{card.label}</Text>
                     <Text style={styles.statValue}>{card.value}</Text>
                   </View>
+                  <MaterialCommunityIcons name="chevron-right" size={20} color="#94a3b8" />
                 </View>
-                <Text style={styles.statSub}>{card.sub}</Text>
+                <View style={styles.statCardFooter}>
+                  <Text style={styles.statSub}>{card.sub}</Text>
+                  <Text style={[styles.cardActionHint, { color: card.iconColor }]}>
+
+                  </Text>
+                </View>
               </Card>
-            </View>
+            </TouchableOpacity>
           ))}
         </View>
 
@@ -217,13 +260,25 @@ export default function InfoDeskDashboard() {
             <Text style={styles.chartSubtitle}>Quick overview of patient current states.</Text>
             <View style={styles.pieChartContainer}>
               {patientStatusData.map((item, index) => (
-                <View key={index} style={styles.pieItem}>
+                <TouchableOpacity
+                  key={index}
+                  style={styles.pieItem}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    if (item.screen) {
+                      navigation.navigate(item.screen, item.params);
+                    }
+                  }}
+                >
                   <View style={[styles.pieDot, { backgroundColor: item.color }]} />
                   <View style={styles.pieTextContainer}>
                     <Text style={styles.pieName}>{item.name}</Text>
-                    <Text style={styles.pieValue}>{item.value}</Text>
+                    <View style={styles.pieValueRow}>
+                      <Text style={styles.pieValue}>{item.value}</Text>
+                      <MaterialCommunityIcons name="chevron-right" size={16} color="#94a3b8" />
+                    </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           </Card>
@@ -270,8 +325,27 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing['4xl'],
   },
   statCardWrapper: {
+    marginBottom: 0,
+  },
+  statCardWrapperFull: {
+    width: '100%',
+  },
+  statCardWrapperHalf: {
     flex: 1,
-    minWidth: width > 768 ? 240 : '100%',
+    minWidth: 240,
+  },
+  statCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    paddingTop: 8,
+    marginTop: 4,
+  },
+  cardActionHint: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   statCardContainer: {
     marginBottom: 0,
@@ -384,7 +458,7 @@ const styles = StyleSheet.create({
   },
   chartCard: {
     flex: 1,
-    minWidth: width > 768 ? 450 : '100%',
+    minWidth: 280,
   },
   barChartContainer: {
     flexDirection: 'row',
@@ -449,5 +523,10 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.xl,
     fontWeight: theme.fontWeight.bold,
     color: theme.colors.textPrimary,
+  },
+  pieValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
 });

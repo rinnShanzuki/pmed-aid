@@ -24,11 +24,11 @@ export default function DoctorDashboard() {
   const isTablet = width >= 768;
   const isSmallPhone = width < 375;
   const isLargeTablet = width >= 1024;
-  
+
   // Adaptive padding based on orientation
   const paddingHorizontal = isLandscape ? 16 : (isSmallPhone ? 16 : 24);
   const paddingVertical = isLandscape ? 16 : 24;
-  
+
   // Adaptive stat cards - show 2 on tablet, 1 on phone, 4 on large screens
   const getStatCardWidth = () => {
     if (isLandscape && isTablet) {
@@ -40,7 +40,7 @@ export default function DoctorDashboard() {
     }
     return '100%';
   };
-  
+
   // Adaptive table columns - responsive sizing
   const availableWidth = isLandscape ? width - 40 : width - 24;
   const numberOfColumns = 4;
@@ -150,7 +150,7 @@ export default function DoctorDashboard() {
               ]}
             >
               <View style={[styles.statIcon, { backgroundColor: c.bg, borderLeftWidth: 4, borderLeftColor: c.color }]}>
-                <MaterialCommunityIcons name={c.icon} size={22} color={c.color} />
+                <MaterialCommunityIcons name={c.icon as any} size={22} color={c.color} />
               </View>
               <View style={styles.statContent}>
                 <Text style={styles.statValue}>{c.value}</Text>
@@ -274,11 +274,11 @@ export default function DoctorDashboard() {
                           style={[
                             styles.badgeText,
                             s.status === 'completed' &&
-                              styles.badgeActiveText,
+                            styles.badgeActiveText,
                             s.status === 'missed' &&
-                              styles.badgeInactiveText,
+                            styles.badgeInactiveText,
                             s.status === 'pending' &&
-                              styles.badgePendingText,
+                            styles.badgePendingText,
                           ]}
                         >
                           {s.status}

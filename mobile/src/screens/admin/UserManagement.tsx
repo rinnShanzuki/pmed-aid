@@ -79,16 +79,25 @@ const ROLE_TABS = [
   { value: 'pharmacy', label: 'Pharmacy' },
 ];
 
-export default function UserManagement() {
+export default function UserManagement({ route }: any) {
   const navigation = useNavigation<any>();
   const { width, height, isLandscape } = useOrientation();
   const isTablet = width >= 768;
 
+  const targetTab = route?.params?.initialTab || route?.params?.role || route?.params?.tab;
   const [users, setUsers] = useState<User[]>([]);
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState(targetTab || 'all');
   const [loading, setLoading] = useState(true);
+
+  // Sync tab whenever route params change (e.g. from AdminDashboard cards)
+  useEffect(() => {
+    const newTab = route?.params?.initialTab || route?.params?.role || route?.params?.tab;
+    if (newTab) {
+      setActiveTab(newTab);
+    }
+  }, [route?.params?.initialTab, route?.params?.role, route?.params?.tab, route?.params?.timestamp]);
 
   const [modal, setModal] = useState<null | 'add' | 'edit'>(null);
   const [form, setForm] = useState<FormData>(INITIAL_FORM);

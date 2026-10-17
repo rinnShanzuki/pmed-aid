@@ -1,61 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useOrientation } from '../../hooks/useOrientation';
 import api from '../../services/api';
 
-const COL_WIDTH = 100;
+type TabType = 'all' | 'outpatient' | 'admitted';
+type SortOption = 'recent-old' | 'old-recent' | 'a-z' | 'z-a';
 
 export default function PrescriptionManagement() {
   const { user } = useAuth();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { width, height, isLandscape } = useOrientation();
   
   const [loading, setLoading] = useState(true);
-  const [prescriptions, setPrescriptions] = useState([]);
-  const [filteredPrescriptions, setFilteredPrescriptions] = useState([]);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'outpatient' | 'admitted'>('outpatient');
+  const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('recent-old');
   const [handoverCount, setHandoverCount] = useState(0);
 
   useEffect(() => {
-    console.log('Current logged-in user:', {
-      id: user?.id,
-      email: user?.email,
-      role: user?.role,
-      name: `${user?.first_name} ${user?.last_name}`
-    });
     fetchPrescriptions();
   }, []);
 
   useEffect(() => {
-    filterPrescriptions();
-  }, [searchQuery, prescriptions, activeTab]);
+    if (route.params?.patientName) {
+      setSearchQuery(route.params.patientName);
+    }
+    if (route.params?.tab) {
+      setActiveTab(route.params.tab);
+    }
+  }, [route.params]);
 
   const fetchPrescriptions = async () => {
     try {
       setLoading(true);
       const response = await api.get('/prescriptions');
       const data = response.data.data || [];
-      
-      // Create deep copy to avoid reference issues
-      const deepCopiedData = JSON.parse(JSON.stringify(data));
-      
-      // Debug: Log all prescriptions
-      console.log('Total prescriptions fetched:', deepCopiedData.length);
-      console.log('Prescriptions data:', deepCopiedData.map((p: any) => ({
-        id: p.id,
-        patient: `${p.patient?.first_name} ${p.patient?.last_name}`,
-        type: p.type,
-        status: p.status,
-        admission_id: p.admission_id
-      })));
-      
-      setPrescriptions(deepCopiedData);
+      setPrescriptions(data);
 
-      // Count handover prescriptions (pending encoding status)
-      const handoverRx = deepCopiedData.filter((p: any) => p.status === 'pending_encoding');
+      const handoverRx = data.filter((p: any) => p.status === 'pending_encoding');
       setHandoverCount(handoverRx.length);
     } catch (err: any) {
       console.error('Prescriptions fetch error:', err);
@@ -66,45 +52,64 @@ export default function PrescriptionManagement() {
     }
   };
 
-  const filterPrescriptions = () => {
-    let filtered = prescriptions;
+  // Visibility check matching web app
+  const isVisible = (rx: any) => {
+    if (rx.type === 'outpatient') return true;
+    return rx.admission_id != null;
+  };
 
-    // Apply visibility filter (match web behavior)
-    // Outpatient: always visible | In-hospital: only if linked to admission
-    filtered = filtered.filter((p: any) => {
-      if (p.type === 'outpatient') return true;
-      return p.admission_id != null; // In-hospital only if admission confirmed
+  // Counts for each tab
+  const allCount = useMemo(() => {
+    return prescriptions.filter((rx: any) => isVisible(rx)).length;
+  }, [prescriptions]);
+
+  const outpatientCount = useMemo(() => {
+    return prescriptions.filter((rx: any) => rx.status === 'active' && rx.type === 'outpatient' && isVisible(rx)).length;
+  }, [prescriptions]);
+
+  const inpatientCount = useMemo(() => {
+    return prescriptions.filter((rx: any) => rx.status === 'active' && rx.type !== 'outpatient' && isVisible(rx)).length;
+  }, [prescriptions]);
+
+  // Filtered and sorted prescriptions
+  const filteredAndSortedPrescriptions = useMemo(() => {
+    const filtered = prescriptions.filter((rx: any) => {
+      if (!isVisible(rx)) return false;
+
+      // In specific tabs, show only active. In 'all', show all visible prescriptions
+      if (activeTab !== 'all' && rx.status !== 'active') return false;
+      if (activeTab === 'outpatient' && rx.type !== 'outpatient') return false;
+      if (activeTab === 'admitted' && rx.type === 'outpatient') return false;
+
+      // Search query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const patientName = `${rx.patient?.first_name || ''} ${rx.patient?.last_name || ''}`.toLowerCase();
+        const doctorName = `${rx.doctor?.first_name || ''} ${rx.doctor?.last_name || ''}`.toLowerCase();
+        return patientName.includes(query) || doctorName.includes(query);
+      }
+      return true;
     });
 
-    // Filter by status (only show active prescriptions)
-    filtered = filtered.filter((p: any) => p.status === 'active');
+    return [...filtered].sort((a: any, b: any) => {
+      const dateA = new Date(a.created_at || a.createdAt || 0).getTime();
+      const dateB = new Date(b.created_at || b.createdAt || 0).getTime();
+      const nameA = `${a.patient?.first_name || ''} ${a.patient?.last_name || ''}`.toLowerCase();
+      const nameB = `${b.patient?.first_name || ''} ${b.patient?.last_name || ''}`.toLowerCase();
 
-    // Filter by tab
-    if (activeTab === 'outpatient') {
-      filtered = filtered.filter((p: any) => p.type === 'outpatient');
-    } else if (activeTab === 'admitted') {
-      filtered = filtered.filter((p: any) => p.type === 'in_hospital');
-    }
-
-    // Filter by search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((p: any) => {
-        const patientName = `${p.patient?.first_name} ${p.patient?.last_name}`.toLowerCase();
-        const doctorName = `${p.doctor?.first_name} ${p.doctor?.last_name}`.toLowerCase();
-        return patientName.includes(query) || doctorName.includes(query);
-      });
-    }
-
-    console.log(`Filtered prescriptions (tab=${activeTab}, search="${searchQuery}"):`, filtered.map((p: any) => ({
-      id: p.id,
-      patient: `${p.patient?.first_name} ${p.patient?.last_name}`,
-      type: p.type,
-      admission_id: p.admission_id
-    })));
-
-    setFilteredPrescriptions(filtered);
-  };
+      switch (sortOption) {
+        case 'old-recent':
+          return dateA - dateB;
+        case 'a-z':
+          return nameA.localeCompare(nameB);
+        case 'z-a':
+          return nameB.localeCompare(nameA);
+        case 'recent-old':
+        default:
+          return dateB - dateA;
+      }
+    });
+  }, [prescriptions, activeTab, searchQuery, sortOption]);
 
   if (loading) {
     return (
@@ -115,19 +120,13 @@ export default function PrescriptionManagement() {
   }
 
   // Calculate responsive column widths
-  // In landscape, use more of the available width
-  const availableWidth = isLandscape ? width - 40 : width - 24; // Account for padding and margins
+  const availableWidth = isLandscape ? width - 40 : width - 24;
   const numberOfColumns = 6;
-  const minColWidth = 90;
-  const maxTotalWidth = availableWidth;
-  
-  // Calculate column width: either divide equally or use min width if that's larger
-  const equalWidth = maxTotalWidth / numberOfColumns;
+  const minColWidth = 85;
+  const equalWidth = availableWidth / numberOfColumns;
   const colWidth = Math.max(minColWidth, Math.floor(equalWidth));
   const totalTableWidth = colWidth * numberOfColumns;
-  
-  // Allow horizontal scroll only if necessary (content doesn't fit)
-  const needsHorizontalScroll = totalTableWidth > maxTotalWidth;
+  const needsHorizontalScroll = totalTableWidth > availableWidth;
 
   return (
     <View style={styles.container}>
@@ -143,27 +142,35 @@ export default function PrescriptionManagement() {
           <View style={styles.searchContainer}>
             <TextInput
               style={styles.searchInput}
-              placeholder="Search…"
+              placeholder="🔍 Search patient or doctor…"
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor="#94a3b8"
             />
           </View>
           <TouchableOpacity style={styles.handoverButton}>
-            <Text style={styles.handoverButtonText}>Handover ({handoverCount})</Text>
+            <Text style={styles.handoverButtonText}>Handovers ({handoverCount})</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Main Card */}
-        <View style={styles.mainCard}>
+        {/* Filter Section: Tabs & Sort Pills */}
+        <View style={styles.filterSection}>
           {/* Tabs */}
           <View style={styles.tabsContainer}>
+            <TouchableOpacity 
+              style={[styles.tab, activeTab === 'all' && styles.tabActive]}
+              onPress={() => setActiveTab('all')}
+            >
+              <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>
+                All ({allCount})
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.tab, activeTab === 'outpatient' && styles.tabActive]}
               onPress={() => setActiveTab('outpatient')}
             >
               <Text style={[styles.tabText, activeTab === 'outpatient' && styles.tabTextActive]}>
-                Outpatient ({prescriptions.filter((p: any) => p.type === 'outpatient' && p.status === 'active').length})
+                Outpatient ({outpatientCount})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -171,11 +178,37 @@ export default function PrescriptionManagement() {
               onPress={() => setActiveTab('admitted')}
             >
               <Text style={[styles.tabText, activeTab === 'admitted' && styles.tabTextActive]}>
-                Admitted ({prescriptions.filter((p: any) => p.type === 'in_hospital' && p.admission_id !== null && p.status === 'active').length})
+                Admitted ({inpatientCount})
               </Text>
             </TouchableOpacity>
           </View>
 
+          {/* Sort Pills */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortScroll}>
+            <View style={styles.sortContainer}>
+              <Text style={styles.sortLabel}>Sort by:</Text>
+              {[
+                { id: 'recent-old' as SortOption, label: 'Newest' },
+                { id: 'old-recent' as SortOption, label: 'Oldest' },
+                { id: 'a-z' as SortOption, label: 'Patient (A-Z)' },
+                { id: 'z-a' as SortOption, label: 'Patient (Z-A)' },
+              ].map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.sortPill, sortOption === item.id && styles.sortPillActive]}
+                  onPress={() => setSortOption(item.id)}
+                >
+                  <Text style={[styles.sortPillText, sortOption === item.id && styles.sortPillTextActive]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        {/* Main Card */}
+        <View style={styles.mainCard}>
           {/* Table - Responsive scrolling only if needed */}
           <ScrollView 
             horizontal={needsHorizontalScroll} 
@@ -200,67 +233,67 @@ export default function PrescriptionManagement() {
               </View>
 
               {/* Table Rows */}
-              {filteredPrescriptions.length === 0 ? (
+              {filteredAndSortedPrescriptions.length === 0 ? (
                 <Text style={styles.emptyState}>No prescriptions found</Text>
               ) : (
-                filteredPrescriptions.map((prescription: any, rowIdx) => {
-                  const display = {
-                    id: prescription.id,
-                    patientName: `${prescription.patient?.first_name} ${prescription.patient?.last_name}`,
-                    patientId: prescription.patient?.id,
-                    type: prescription.type,
-                    status: prescription.status,
-                    admissionId: prescription.admission_id
-                  };
-                  console.log(`Row ${rowIdx}:`, display);
-                  
+                filteredAndSortedPrescriptions.map((prescription: any) => {
+                  const patientName = `${prescription.patient?.first_name || ''} ${prescription.patient?.last_name || ''}`;
+                  const doctorName = prescription.doctor?.last_name ? `Dr. ${prescription.doctor.last_name}` : 'N/A';
+                  const isCompleted = prescription.status === 'completed';
+                  const isPending = prescription.status === 'pending_encoding';
+
                   return (
-                  <View key={`rx-${prescription.id}`} style={styles.tableRow}>
-                    <Text 
-                      style={[styles.td, { width: colWidth }]} 
-                      numberOfLines={2}
-                    >
-                      {prescription.patient?.first_name} {prescription.patient?.last_name}
-                    </Text>
-                    <Text 
-                      style={[styles.td, { width: colWidth }]} 
-                      numberOfLines={1}
-                    >
-                      Dr. {prescription.doctor?.last_name || 'N/A'}
-                    </Text>
-                    <Text style={[styles.td, { width: colWidth }]}>
-                      {prescription.items?.length || 0} items
-                    </Text>
-                    <View style={[styles.td, { width: colWidth, justifyContent: 'center' }]}>
-                      <View style={[
-                        styles.statusBadge,
-                        prescription.status === 'active' && styles.statusActive,
-                        prescription.status === 'completed' && styles.statusCompleted
-                      ]}>
-                        <Text style={styles.statusText} numberOfLines={1}>
-                          {prescription.status === 'active' ? 'Active' : 'Completed'}
-                        </Text>
+                    <View key={`rx-${prescription.id}`} style={styles.tableRow}>
+                      <Text 
+                        style={[styles.td, styles.tdBold, { width: colWidth }]} 
+                        numberOfLines={2}
+                      >
+                        {patientName}
+                      </Text>
+                      <Text 
+                        style={[styles.td, { width: colWidth }]} 
+                        numberOfLines={1}
+                      >
+                        {doctorName}
+                      </Text>
+                      <Text style={[styles.td, { width: colWidth }]}>
+                        {prescription.items?.length || 0} items
+                      </Text>
+                      <View style={[styles.td, { width: colWidth, justifyContent: 'center' }]}>
+                        <View style={[
+                          styles.statusBadge,
+                          prescription.status === 'active' && styles.statusActive,
+                          isCompleted && styles.statusCompleted,
+                          isPending && styles.statusPending,
+                        ]}>
+                          <Text style={[
+                            styles.statusText,
+                            prescription.status === 'active' && styles.statusActiveText,
+                            isCompleted && styles.statusCompletedText,
+                            isPending && styles.statusPendingText,
+                          ]} numberOfLines={1}>
+                            {isPending ? 'Pending' : prescription.status === 'active' ? 'Active' : 'Completed'}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={[styles.td, styles.tdDate, { width: colWidth }]}>
+                        {new Date(prescription.created_at || prescription.createdAt || 0).toLocaleDateString('en-US', {
+                          month: '2-digit',
+                          day: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </Text>
+                      <View style={[styles.td, { width: colWidth, justifyContent: 'center' }]}>
+                        <TouchableOpacity 
+                          style={styles.viewButton}
+                          onPress={() => {
+                            navigation.navigate('PrescriptionDetail', { prescriptionId: prescription.id });
+                          }}
+                        >
+                          <Text style={styles.viewButtonText}>View Record</Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
-                    <Text style={[styles.td, { width: colWidth }]}>
-                      {new Date(prescription.created_at || prescription.date).toLocaleDateString('en-US', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        year: 'numeric'
-                      }).replace(/\//g, '/')}
-                    </Text>
-                    <View style={[styles.td, { width: colWidth, justifyContent: 'center' }]}>
-                      <TouchableOpacity 
-                        style={styles.viewButton}
-                        onPress={() => {
-                          console.log(`Navigating to PrescriptionDetail with ID: ${prescription.id}, Patient: ${prescription.patient?.first_name} ${prescription.patient?.last_name}`);
-                          navigation.navigate('PrescriptionDetail', { prescriptionId: prescription.id });
-                        }}
-                      >
-                        <Text style={styles.viewButtonText}>View Record</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
                   );
                 })
               )}
@@ -398,6 +431,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     textAlign: 'center',
   },
+  filterSection: {
+    marginBottom: 12,
+  },
+  sortScroll: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  sortContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sortLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+    marginRight: 4,
+  },
+  sortPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  sortPillActive: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#3b82f6',
+  },
+  sortPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  sortPillTextActive: {
+    color: '#2563eb',
+  },
+  tdBold: {
+    fontWeight: '600',
+  },
+  tdDate: {
+    fontSize: 11,
+    color: '#64748b',
+  },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -405,28 +483,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
   },
   statusActive: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: '#dcfce7',
   },
   statusCompleted: {
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#eff6ff',
+  },
+  statusPending: {
+    backgroundColor: '#fef3c7',
   },
   statusText: {
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#0f172a',
+  },
+  statusActiveText: {
+    color: '#16a34a',
+  },
+  statusCompletedText: {
+    color: '#2563eb',
+  },
+  statusPendingText: {
+    color: '#d97706',
   },
   viewButton: {
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#eff6ff',
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#bfdbfe',
   },
   viewButtonText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: '#2563eb',
   },
   emptyState: {
     fontSize: 11,

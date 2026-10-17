@@ -38,9 +38,13 @@ const linking: LinkingOptions<any> = {
   },
 };
 
+const VALID_ROLES = ['admin', 'info_desk', 'doctor', 'nurse', 'patient', 'pharmacy'];
+
 export default function AppNavigator() {
   const { user, loading, logout } = useAuth();
   const navigationRef = React.useRef<any>(null);
+
+  const hasValidRole = !!user && VALID_ROLES.includes(user.role);
 
   // Handle deep links from QR codes
   useEffect(() => {
@@ -81,7 +85,7 @@ export default function AppNavigator() {
   return (
     <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!user ? (
+        {!hasValidRole ? (
           <>
             <Stack.Screen name="Auth" component={AuthScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />

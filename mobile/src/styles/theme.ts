@@ -145,7 +145,7 @@ export const fontWeight = {
   semibold: '600',
   bold: '700',
   extrabold: '800',
-};
+} as const;
 
 export const shadows = {
   none: {

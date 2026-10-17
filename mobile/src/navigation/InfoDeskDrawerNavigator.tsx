@@ -9,6 +9,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import InfoDeskDashboard from '../screens/info-desk/InfoDeskDashboard';
 import AdmissionManagement from '../screens/info-desk/AdmissionManagement';
 import PatientMonitoring from '../screens/info-desk/PatientMonitoring';
+import PatientRegistration from '../screens/info-desk/PatientRegistration';
 import PatientRecords from '../screens/info-desk/PatientRecords';
 import PatientDetail from '../screens/info-desk/PatientDetail';
 import PrescriptionManagement from '../screens/info-desk/PrescriptionManagement';
@@ -136,6 +137,14 @@ export default function InfoDeskDrawerNavigator() {
         component={PrescriptionDetail}
         options={{
           title: 'Prescription Detail',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+      <Drawer.Screen 
+        name="PatientRegistration" 
+        component={PatientRegistration}
+        options={{
+          title: 'Patient Registration',
           drawerItemStyle: { display: 'none' },
         }}
       />

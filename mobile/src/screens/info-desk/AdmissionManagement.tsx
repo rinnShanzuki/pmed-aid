@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useOrientation } from '../../hooks/useOrientation';
 import api from '../../services/api';
 import { Card, Button, Badge } from '../../components';
@@ -124,9 +125,18 @@ interface Admission {
 
 export default function AdmissionManagement() {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { width, height, isLandscape } = useOrientation();
   
   const [activeTab, setActiveTab] = useState<TabType>('consultation_queue');
+
+  useEffect(() => {
+    if (route.params?.tab) {
+      setActiveTab(route.params.tab);
+    }
+  }, [route.params?.tab]);
+  const [sortOption, setSortOption] = useState<'recent-old' | 'old-recent' | 'a-z' | 'z-a'>('recent-old');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -429,24 +439,42 @@ export default function AdmissionManagement() {
     ]);
   };
 
-  // Filter data
-  const displayList = activeTab === 'admitted' || activeTab === 'discharged' ? admissions : consultations;
-  const filteredList = displayList.filter(item => {
-    if (!search.trim()) return true;
-    const query = search.toLowerCase();
-    const patientName = `${item.patient?.first_name} ${item.patient?.last_name}`.toLowerCase();
-    const doctorName = `${item.doctor?.first_name} ${item.doctor?.last_name}`.toLowerCase();
-    return patientName.includes(query) || doctorName.includes(query);
-  });
+  // Filter and sort data
+  const filteredList = useMemo(() => {
+    const list = activeTab === 'admitted' || activeTab === 'discharged' ? admissions : consultations;
+    const filtered = list.filter(item => {
+      if (!search.trim()) return true;
+      const query = search.toLowerCase();
+      const patientName = `${item.patient?.first_name || ''} ${item.patient?.last_name || ''}`.toLowerCase();
+      const doctorName = `${item.doctor?.first_name || ''} ${item.doctor?.last_name || ''}`.toLowerCase();
+      return patientName.includes(query) || doctorName.includes(query);
+    });
+
+    return [...filtered].sort((a: any, b: any) => {
+      const dateA = new Date(a.created_at || a.admission_date || 0).getTime();
+      const dateB = new Date(b.created_at || b.admission_date || 0).getTime();
+      const nameA = `${a.patient?.first_name || ''} ${a.patient?.last_name || ''}`.toLowerCase();
+      const nameB = `${b.patient?.first_name || ''} ${b.patient?.last_name || ''}`.toLowerCase();
+
+      switch (sortOption) {
+        case 'old-recent':
+          return dateA - dateB;
+        case 'a-z':
+          return nameA.localeCompare(nameB);
+        case 'z-a':
+          return nameB.localeCompare(nameA);
+        case 'recent-old':
+        default:
+          return dateB - dateA;
+      }
+    });
+  }, [activeTab, admissions, consultations, search, sortOption]);
 
   // Calculate responsive table layout
-  const baseColWidth = 110; // Base column width for calculation
+  const hasActions = activeTab === 'pending_admissions' || activeTab === 'admitted' || activeTab === 'outpatient';
+  const hasRoom = activeTab === 'admitted' || activeTab === 'discharged';
+  const colCount = 4 + (hasRoom ? 1 : 0) + (hasActions ? 1 : 0);
   const availableWidth = isLandscape ? width - 40 : width - 24;
-  const admittedDischargedColCount = 5; // PATIENT, ROOM, DOCTOR, STATUS, DATE, ACTIONS = 6 (calculated differently below)
-  const otherColCount = 5; // PATIENT, DOCTOR, STATUS, DATE, ACTIONS = 5 (calculated differently below)
-  
-  // For admitted/discharged tab: 6 columns, for others: 5 columns
-  const colCount = (activeTab === 'admitted' || activeTab === 'discharged') ? 6 : 5;
   const minColWidth = 85;
   const equalWidth = availableWidth / colCount;
   const responsiveColWidth = Math.max(minColWidth, Math.floor(equalWidth));
@@ -543,6 +571,29 @@ export default function AdmissionManagement() {
           </ScrollView>
         </View>
 
+        {/* Sort Pills */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sortScroll}>
+          <View style={styles.sortContainer}>
+            <Text style={styles.sortLabel}>Sort by:</Text>
+            {[
+              { id: 'recent-old' as const, label: 'Newest' },
+              { id: 'old-recent' as const, label: 'Oldest' },
+              { id: 'a-z' as const, label: 'Patient (A-Z)' },
+              { id: 'z-a' as const, label: 'Patient (Z-A)' },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.sortPill, sortOption === item.id && styles.sortPillActive]}
+                onPress={() => setSortOption(item.id)}
+              >
+                <Text style={[styles.sortPillText, sortOption === item.id && styles.sortPillTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
         {/* Records */}
         {filteredList.length === 0 ? (
           <View style={styles.emptyState}>
@@ -566,17 +617,13 @@ export default function AdmissionManagement() {
                 {/* Table Header */}
                 <View style={styles.tableHeader}>
                   <Text style={[styles.th, { width: responsiveColWidth }]}>PATIENT</Text>
-                  {(activeTab === 'admitted' || activeTab === 'discharged') ? (
-                    <>
-                      <Text style={[styles.th, { width: responsiveColWidth }]}>ROOM</Text>
-                      <Text style={[styles.th, { width: responsiveColWidth }]}>DOCTOR</Text>
-                    </>
-                  ) : (
-                    <Text style={[styles.th, { width: responsiveColWidth }]}>DOCTOR</Text>
+                  {hasRoom && (
+                    <Text style={[styles.th, { width: responsiveColWidth }]}>ROOM</Text>
                   )}
+                  <Text style={[styles.th, { width: responsiveColWidth }]}>DOCTOR</Text>
                   <Text style={[styles.th, { width: responsiveColWidth }]}>STATUS</Text>
                   <Text style={[styles.th, { width: responsiveColWidth }]}>DATE</Text>
-                  {(activeTab === 'pending_admissions' || activeTab === 'admitted') && (
+                  {hasActions && (
                     <Text style={[styles.th, { width: responsiveColWidth }]}>ACTIONS</Text>
                   )}
                 </View>
@@ -590,20 +637,14 @@ export default function AdmissionManagement() {
                     >
                       {item.patient?.first_name} {item.patient?.last_name}
                     </Text>
-                    {(activeTab === 'admitted' || activeTab === 'discharged') ? (
-                      <>
-                        <Text style={[styles.td, { width: responsiveColWidth }]} numberOfLines={1}>
-                          {(item as Admission).room?.room_number || '—'}
-                        </Text>
-                        <Text style={[styles.td, { width: responsiveColWidth }]} numberOfLines={1}>
-                          Dr. {item.doctor?.last_name || 'N/A'}
-                        </Text>
-                      </>
-                    ) : (
+                    {hasRoom && (
                       <Text style={[styles.td, { width: responsiveColWidth }]} numberOfLines={1}>
-                        Dr. {item.doctor?.last_name || 'N/A'}
+                        {(item as Admission).room?.room_number || '—'}
                       </Text>
                     )}
+                    <Text style={[styles.td, { width: responsiveColWidth }]} numberOfLines={1}>
+                      Dr. {item.doctor?.last_name || 'N/A'}
+                    </Text>
                     <View style={[styles.td, { width: responsiveColWidth, justifyContent: 'center' }]}>
                       <View style={[
                         styles.statusBadge,
@@ -648,6 +689,16 @@ export default function AdmissionManagement() {
                           onPress={() => handleDischarge((item as Admission).id)}
                         >
                           <Text style={styles.actionBtnText}>Disch.</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    {activeTab === 'outpatient' && (
+                      <View style={[styles.td, { width: responsiveColWidth, justifyContent: 'center' }]}>
+                        <TouchableOpacity 
+                          style={[styles.actionBtn, styles.actionBtnOutline]}
+                          onPress={() => navigation.navigate('PrescriptionManagement', { patientName: `${item.patient?.first_name || ''} ${item.patient?.last_name || ''}`.trim() })}
+                        >
+                          <Text style={styles.actionBtnOutlineText}>Rx Rec</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -794,7 +845,7 @@ export default function AdmissionManagement() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="MM/DD/YYYY"
-                    value={formatDateInput(patientForm.date_of_birth)}
+                    value={formatDateInput(patientForm.date_of_birth || '')}
                     onChangeText={v => setPatientForm({ ...patientForm, date_of_birth: formatDateInput(v) })}
                     placeholderTextColor={theme.colors.textTertiary}
                     maxLength={10}
@@ -1141,16 +1192,16 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   successMessage: {
-    backgroundColor: theme.colors.emerald100,
+    backgroundColor: '#dcfce7',
   },
   successText: {
-    color: theme.colors.emerald700,
+    color: '#166534',
   },
   errorMessage: {
-    backgroundColor: theme.colors.red100,
+    backgroundColor: '#fee2e2',
   },
   errorText: {
-    color: theme.colors.red700,
+    color: '#991b1b',
   },
   messageText: {
     fontSize: theme.fontSize.sm,
@@ -1173,7 +1224,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: theme.borderRadius.full,
-    backgroundColor: theme.colors.blue,
+    backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.md,
@@ -1224,7 +1275,7 @@ const styles = StyleSheet.create({
     fontSize: theme.fontSize.lg,
     marginRight: theme.spacing.sm,
   },
-  searchInput: {
+  searchBoxInput: {
     flex: 1,
     paddingVertical: theme.spacing.md,
     fontSize: theme.fontSize.base,
@@ -1357,7 +1408,7 @@ const styles = StyleSheet.create({
   recordActions: {
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
-    paddingTopWidth: theme.spacing.md,
+    paddingTop: theme.spacing.md,
     gap: theme.spacing.md,
   },
   mainCard: {
@@ -1455,10 +1506,54 @@ const styles = StyleSheet.create({
   actionBtnDanger: {
     backgroundColor: '#dc2626',
   },
+  actionBtnOutline: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  actionBtnOutlineText: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
   actionBtnText: {
     fontSize: 8,
     fontWeight: '600',
     color: '#fff',
+  },
+  sortScroll: {
+    marginBottom: 12,
+  },
+  sortContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sortLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+    marginRight: 4,
+  },
+  sortPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  sortPillActive: {
+    backgroundColor: '#eff6ff',
+    borderColor: '#3b82f6',
+  },
+  sortPillText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  sortPillTextActive: {
+    color: '#2563eb',
   },
   modalOverlay: {
     flex: 1,
@@ -1625,7 +1720,7 @@ const styles = StyleSheet.create({
   },
   genderOptionSelected: {
     fontWeight: theme.fontWeight.bold,
-    color: theme.colors.blue,
+    color: theme.colors.primary,
   },
   bloodTypeDropdown: {
     backgroundColor: theme.colors.bgTertiary,
@@ -1669,7 +1764,7 @@ const styles = StyleSheet.create({
   },
   bloodTypeOptionSelected: {
     fontWeight: theme.fontWeight.bold,
-    color: theme.colors.blue,
+    color: theme.colors.primary,
   },
   infoBox: {
     backgroundColor: theme.colors.bgTertiary,
@@ -1695,7 +1790,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   optionItemSelected: {
-    backgroundColor: theme.colors.purple100,
+    backgroundColor: '#f3e8ff',
     borderLeftWidth: 4,
     borderLeftColor: theme.colors.purple,
   },

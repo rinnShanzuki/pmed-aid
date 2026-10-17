@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import io, { Socket } from 'socket.io-client';
+import { getSocketURL } from '../config/api.config';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -21,7 +22,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     if (!user || !token) return;
 
     try {
-      const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+      const API_URL = getSocketURL();
       
       const newSocket = io(API_URL, {
         auth: { token },

@@ -4,6 +4,7 @@ declare module 'react-native-vector-icons/MaterialCommunityIcons' {
     name: string;
     size?: number;
     color?: string;
+    style?: any;
   }
   const MaterialCommunityIcons: React.ComponentType<MaterialCommunityIconsProps>;
   export default MaterialCommunityIcons;

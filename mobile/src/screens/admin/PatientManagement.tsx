@@ -23,14 +23,31 @@ interface Patient {
   user?: { email?: string };
 }
 
-export default function PatientManagement() {
+const PATIENT_TABS = [
+  { value: 'all', label: 'All Patients' },
+  { value: 'admitted', label: 'Active / Admitted' },
+  { value: 'pending_admission', label: 'Pending' },
+  { value: 'outpatient', label: 'Outpatient' },
+];
+
+export default function PatientManagement({ route }: any) {
   const navigation = useNavigation<any>();
   const { width, height, isLandscape } = useOrientation();
   const isTablet = width >= 768;
 
+  const targetTab = route?.params?.initialTab || route?.params?.tab || route?.params?.status;
   const [patients, setPatients] = useState<Patient[]>([]);
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState(targetTab || 'all');
   const [loading, setLoading] = useState(true);
+
+  // Sync tab whenever route params change (e.g. from AdminDashboard cards)
+  useEffect(() => {
+    const newTab = route?.params?.initialTab || route?.params?.tab || route?.params?.status;
+    if (newTab) {
+      setActiveTab(newTab);
+    }
+  }, [route?.params?.initialTab, route?.params?.tab, route?.params?.status, route?.params?.timestamp]);
 
   // Responsive column widths
   const minColWidth = 80;
@@ -98,11 +115,43 @@ export default function PatientManagement() {
     );
   }
 
+  // Filter patients by active status tab
+  const filteredPatients = patients.filter((p) => {
+    if (activeTab === 'all') return true;
+    const pType = (p.patient_type || '').toLowerCase();
+    if (activeTab === 'admitted') return pType === 'admitted';
+    if (activeTab === 'pending_admission') return pType === 'pending_admission';
+    if (activeTab === 'outpatient') return pType === 'outpatient';
+    return true;
+  });
+
   return (
     <View style={styles.container}>
-      {/* Header - Single title only */}
+      {/* Header */}
       <View style={styles.header}>
-
+        {/* Status Tabs */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsRow}
+        >
+          {PATIENT_TABS.map((tab) => (
+            <TouchableOpacity
+              key={tab.value}
+              onPress={() => setActiveTab(tab.value)}
+              style={[styles.tab, activeTab === tab.value && styles.tabActive]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.value && styles.tabTextActive,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         <View style={styles.searchContainer}>
           <TextInput
@@ -121,9 +170,9 @@ export default function PatientManagement() {
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#3b82f6" />
         </View>
-      ) : patients.length === 0 ? (
+      ) : filteredPatients.length === 0 ? (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No patients found</Text>
+          <Text style={styles.emptyText}>No patients found in this category</Text>
         </View>
       ) : (
         <ScrollView 
@@ -151,7 +200,7 @@ export default function PatientManagement() {
               </View>
 
               {/* Table Rows */}
-              {patients.map((p, idx) => (
+              {filteredPatients.map((p, idx) => (
                 <View
                   key={p.id}
                   style={[
@@ -269,6 +318,32 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerTitle: { fontSize: 20, fontWeight: '700', color: '#1e293b' },
+
+  // Tabs
+  tabsRow: {
+    gap: 8,
+    paddingBottom: 2,
+  },
+  tab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+  },
+  tabActive: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#3b82f6',
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#64748b',
+  },
+  tabTextActive: {
+    color: '#3b82f6',
+    fontWeight: '700',
+  },
 
   searchContainer: {
     flexDirection: 'row',

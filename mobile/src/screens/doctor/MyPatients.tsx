@@ -19,6 +19,7 @@ interface Patient {
   id: number;
   first_name: string;
   last_name: string;
+  status?: string;
   date_of_birth?: string;
   gender?: string;
   contact_number?: string;
@@ -49,6 +50,7 @@ export default function MyPatients() {
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [search, setSearch] = useState('');
+  const [includeInactive, setIncludeInactive] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Patient detail modal
@@ -64,7 +66,7 @@ export default function MyPatients() {
   const colWidth = Math.max(minColWidth, Math.floor(equalWidth));
   const totalTableWidth = colWidth * numberOfColumns;
   const needsHorizontalScroll = totalTableWidth > availableWidth;
-  
+
   // Responsive column widths based on screen size
   const COL_NAME = Math.max(100, Math.floor(colWidth * 1.2));
   const COL_DOB = colWidth;
@@ -74,12 +76,14 @@ export default function MyPatients() {
 
   useEffect(() => {
     fetchPatients();
-  }, [search]);
+  }, [search, includeInactive]);
 
   async function fetchPatients() {
     try {
       setLoading(true);
-      const { data } = await api.get('/patients', { params: { search } });
+      const { data } = await api.get('/patients', {
+        params: { search, include_inactive: includeInactive },
+      });
       setPatients(data.data || []);
     } catch (err) {
       console.error(err);
@@ -148,9 +152,32 @@ export default function MyPatients() {
                 </Text>
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.patientName}>
-                  {viewData.first_name} {viewData.last_name}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                  <Text style={styles.patientName}>
+                    {viewData.first_name} {viewData.last_name}
+                  </Text>
+                  {viewData.status && (
+                    <View
+                      style={[
+                        styles.modalStatusBadge,
+                        viewData.status === 'active'
+                          ? styles.statusBadgeActive
+                          : styles.statusBadgeInactive,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.modalStatusText,
+                          viewData.status === 'active'
+                            ? styles.statusTextActive
+                            : styles.statusTextInactive,
+                        ]}
+                      >
+                        {viewData.status.toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.patientId}>
                   ID: {viewData.id} • {viewData.gender || '—'}
                 </Text>
@@ -257,14 +284,26 @@ export default function MyPatients() {
   return (
     <ScreenTemplate title="My Patients">
       <View style={styles.container}>
-        {/* Search Bar */}
-
-        <TextInput
-          style={styles.searchInput}
-          placeholder="🔍 Search patients..."
-          value={search}
-          onChangeText={setSearch}
-        />
+        {/* Search & Privacy Filter Controls */}
+        <View style={styles.controlsSection}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="🔍 Search patients..."
+            placeholderTextColor="#94a3b8"
+            value={search}
+            onChangeText={setSearch}
+          />
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            activeOpacity={0.7}
+            onPress={() => setIncludeInactive((prev) => !prev)}
+          >
+            <View style={[styles.checkbox, includeInactive && styles.checkboxActive]}>
+              {includeInactive && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.checkboxLabel}>Include Inactive/Archived Patients</Text>
+          </TouchableOpacity>
+        </View>
 
         {loading ? (
           <ActivityIndicator
@@ -302,12 +341,19 @@ export default function MyPatients() {
                     idx % 2 === 0 && styles.tableRowEven,
                   ]}
                 >
-                  <Text
-                    style={[styles.td, styles.tdName, { width: COL_NAME }]}
-                    numberOfLines={1}
-                  >
-                    {p.first_name} {p.last_name}
-                  </Text>
+                  <View style={[{ width: COL_NAME }, styles.tdNameContainer]}>
+                    <Text
+                      style={[styles.td, styles.tdName]}
+                      numberOfLines={1}
+                    >
+                      {p.first_name} {p.last_name}
+                    </Text>
+                    {p.status === 'inactive' && (
+                      <View style={styles.inactiveBadge}>
+                        <Text style={styles.inactiveBadgeText}>Inactive</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text
                     style={[styles.td, styles.tdMuted, { width: COL_DOB }]}
                     numberOfLines={1}
@@ -358,17 +404,53 @@ export default function MyPatients() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  // Header / search
-  headerRow: { marginBottom: 12 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: '#1e293b' },
+  // Controls section
+  controlsSection: {
+    marginBottom: 16,
+  },
   searchInput: {
     backgroundColor: '#fff',
-    padding: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 8,
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     fontSize: 14,
+    color: '#0f172a',
+    marginBottom: 10,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    alignSelf: 'flex-start',
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#94a3b8',
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  checkboxActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  checkmark: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '800',
+    marginTop: -2,
+  },
+  checkboxLabel: {
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
   },
 
   // Table
@@ -401,7 +483,45 @@ const styles = StyleSheet.create({
   },
   tableRowEven: { backgroundColor: '#fafbfc' },
   td: { fontSize: 14, color: '#1e293b' },
+  tdNameContainer: {
+    justifyContent: 'center',
+  },
   tdName: { fontWeight: '600' },
+  inactiveBadge: {
+    backgroundColor: '#fee2e2',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginTop: 3,
+  },
+  inactiveBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#dc2626',
+    textTransform: 'uppercase',
+  },
+  modalStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  statusBadgeActive: {
+    backgroundColor: '#dcfce7',
+  },
+  statusBadgeInactive: {
+    backgroundColor: '#fee2e2',
+  },
+  modalStatusText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  statusTextActive: {
+    color: '#15803d',
+  },
+  statusTextInactive: {
+    color: '#b91c1c',
+  },
   tdMuted: { fontSize: 13, color: '#64748b' },
 
   // View button

@@ -56,7 +56,8 @@ export default function AdminDashboard() {
       bg: '#eff6ff',
       color: '#3b82f6',
       icon: 'account-multiple',
-      onPress: () => navigation.navigate('PatientManagement'),
+      tabName: 'All Patients',
+      onPress: () => navigation.navigate('PatientManagement', { initialTab: 'all', timestamp: Date.now() }),
     },
     {
       label: 'Active Patients',
@@ -65,7 +66,8 @@ export default function AdminDashboard() {
       bg: '#fdf4ff',
       color: '#d946ef',
       icon: 'hand-heart',
-      onPress: () => navigation.navigate('PatientManagement'),
+      tabName: 'Active Patients',
+      onPress: () => navigation.navigate('PatientManagement', { initialTab: 'admitted', timestamp: Date.now() }),
     },
     {
       label: 'Total Doctors',
@@ -74,7 +76,8 @@ export default function AdminDashboard() {
       bg: '#f0fdf4',
       color: '#22c55e',
       icon: 'doctor',
-      onPress: () => navigation.navigate('UserManagement'),
+      tabName: 'Doctors Tab',
+      onPress: () => navigation.navigate('UserManagement', { initialTab: 'doctor', timestamp: Date.now() }),
     },
     {
       label: 'Total Nurses',
@@ -83,7 +86,8 @@ export default function AdminDashboard() {
       bg: '#fff7ed',
       color: '#f97316',
       icon: 'hospital-box',
-      onPress: () => navigation.navigate('UserManagement'),
+      tabName: 'Nurses Tab',
+      onPress: () => navigation.navigate('UserManagement', { initialTab: 'nurse', timestamp: Date.now() }),
     },
   ];
 
@@ -115,8 +119,14 @@ export default function AdminDashboard() {
                 <Text style={styles.statCardLabel}>{card.label}</Text>
                 <Text style={styles.statCardValue}>{card.value}</Text>
               </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#94a3b8" />
             </View>
-            <Text style={styles.statCardSub}>{card.sub}</Text>
+            <View style={styles.statCardFooter}>
+              <Text style={styles.statCardSub} numberOfLines={1}>{card.sub}</Text>
+              <Text style={[styles.statCardAction, { color: card.color }]}>
+                {card.tabName} →
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </View>
@@ -124,31 +134,50 @@ export default function AdminDashboard() {
       <Text style={styles.pageTitle}>Dashboard Charts</Text>
 
       {/* ── 1. Monthly Medication Adherence Trend (Line) ── */}
-      <View style={styles.chartCard}>
+      <TouchableOpacity
+        style={styles.chartCard}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('ReportsAnalytics')}
+      >
         <View style={styles.chartHeader}>
-          <Text style={styles.chartIcon}>📈</Text>
-          <Text style={styles.chartTitle}>Monthly Medication Adherence Trend</Text>
+          <View style={styles.chartHeaderTitleRow}>
+            <Text style={styles.chartIcon}>📈</Text>
+            <Text style={styles.chartTitle}>Monthly Medication Adherence Trend</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#94a3b8" />
         </View>
         <LineChart data={stats?.adherenceTrend || []} />
-      </View>
+      </TouchableOpacity>
 
       {/* ── 2. Medication Status Distribution (Donut) ── */}
-      <View style={styles.chartCard}>
+      <TouchableOpacity
+        style={styles.chartCard}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('MedicationManagement')}
+      >
         <View style={styles.chartHeader}>
-          <Text style={styles.chartIcon}>📊</Text>
-          <Text style={styles.chartTitle}>Medication Status Distribution</Text>
+          <View style={styles.chartHeaderTitleRow}>
+            <Text style={styles.chartIcon}>📊</Text>
+            <Text style={styles.chartTitle}>Medication Status Distribution</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#94a3b8" />
         </View>
         <DonutChart data={stats?.medicationDistribution || []} />
-      </View>
+      </TouchableOpacity>
 
       {/* ── 3. Patient Admission Trend (Bar with toggle) ── */}
       <View style={styles.chartCard}>
-        <View style={styles.chartHeaderWithToggle}>
+        <TouchableOpacity
+          style={styles.chartHeaderWithToggle}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('ReportsAnalytics')}
+        >
           <View style={styles.chartHeaderLeft}>
             <Text style={styles.chartIcon}>📅</Text>
             <Text style={styles.chartTitle}>Patient Admission Trend</Text>
           </View>
-        </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#94a3b8" />
+        </TouchableOpacity>
 
         {/* Toggle buttons */}
         <View style={styles.toggleBar}>
@@ -177,10 +206,17 @@ export default function AdminDashboard() {
       </View>
 
       {/* ── 4. Overall Medication Adherence (Big % + mini line) ── */}
-      <View style={styles.chartCard}>
+      <TouchableOpacity
+        style={styles.chartCard}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('ReportsAnalytics')}
+      >
         <View style={styles.chartHeader}>
-          <Text style={styles.chartIcon}>📈</Text>
-          <Text style={styles.chartTitle}>Overall Medication Adherence</Text>
+          <View style={styles.chartHeaderTitleRow}>
+            <Text style={styles.chartIcon}>📈</Text>
+            <Text style={styles.chartTitle}>Overall Medication Adherence</Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#94a3b8" />
         </View>
         <Text style={styles.chartSubtext}>
           Current tracking of patient adherence percentage.
@@ -192,7 +228,7 @@ export default function AdminDashboard() {
             <MiniLineChart data={stats?.adherenceTrend || []} />
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -406,7 +442,18 @@ const styles = StyleSheet.create({
   statCardInfo: { flex: 1 },
   statCardLabel: { fontSize: 12, color: '#64748b', marginBottom: 2 },
   statCardValue: { fontSize: 26, fontWeight: '800', color: '#0f172a', lineHeight: 30 },
-  statCardSub: { fontSize: 11, color: '#94a3b8', margin: 0 },
+  statCardSub: { fontSize: 11, color: '#94a3b8', margin: 0, flex: 1 },
+  statCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  statCardAction: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
 
   // Chart card
   chartCard: {
@@ -426,7 +473,13 @@ const styles = StyleSheet.create({
   chartHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  chartHeaderTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   chartHeaderWithToggle: {
     flexDirection: 'row',

@@ -17,7 +17,7 @@ import api from '../../services/api';
 
 export default function PrescriptionDetail() {
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { prescriptionId } = route.params as { prescriptionId: number };
 
   console.log(`PrescriptionDetail mounted/updated with prescriptionId: ${prescriptionId}`);
