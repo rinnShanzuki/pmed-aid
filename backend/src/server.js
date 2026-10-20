@@ -8,11 +8,11 @@ const PORT = process.env.PORT || 5000;
 async function ensureDefaultAccounts() {
   try {
     const testAccounts = [
-      { email: 'admin@hospital.local', password: 'admin123', first_name: 'Admin', last_name: 'User', role: 'admin' },
-      { email: 'infodesk@hospital.local', password: 'infodesk123', first_name: 'Rinn', last_name: 'Espinosa', role: 'info_desk' },
-      { email: 'doctor@hospital.local', password: 'doctor123', first_name: 'Dr. Ruiz', last_name: 'Cruz', role: 'doctor' },
-      { email: 'nurse@hospital.local', password: 'nurse123', first_name: 'Maria', last_name: 'Santos', role: 'nurse' },
-      { email: 'pharmacy@hospital.local', password: 'pharmacy123', first_name: 'Pharm', last_name: 'Manager', role: 'pharmacy' }
+      { email: 'admin@hospital.local', password: 'admin123', first_name: 'System', last_name: 'Admin', role: 'admin' },
+      { email: 'infodesk@hospital.local', password: 'infodesk123', first_name: 'Info Desk', last_name: 'Staff', role: 'info_desk' },
+      { email: 'doctor@hospital.local', password: 'doctor123', first_name: 'Doctor', last_name: 'Staff', role: 'doctor' },
+      { email: 'nurse@hospital.local', password: 'nurse123', first_name: 'Nurse', last_name: 'Staff', role: 'nurse' },
+      { email: 'pharmacy@hospital.local', password: 'pharmacy123', first_name: 'Pharmacy', last_name: 'Staff', role: 'pharmacy' }
     ];
 
     for (const account of testAccounts) {
@@ -22,8 +22,10 @@ async function ensureDefaultAccounts() {
         console.log(`✅ Auto-created account: ${account.email}`);
       } else {
         const isMatch = await existing.comparePassword(account.password);
-        if (!isMatch || !existing.is_active) {
+        if (!isMatch || !existing.is_active || existing.first_name !== account.first_name || existing.last_name !== account.last_name) {
           existing.password = account.password;
+          existing.first_name = account.first_name;
+          existing.last_name = account.last_name;
           existing.is_active = true;
           await existing.save();
           console.log(`✅ Auto-synced credentials for: ${account.email}`);

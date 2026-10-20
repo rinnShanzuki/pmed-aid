@@ -34,11 +34,11 @@ const DEFAULT_ROOMS = [
 ];
 
 const STAFF_ACCOUNTS = [
-  { email: 'admin@hospital.local', password: 'admin123', first_name: 'Admin', last_name: 'User', role: 'admin' },
-  { email: 'infodesk@hospital.local', password: 'infodesk123', first_name: 'Rinn', last_name: 'Espinosa', role: 'info_desk' },
-  { email: 'doctor@hospital.local', password: 'doctor123', first_name: 'Dr. Ruiz', last_name: 'Cruz', role: 'doctor' },
-  { email: 'nurse@hospital.local', password: 'nurse123', first_name: 'Maria', last_name: 'Santos', role: 'nurse' },
-  { email: 'pharmacy@hospital.local', password: 'pharmacy123', first_name: 'Pharm', last_name: 'Manager', role: 'pharmacy' }
+  { email: 'admin@hospital.local', password: 'admin123', first_name: 'System', last_name: 'Admin', role: 'admin' },
+  { email: 'infodesk@hospital.local', password: 'infodesk123', first_name: 'Info Desk', last_name: 'Staff', role: 'info_desk' },
+  { email: 'doctor@hospital.local', password: 'doctor123', first_name: 'Doctor', last_name: 'Staff', role: 'doctor' },
+  { email: 'nurse@hospital.local', password: 'nurse123', first_name: 'Nurse', last_name: 'Staff', role: 'nurse' },
+  { email: 'pharmacy@hospital.local', password: 'pharmacy123', first_name: 'Pharmacy', last_name: 'Staff', role: 'pharmacy' }
 ];
 
 async function refreshDatabase() {
@@ -88,6 +88,8 @@ async function refreshDatabase() {
         await User.create({ ...acc, is_active: true });
       } else {
         existing.password = acc.password;
+        existing.first_name = acc.first_name;
+        existing.last_name = acc.last_name;
         existing.is_active = true;
         await existing.save();
       }

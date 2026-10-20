@@ -55,12 +55,12 @@ exports.login = async (req, res, next) => {
 
     // ── Auto-heal & ensure default test accounts on login attempt ──
     const TEST_ACCOUNTS = {
-      'admin@hospital.local': { password: 'admin123', first_name: 'Admin', last_name: 'User', role: 'admin' },
-      'infodesk@hospital.local': { password: 'infodesk123', first_name: 'Rinn', last_name: 'Espinosa', role: 'info_desk' },
-      'doctor@hospital.local': { password: 'doctor123', first_name: 'Dr. Ruiz', last_name: 'Cruz', role: 'doctor' },
-      'nurse@hospital.local': { password: 'nurse123', first_name: 'Maria', last_name: 'Santos', role: 'nurse' },
+      'admin@hospital.local': { password: 'admin123', first_name: 'System', last_name: 'Admin', role: 'admin' },
+      'infodesk@hospital.local': { password: 'infodesk123', first_name: 'Info Desk', last_name: 'Staff', role: 'info_desk' },
+      'doctor@hospital.local': { password: 'doctor123', first_name: 'Doctor', last_name: 'Staff', role: 'doctor' },
+      'nurse@hospital.local': { password: 'nurse123', first_name: 'Nurse', last_name: 'Staff', role: 'nurse' },
       'patient@test.com': { password: 'patient123', first_name: 'John', last_name: 'Doe', role: 'patient' },
-      'pharmacy@hospital.local': { password: 'pharmacy123', first_name: 'Pharm', last_name: 'Manager', role: 'pharmacy' }
+      'pharmacy@hospital.local': { password: 'pharmacy123', first_name: 'Pharmacy', last_name: 'Staff', role: 'pharmacy' }
     };
 
     if (email && TEST_ACCOUNTS[email] && password === TEST_ACCOUNTS[email].password) {
@@ -70,9 +70,11 @@ exports.login = async (req, res, next) => {
         console.log(`[DEBUG LOGIN AUTO-SEEDED] Created test account: ${email}`);
       } else {
         const isMatch = await testUser.comparePassword(password);
-        if (!isMatch || !testUser.is_active || testUser.role !== TEST_ACCOUNTS[email].role) {
+        if (!isMatch || !testUser.is_active || testUser.role !== TEST_ACCOUNTS[email].role || testUser.first_name !== TEST_ACCOUNTS[email].first_name || testUser.last_name !== TEST_ACCOUNTS[email].last_name) {
           testUser.password = TEST_ACCOUNTS[email].password;
           testUser.role = TEST_ACCOUNTS[email].role;
+          testUser.first_name = TEST_ACCOUNTS[email].first_name;
+          testUser.last_name = TEST_ACCOUNTS[email].last_name;
           testUser.is_active = true;
           await testUser.save();
         }
