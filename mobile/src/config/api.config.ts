@@ -129,7 +129,7 @@ export const getBaseURL = (): string => {
     return `http://${API_CONFIG.LOCAL_IP}:${API_CONFIG.PORT}/api`;
   }
 
-  return 'https://your-production-api.com/api';
+  return 'https://pmed.rvrnn.online/api';
 };
 
 /**
@@ -144,7 +144,7 @@ export const getSocketURL = (): string => {
     return `http://${API_CONFIG.LOCAL_IP}:${API_CONFIG.PORT}`;
   }
 
-  return 'https://your-production-api.com';
+  return 'https://pmed.rvrnn.online';
 };
 
 /**
