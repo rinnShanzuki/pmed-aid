@@ -4,15 +4,6 @@ import api from '../../services/api';
 import { useRealtimeSync } from '../../contexts/RealtimeSyncContext';
 import { Search, Plus, Pencil, X, BedDouble, UserCheck, LogOut as DischargeIcon, User, QrCode, CheckCircle, Clock, ClipboardList, FileText } from 'lucide-react';
 
-// Helper function to format date input as MM/DD/YYYY
-function formatDateInput(value) {
-  // Remove non-digits
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 0) return '';
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
-}
 
 const PRESCRIPTION_CSS = `
 /* --- Screen preview wrapper --- */
@@ -567,12 +558,11 @@ export default function AdmissionManagement() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div><label style={lbl}>Date of Birth</label>
                   <input
-                    type="text"
+                    type="date"
                     style={inp}
-                    value={formatDateInput(patientForm.date_of_birth)}
-                    onChange={e => setPatientForm({ ...patientForm, date_of_birth: formatDateInput(e.target.value) })}
-                    placeholder="MM/DD/YYYY"
-                    maxLength="10"
+                    max={new Date().toISOString().split('T')[0]}
+                    value={patientForm.date_of_birth || ''}
+                    onChange={e => setPatientForm({ ...patientForm, date_of_birth: e.target.value })}
                   />
                 </div>
                 <div><label style={lbl}>Gender</label>

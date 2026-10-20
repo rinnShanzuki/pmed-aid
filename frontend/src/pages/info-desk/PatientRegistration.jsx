@@ -9,15 +9,6 @@ const INITIAL_FORM = {
   emergency_contact_number: '', blood_type: '', allergies: ''
 };
 
-// Helper function to format date input as MM/DD/YYYY
-function formatDateInput(value) {
-  // Remove non-digits
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 0) return '';
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
-}
 
 // Helper function to convert MM/DD/YYYY to YYYY-MM-DD for date input
 function formatToDateInput(dateString) {
@@ -195,12 +186,11 @@ export default function PatientRegistration() {
                   <div><label style={lbl}>Last Name *</label><input style={inp} value={form.last_name} onChange={e => setForm({ ...form, last_name: e.target.value })} required /></div>
                   <div><label style={lbl}>Date of Birth *</label>
                     <input
-                      type="text"
+                      type="date"
                       style={inp}
-                      value={formatDateInput(form.date_of_birth)}
-                      onChange={e => setForm({ ...form, date_of_birth: formatDateInput(e.target.value) })}
-                      placeholder="MM/DD/YYYY"
-                      maxLength="10"
+                      max={new Date().toISOString().split('T')[0]}
+                      value={form.date_of_birth || ''}
+                      onChange={e => setForm({ ...form, date_of_birth: e.target.value })}
                     />
                   </div>
                   <div><label style={lbl}>Gender *</label>
