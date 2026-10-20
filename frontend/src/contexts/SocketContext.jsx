@@ -27,7 +27,8 @@ export const SocketProvider = ({ children }) => {
 
     if (!token) return;
 
-    const newSocket = io('http://localhost:5000', {
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || (import.meta.env.PROD ? '/' : 'http://localhost:5000');
+    const newSocket = io(socketUrl, {
       withCredentials: true,
       auth: { token }
     });

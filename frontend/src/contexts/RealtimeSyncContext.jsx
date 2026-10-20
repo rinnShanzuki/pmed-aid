@@ -14,7 +14,8 @@ export function RealtimeSyncProvider({ children }) {
   useEffect(() => {
     if (!user || !token) return;
 
-    const newSocket = io(process.env.REACT_APP_API_URL || 'http://localhost:5000', {
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || (import.meta.env.PROD ? '/' : 'http://localhost:5000');
+    const newSocket = io(socketUrl, {
       auth: { token },
       reconnection: true,
       reconnectionDelay: 1000,
