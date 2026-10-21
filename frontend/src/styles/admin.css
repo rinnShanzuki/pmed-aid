@@ -1054,6 +1054,22 @@
 }
 
 /* ─── Responsive & Mobile Sidebar ─────────────────────────── */
+body.sidebar-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+}
+
+body.sidebar-open .admin-main,
+body.sidebar-open .content-area,
+body.sidebar-open .admin-content,
+body.sidebar-open .info-desk-main,
+body.sidebar-open .doc-main,
+body.sidebar-open .nurse-main {
+  overflow: hidden !important;
+  touch-action: none !important;
+  pointer-events: none !important;
+}
+
 .mobile-menu-btn {
   display: none;
 }
@@ -1065,6 +1081,8 @@
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(4px);
   z-index: 90;
+  touch-action: none !important;
+  overscroll-behavior: contain !important;
 }
 
 .sidebar-close-btn {
@@ -1090,11 +1108,19 @@
     top: 0;
     left: 0;
     bottom: 0;
+    height: 100%;
+    height: 100dvh;
     width: 280px;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
     box-shadow: 0 0 25px rgba(0, 0, 0, 0.35);
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+    pointer-events: auto !important;
   }
 
   .admin-sidebar.open {
@@ -1104,6 +1130,8 @@
   .admin-sidebar-overlay {
     display: block;
     z-index: 999;
+    touch-action: none !important;
+    overscroll-behavior: contain !important;
   }
 
   .admin-main {

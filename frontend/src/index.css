@@ -1,8 +1,8 @@
-/* PMed-Aid v1.0.3 - Responsive Stat Cards */
+/* PMed-Aid v1.0.4 - Sidebar scroll lock update */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 body::after {
-  content: "v1.0.3";
+  content: "v1.0.4";
   display: none;
 }
 

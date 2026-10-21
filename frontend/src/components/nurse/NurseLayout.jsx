@@ -60,6 +60,23 @@ export default function NurseLayout() {
     return current ? current.label : 'Nurse Portal';
   };
 
+  // Lock background scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isSidebarOpen) {
+      document.body.classList.add('sidebar-open');
+    } else {
+      document.body.classList.remove('sidebar-open');
+    }
+    return () => {
+      document.body.classList.remove('sidebar-open');
+    };
+  }, [isSidebarOpen]);
+
+  // Close sidebar on navigation
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
   const initials = user
     ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase()
     : 'N';
@@ -68,7 +85,11 @@ export default function NurseLayout() {
     <div className="admin-layout">
       {/* ── Mobile Sidebar Overlay ── */}
       {isSidebarOpen && (
-        <div className="admin-sidebar-overlay" onClick={closeSidebar} />
+        <div
+          className="admin-sidebar-overlay"
+          onClick={closeSidebar}
+          onTouchMove={(e) => e.preventDefault()}
+        />
       )}
 
       {/* ── Sidebar ── */}

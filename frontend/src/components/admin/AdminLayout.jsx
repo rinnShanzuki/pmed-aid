@@ -40,6 +40,18 @@ export default function AdminLayout() {
     setIsSidebarOpen(false);
   }, [location.pathname]);
 
+  // Lock background scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isSidebarOpen) {
+      document.body.classList.add('sidebar-open');
+    } else {
+      document.body.classList.remove('sidebar-open');
+    }
+    return () => {
+      document.body.classList.remove('sidebar-open');
+    };
+  }, [isSidebarOpen]);
+
   const getPageTitle = () => {
     const current = navItems.find(item => {
       if (!item.to) return false;
@@ -55,6 +67,7 @@ export default function AdminLayout() {
         <div
           className="admin-sidebar-overlay"
           onClick={() => setIsSidebarOpen(false)}
+          onTouchMove={(e) => e.preventDefault()}
         />
       )}
 

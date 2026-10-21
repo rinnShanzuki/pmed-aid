@@ -297,6 +297,8 @@
   background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(4px);
   z-index: 90;
+  touch-action: none !important;
+  overscroll-behavior: contain !important;
 }
 
 .sidebar-close-btn {
@@ -317,11 +319,18 @@
     top: 0;
     left: 0;
     height: 100vh;
+    height: 100dvh;
     width: 280px;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 1000;
     box-shadow: 0 0 25px rgba(0, 0, 0, 0.35);
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+    pointer-events: auto !important;
   }
 
   .nurse-sidebar.open {
@@ -331,6 +340,8 @@
   .nurse-sidebar-overlay {
     display: block;
     z-index: 999;
+    touch-action: none !important;
+    overscroll-behavior: contain !important;
   }
 
   .nurse-main {

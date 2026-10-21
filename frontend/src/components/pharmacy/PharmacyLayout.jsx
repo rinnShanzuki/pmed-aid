@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -15,6 +15,23 @@ export default function PharmacyLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Lock background scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isSidebarOpen) {
+      document.body.classList.add('sidebar-open');
+    } else {
+      document.body.classList.remove('sidebar-open');
+    }
+    return () => {
+      document.body.classList.remove('sidebar-open');
+    };
+  }, [isSidebarOpen]);
+
+  // Close sidebar on navigation
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     navigate('/login', { replace: true, state: {} });
@@ -38,7 +55,11 @@ export default function PharmacyLayout() {
     <div className="info-desk-layout">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div className="info-desk-sidebar-overlay" onClick={closeSidebar} />
+        <div
+          className="info-desk-sidebar-overlay"
+          onClick={closeSidebar}
+          onTouchMove={(e) => e.preventDefault()}
+        />
       )}
 
       {/* Sidebar */}

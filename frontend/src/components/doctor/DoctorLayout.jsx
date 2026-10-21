@@ -20,6 +20,23 @@ export default function DoctorLayout() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Lock background scroll when mobile sidebar is open
+  useEffect(() => {
+    if (isSidebarOpen) {
+      document.body.classList.add('sidebar-open');
+    } else {
+      document.body.classList.remove('sidebar-open');
+    }
+    return () => {
+      document.body.classList.remove('sidebar-open');
+    };
+  }, [isSidebarOpen]);
+
+  // Close sidebar on navigation
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
+
   const handleLogout = async () => {
     navigate('/login', { replace: true, state: {} });
     await logout();
@@ -54,6 +71,7 @@ export default function DoctorLayout() {
         <div
           className="admin-sidebar-overlay"
           onClick={closeSidebar}
+          onTouchMove={(e) => e.preventDefault()}
         />
       )}
 
