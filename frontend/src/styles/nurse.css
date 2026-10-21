@@ -130,19 +130,40 @@
 
 .nurse-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1024px) {
+  .nurse-stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .nurse-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .nurse-stat-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 
 .nurse-stat-card {
   background: white;
   border-radius: 12px;
-  padding: 24px;
+  padding: 18px 16px;
   border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 

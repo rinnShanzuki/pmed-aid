@@ -45,21 +45,21 @@ function StatusBadge({ status }) {
 // ─── Stat Card ─────────────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, bg, color }) {
   return (
-    <div className="id-card" style={{ margin: 0, padding: '20px 24px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+    <div className="id-card" style={{ margin: 0, padding: '16px 14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
-          width: 48, height: 48, borderRadius: 12,
+          width: 40, height: 40, borderRadius: 10,
           background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
         }}>
           {icon}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginBottom: 2 }}>{label}</div>
-          <div style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{value}</div>
+          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{value}</div>
         </div>
       </div>
-      {sub && <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 8 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
     </div>
   );
 }
@@ -198,8 +198,7 @@ export default function GeneralDashboard() {
           </button>
         </div>
 
-        {/* ════ SECTION 1 — Top Summary Bar ════ */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 16, marginBottom: 28 }}>
+        <div className="monitoring-stats-grid">
           <StatCard
             icon={<BedDouble size={24} />} label="Total Confined" value={s.totalConfined}
             sub="Currently admitted patients" bg="#eff6ff" color="#3b82f6"

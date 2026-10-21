@@ -83,17 +83,17 @@ export default function AdminDashboard() {
       {/* ── Stat Cards ── */}
       <div className="stats-grid">
         {statCards.map((card) => (
-          <div className="stat-card" key={card.label} style={{ flexDirection: 'column', padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-              <div className="stat-card-icon" style={{ background: card.bg, color: card.color }}>
+          <div className="stat-card" key={card.label} style={{ flexDirection: 'column', padding: '18px 16px', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+              <div className="stat-card-icon" style={{ background: card.bg, color: card.color, width: 44, height: 44, borderRadius: 12, flexShrink: 0 }}>
                 {card.icon}
               </div>
-              <div className="stat-card-info" style={{ flex: 1 }}>
-                <label style={{ fontSize: '0.85rem' }}>{card.label}</label>
-                <span className="stat-value" style={{ fontSize: '2rem' }}>{card.value}</span>
+              <div className="stat-card-info" style={{ flex: 1, minWidth: 0 }}>
+                <label style={{ fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.label}</label>
+                <span className="stat-value" style={{ fontSize: '1.9rem', lineHeight: 1.1 }}>{card.value}</span>
               </div>
             </div>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>{card.sub}</p>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.sub}</p>
           </div>
         ))}
       </div>

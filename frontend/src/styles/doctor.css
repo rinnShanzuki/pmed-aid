@@ -40,20 +40,41 @@
 /* Stat card grid for doctor dashboard */
 .doc-stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1024px) {
+  .doc-stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .doc-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 420px) {
+  .doc-stat-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
 }
 
 .doc-stat-card {
   background: white;
   border-radius: 14px;
-  padding: 24px;
+  padding: 18px 16px;
   border: 1px solid #f1f5f9;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   transition: box-shadow 0.2s, transform 0.2s;
 }
 
