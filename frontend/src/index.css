@@ -1,4 +1,10 @@
+/* PMed-Aid v1.0.3 - Responsive Stat Cards */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+body::after {
+  content: "v1.0.3";
+  display: none;
+}
 
 *, *::before, *::after {
   box-sizing: border-box;
