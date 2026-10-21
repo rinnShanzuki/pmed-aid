@@ -226,7 +226,16 @@ exports.qrBind = async (req, res, next) => {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { code, email, first_name, last_name, google_id, password } = req.body;
+    let { code, email, first_name, last_name, google_id, password } = req.body;
+    if (code && typeof code === 'string') {
+      code = code.trim();
+      if (code.includes('code=')) {
+        try {
+          const parsed = new URL(code, 'http://dummy.local');
+          code = parsed.searchParams.get('code') || code;
+        } catch (_) {}
+      }
+    }
 
     // Verify QR exists and is not already bound
     const qrCode = await QrCode.findOne({ where: { code }, include: [{ association: 'patient' }] });

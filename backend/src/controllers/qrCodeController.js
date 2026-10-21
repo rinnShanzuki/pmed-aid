@@ -22,7 +22,16 @@ exports.scan = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-    const { code } = req.body;
+    let { code } = req.body;
+    if (code && typeof code === 'string') {
+      code = code.trim();
+      if (code.includes('code=')) {
+        try {
+          const parsed = new URL(code, 'http://dummy.local');
+          code = parsed.searchParams.get('code') || code;
+        } catch (_) {}
+      }
+    }
 
     const qrCode = await QrCode.findOne({
       where: { code },
@@ -60,7 +69,16 @@ exports.scan = async (req, res, next) => {
 
 exports.verify = async (req, res, next) => {
   try {
-    const { code } = req.body;
+    let { code } = req.body;
+    if (code && typeof code === 'string') {
+      code = code.trim();
+      if (code.includes('code=')) {
+        try {
+          const parsed = new URL(code, 'http://dummy.local');
+          code = parsed.searchParams.get('code') || code;
+        } catch (_) {}
+      }
+    }
     const qrCode = await QrCode.findOne({
       where: { code },
       include: [{ model: Patient, as: 'patient', attributes: ['first_name', 'last_name', 'email'] }],

@@ -11,11 +11,19 @@ export default function QrScanner() {
 
   async function processQrCode(qrString) {
     if (!qrString || !qrString.trim()) return;
+    let cleanCode = qrString.trim();
+    if (cleanCode.includes('code=')) {
+      try {
+        const parsed = new URL(cleanCode, window.location.origin);
+        cleanCode = parsed.searchParams.get('code') || cleanCode;
+      } catch (_) {}
+    }
+
     try {
       setLoading(true);
       setError('');
       setResult(null);
-      const { data } = await api.post('/qr-codes/scan', { code: qrString.trim() });
+      const { data } = await api.post('/qr-codes/scan', { code: cleanCode });
 
       // We got the patient, now fetch their pending schedules for today
       const schedRes = await api.get('/schedules/patient/' + data.data.patient.id, { params: { status: 'pending' } });

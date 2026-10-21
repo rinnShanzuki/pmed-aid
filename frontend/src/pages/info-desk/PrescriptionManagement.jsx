@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../../services/api';
-import { Search, Plus, Printer, X, FileSignature, Eye, QrCode, ArrowLeft, Send, Stethoscope, Clock, User } from 'lucide-react';
+import { Search, Plus, Printer, X, FileSignature, Eye, QrCode, ArrowLeft, Send, Stethoscope, Clock, User, Copy, Check, ExternalLink } from 'lucide-react';
 
 const PRESCRIPTION_CSS = `
 /* --- Screen preview wrapper --- */
@@ -1025,6 +1025,7 @@ function ViewQrSection({ viewData }) {
   const [qrImage, setQrImage] = useState(null);
   const [qrCode, setQrCode] = useState('');
   const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!viewData?.patient_id || !viewData?.id) return;
@@ -1044,15 +1045,48 @@ function ViewQrSection({ viewData }) {
   if (loading) return <div style={{ textAlign: 'center', padding: 32, color: '#64748b' }}>Loading QR code...</div>;
   if (!qrImage) return null;
 
+  const registrationUrl = `${window.location.origin}/register?code=${qrCode}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(registrationUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div style={{ borderTop: '2px solid #f1f5f9', paddingTop: 32 }}>
-      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 16 }}>Patient QR Code</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 32, padding: 24, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-        <img src={qrImage} alt="Patient QR Code" style={{ width: 160, height: 160, borderRadius: 8, border: '1px solid #e2e8f0' }} />
-        <div>
-          <div style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', marginBottom: 8 }}>Scan this QR code to verify patient and medication</div>
-          <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 4 }}>This code is unique to this prescription and patient. The nurse scans it to pull up pending medications and confirm administration.</div>
-          <div style={{ fontSize: '0.75rem', color: '#94a3b8', wordBreak: 'break-all', marginTop: 12, fontFamily: 'monospace' }}>{qrCode}</div>
+      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 16 }}>Patient Portal QR Code & Account Binding</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 32, padding: 24, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+        <div style={{ textAlign: 'center' }}>
+          <img src={qrImage} alt="Patient QR Code" style={{ width: 160, height: 160, borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff' }} />
+          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 6, fontWeight: 500 }}>Scan with Phone Camera</div>
+        </div>
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+            Scan to Open Registration & Link Account
+          </div>
+          <div style={{ fontSize: '0.86rem', color: '#475569', lineHeight: 1.5, marginBottom: 14 }}>
+            Scanning this QR code with any smartphone camera automatically opens the patient portal sign-up form with Google One-Tap or Email registration to link their hospital records.
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#fff', fontSize: '0.82rem', fontWeight: 600, color: '#0f172a', cursor: 'pointer' }}
+            >
+              {copied ? <Check size={14} color="#16a34a" /> : <Copy size={14} />}
+              {copied ? 'Link Copied!' : 'Copy Portal Link'}
+            </button>
+            <a
+              href={registrationUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 6, background: '#0284c7', color: '#fff', fontSize: '0.82rem', fontWeight: 600, textDecoration: 'none' }}
+            >
+              <ExternalLink size={14} /> Open Sign-Up Form
+            </a>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: '#94a3b8', wordBreak: 'break-all', fontFamily: 'monospace' }}>Code: {qrCode}</div>
         </div>
       </div>
     </div>
