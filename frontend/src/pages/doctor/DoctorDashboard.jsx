@@ -24,28 +24,28 @@ export default function DoctorDashboard() {
   const myPatients = patients.filter(a => String(a.attending_doctor_id) === String(user?.id));
 
   const statCards = [
-    { label: "Today's Patients", value: myPatients.length, icon: <Users size={22} />, bg: '#eff6ff', color: '#3b82f6' },
-    { label: 'Active Admissions', value: stats?.active_admissions || 0, icon: <BedDouble size={22} />, bg: '#f0fdf4', color: '#22c55e' },
-    { label: 'Active Prescriptions', value: stats?.active_prescriptions || 0, icon: <Pill size={22} />, bg: '#fdf4ff', color: '#a855f7' },
-    { label: 'Overdue Medications', value: stats?.overdue_count || 0, icon: <AlertTriangle size={22} />, bg: '#fff7ed', color: '#f97316' },
+    { label: "Today's Patients", value: myPatients.length, icon: <Users size={20} />, bg: '#eff6ff', color: '#3b82f6' },
+    { label: 'Active Admissions', value: stats?.active_admissions || 0, icon: <BedDouble size={20} />, bg: '#f0fdf4', color: '#22c55e' },
+    { label: 'Active Prescriptions', value: stats?.active_prescriptions || 0, icon: <Pill size={20} />, bg: '#fdf4ff', color: '#a855f7' },
+    { label: 'Overdue Medications', value: stats?.overdue_count || 0, icon: <AlertTriangle size={20} />, bg: '#fff7ed', color: '#f97316' },
   ];
 
   return (
-    <div>
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+    <div style={{ width: '100%', minWidth: 0 }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
           Welcome, {user?.last_name}
         </h2>
-        <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>Here's your overview for today.</p>
+        <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.88rem' }}>Here's your overview for today.</p>
       </div>
 
       <div className="doc-stat-grid">
         {statCards.map(c => (
-          <div className="doc-stat-card" key={c.label}>
+          <div className="doc-stat-card hover-card" key={c.label}>
             <div className="doc-stat-icon" style={{ background: c.bg, color: c.color }}>{c.icon}</div>
             <div className="doc-stat-content">
               <h3>{c.value}</h3>
-              <p>{c.label}</p>
+              <p title={c.label}>{c.label}</p>
             </div>
           </div>
         ))}

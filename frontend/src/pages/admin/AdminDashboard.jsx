@@ -44,7 +44,7 @@ export default function AdminDashboard() {
       label: 'Total Patients',
       value: stats?.totalPatients ?? 0,
       sub: 'Total registered patients',
-      icon: <Users size={22} />,
+      icon: <Users size={20} />,
       bg: '#eff6ff',
       color: '#3b82f6',
     },
@@ -52,7 +52,7 @@ export default function AdminDashboard() {
       label: 'Active Patients',
       value: stats?.activePatients ?? 0,
       sub: 'Currently admitted patients',
-      icon: <Activity size={22} />,
+      icon: <Activity size={20} />,
       bg: '#fdf4ff',
       color: '#d946ef',
     },
@@ -60,7 +60,7 @@ export default function AdminDashboard() {
       label: 'Total Doctors',
       value: stats?.totalDoctors ?? 0,
       sub: 'Registered doctors',
-      icon: <Stethoscope size={22} />,
+      icon: <Stethoscope size={20} />,
       bg: '#f0fdf4',
       color: '#22c55e',
     },
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
       label: 'Total Nurses',
       value: stats?.totalNurses ?? 0,
       sub: 'Registered nurses',
-      icon: <HeartPulse size={22} />,
+      icon: <HeartPulse size={20} />,
       bg: '#fff7ed',
       color: '#f97316',
     },
@@ -76,24 +76,24 @@ export default function AdminDashboard() {
 
   return (
     <>
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>Top KPI Cards</h2>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e293b' }}>Top KPI Cards</h2>
       </div>
 
       {/* ── Stat Cards ── */}
       <div className="stats-grid">
         {statCards.map((card) => (
-          <div className="stat-card" key={card.label} style={{ flexDirection: 'column', padding: '18px 16px', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-              <div className="stat-card-icon" style={{ background: card.bg, color: card.color, width: 44, height: 44, borderRadius: 12, flexShrink: 0 }}>
+          <div className="stat-card-responsive hover-card" key={card.label}>
+            <div className="stat-card-top">
+              <div className="stat-card-icon-box" style={{ background: card.bg, color: card.color }}>
                 {card.icon}
               </div>
-              <div className="stat-card-info" style={{ flex: 1, minWidth: 0 }}>
-                <label style={{ fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.label}</label>
-                <span className="stat-value" style={{ fontSize: '1.9rem', lineHeight: 1.1 }}>{card.value}</span>
+              <div className="stat-card-text">
+                <label className="stat-card-label" title={card.label}>{card.label}</label>
+                <div className="stat-card-value">{card.value}</div>
               </div>
             </div>
-            <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.sub}</p>
+            {card.sub && <p className="stat-card-sub" title={card.sub}>{card.sub}</p>}
           </div>
         ))}
       </div>

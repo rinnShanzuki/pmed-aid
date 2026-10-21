@@ -15,10 +15,10 @@ export default function InfoDeskDashboard() {
   }, []);
 
   const statCards = [
-    { label: 'New Admissions Today', value: stats.newAdmissions, sub: 'Patients admitted today', icon: <BedDouble size={24} />, bg: '#eff6ff', color: '#3b82f6', route: '/info-desk/admissions', state: { tab: 'admitted', filter: 'today' } },
-    { label: 'Total Active Patients', value: stats.activePatients, sub: 'Currently in rooms', icon: <Users size={24} />, bg: '#fdf4ff', color: '#d946ef', route: '/info-desk/monitoring' },
-    { label: 'Recent Prescriptions', value: stats.recentPrescriptions, sub: 'Encoded in the last 7 days', icon: <FileSignature size={24} />, bg: '#f0fdf4', color: '#22c55e', route: '/info-desk/prescriptions', state: { tab: 'all', filter: 'recent' } },
-    { label: 'Pending Admissions', value: stats.pendingAdmissions, sub: 'Require room assignment', icon: <Clock size={24} />, bg: '#fff7ed', color: '#f97316', route: '/info-desk/admissions', state: { tab: 'pending_admissions' } },
+    { label: 'New Admissions Today', value: stats.newAdmissions, sub: 'Patients admitted today', icon: <BedDouble size={20} />, bg: '#eff6ff', color: '#3b82f6', route: '/info-desk/admissions', state: { tab: 'admitted', filter: 'today' } },
+    { label: 'Total Active Patients', value: stats.activePatients, sub: 'Currently in rooms', icon: <Users size={20} />, bg: '#fdf4ff', color: '#d946ef', route: '/info-desk/monitoring' },
+    { label: 'Recent Prescriptions', value: stats.recentPrescriptions, sub: 'Encoded in last 7 days', icon: <FileSignature size={20} />, bg: '#f0fdf4', color: '#22c55e', route: '/info-desk/prescriptions', state: { tab: 'all', filter: 'recent' } },
+    { label: 'Pending Admissions', value: stats.pendingAdmissions, sub: 'Require room assignment', icon: <Clock size={20} />, bg: '#fff7ed', color: '#f97316', route: '/info-desk/admissions', state: { tab: 'pending_admissions' } },
   ];
 
   const admissionTrendData = stats.admissionTrend && stats.admissionTrend.length > 0
@@ -40,50 +40,39 @@ export default function InfoDeskDashboard() {
   const COLORS = ['#3b82f6', '#22c55e', '#f97316'];
 
   return (
-    <div>
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>Overview</h2>
-        <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>Welcome to the Information Desk Portal.</p>
+    <div style={{ width: '100%', minWidth: 0 }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e293b' }}>Overview</h2>
+        <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.88rem' }}>Welcome to the Information Desk Portal.</p>
       </div>
 
       <div className="id-stats-grid">
         {statCards.map((card) => (
           <div
-            className="id-card hover-card"
+            className="stat-card-responsive hover-card"
             key={card.label}
-            style={{
-              marginBottom: 0,
-              padding: '20px 18px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease-in-out',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}
             onClick={() => navigate(card.route, { state: card.state })}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'; }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '14px' }}>
-              <div style={{ background: card.bg, color: card.color, width: 44, height: 44, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className="stat-card-top">
+              <div className="stat-card-icon-box" style={{ background: card.bg, color: card.color }}>
                 {card.icon}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <label style={{ fontSize: '0.82rem', color: '#64748b', fontWeight: 600, display: 'block', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.label}</label>
-                <div style={{ fontSize: '2.1rem', fontWeight: 800, color: '#1e293b', lineHeight: 1.1, marginTop: 2 }}>{card.value}</div>
+              <div className="stat-card-text">
+                <label className="stat-card-label" title={card.label}>{card.label}</label>
+                <div className="stat-card-value">{card.value}</div>
               </div>
             </div>
-            <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.sub}</p>
+            <p className="stat-card-sub" title={card.sub}>{card.sub}</p>
           </div>
         ))}
       </div>
 
       {/* ── Medication Adherence Trend (Line Chart) ── */}
-      <div className="id-card" style={{ marginTop: 28 }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', color: '#0f172a' }}>Medication Adherence Trend</h3>
-        <p style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: 24 }}>7-day movement of medication adherence — given on time vs. overdue / missed doses.</p>
-        <div style={{ width: '100%', height: 320 }}>
-          <ResponsiveContainer>
+      <div className="id-card" style={{ marginTop: 24, minWidth: 0, width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+        <h3 style={{ margin: '0 0 12px 0', fontSize: '1.05rem', color: '#0f172a' }}>Medication Adherence Trend</h3>
+        <p style={{ color: '#64748b', fontSize: '0.82rem', marginBottom: 20 }}>7-day movement of medication adherence — given on time vs. overdue / missed doses.</p>
+        <div style={{ width: '100%', height: 300, minWidth: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
             <LineChart data={stats.adherenceTrend.length > 0 ? stats.adherenceTrend : [{ date: '—', givenPct: 0, overduePct: 0 }]} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
               <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
@@ -103,6 +92,7 @@ export default function InfoDeskDashboard() {
           </ResponsiveContainer>
         </div>
       </div>
+
 
       <div className="id-charts-grid">
         <div className="id-card" style={{ marginBottom: 0 }}>

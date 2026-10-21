@@ -421,10 +421,100 @@
 /* ─── Info Desk Stat Cards & Charts Grid ───────────────────── */
 .id-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 24px;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stat-card-responsive {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.stat-card-responsive:hover {
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.stat-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  min-width: 0;
+  width: 100%;
+}
+
+.stat-card-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.stat-card-icon-box svg {
+  width: 20px;
+  height: 20px;
+}
+
+.stat-card-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.stat-card-label {
+  font-size: clamp(0.68rem, 0.92vw, 0.78rem);
+  color: #64748b;
+  font-weight: 600;
+  display: block;
+  line-height: 1.2;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  min-height: 2.4em;
+}
+
+.stat-card-value {
+  font-size: clamp(1.35rem, 1.75vw, 1.85rem);
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  margin-top: 2px;
+  letter-spacing: -0.02em;
+}
+
+.stat-card-sub {
+  margin: 0;
+  font-size: clamp(0.62rem, 0.82vw, 0.72rem);
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  line-height: 1.2;
 }
 
 .id-charts-grid {
@@ -437,56 +527,133 @@
 
 @media (max-width: 1024px) {
   .id-stats-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    margin-bottom: 18px !important;
+  }
+
+  .stat-card-responsive {
+    padding: 10px 8px !important;
+    border-radius: 10px !important;
+  }
+
+  .stat-card-top {
+    gap: 6px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .stat-card-icon-box {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+  }
+
+  .stat-card-icon-box svg {
+    width: 17px !important;
+    height: 17px !important;
+  }
+
+  .stat-card-label {
+    font-size: 0.7rem !important;
+    line-height: 1.2 !important;
+    min-height: 2.4em !important;
+  }
+
+  .stat-card-value {
+    font-size: 1.45rem !important;
+  }
+
+  .stat-card-sub {
+    font-size: 0.65rem !important;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .id-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 6px !important;
   }
+
+  .stat-card-responsive {
+    padding: 8px 6px !important;
+  }
+
+  .stat-card-top {
+    gap: 5px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .stat-card-icon-box {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 6px !important;
+  }
+
+  .stat-card-icon-box svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+
+  .stat-card-label {
+    font-size: 0.64rem !important;
+    line-height: 1.15 !important;
+    min-height: 2.3em !important;
+  }
+
+  .stat-card-value {
+    font-size: 1.25rem !important;
+  }
+
+  .stat-card-sub {
+    font-size: 0.6rem !important;
+  }
+
   .id-charts-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
   .id-stats-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .stat-card-responsive {
+    padding: 10px 8px !important;
   }
 }
 
 /* ─── 5-Column Monitoring Stats Grid ──────────────────────── */
 .monitoring-stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
   margin-bottom: 24px;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 1024px) {
   .monitoring-stats-grid {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 6px !important;
   }
 }
 
 @media (max-width: 768px) {
   .monitoring-stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
   }
 }
 
 @media (max-width: 480px) {
   .monitoring-stats-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
   }
 }
 

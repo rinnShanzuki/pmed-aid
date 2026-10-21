@@ -45,21 +45,17 @@ function StatusBadge({ status }) {
 // ─── Stat Card ─────────────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, bg, color }) {
   return (
-    <div className="id-card" style={{ margin: 0, padding: '16px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: 10,
-          background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
-        }}>
+    <div className="stat-card-responsive hover-card" style={{ margin: 0 }}>
+      <div className="stat-card-top">
+        <div className="stat-card-icon-box" style={{ background: bg, color }}>
           {icon}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 600, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{value}</div>
+        <div className="stat-card-text">
+          <label className="stat-card-label" title={label}>{label}</label>
+          <div className="stat-card-value">{value}</div>
         </div>
       </div>
-      {sub && <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</div>}
+      {sub && <p className="stat-card-sub" title={sub}>{sub}</p>}
     </div>
   );
 }

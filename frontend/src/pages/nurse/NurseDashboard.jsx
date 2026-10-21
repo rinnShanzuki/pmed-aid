@@ -24,28 +24,28 @@ export default function NurseDashboard() {
   const myPatients = patients;
 
   const statCards = [
-    { label: 'Assigned Patients', value: myPatients.length, icon: <Users size={22} />, bg: '#e0f2fe', color: '#0284c7' },
-    { label: 'Upcoming Meds', value: stats?.today?.pending || 0, icon: <Clock size={22} />, bg: '#f0fdf4', color: '#22c55e' },
-    { label: 'Missed Doses', value: stats?.overdue_count || 0, icon: <AlertTriangle size={22} />, bg: '#fef2f2', color: '#ef4444' },
-    { label: 'Completed Meds', value: stats?.today?.completed || 0, icon: <Pill size={22} />, bg: '#f0f9ff', color: '#0ea5e9' },
+    { label: 'Assigned Patients', value: myPatients.length, icon: <Users size={20} />, bg: '#e0f2fe', color: '#0284c7' },
+    { label: 'Upcoming Meds', value: stats?.today?.pending || 0, icon: <Clock size={20} />, bg: '#f0fdf4', color: '#22c55e' },
+    { label: 'Missed Doses', value: stats?.overdue_count || 0, icon: <AlertTriangle size={20} />, bg: '#fef2f2', color: '#ef4444' },
+    { label: 'Completed Meds', value: stats?.today?.completed || 0, icon: <Pill size={20} />, bg: '#f0f9ff', color: '#0ea5e9' },
   ];
 
   return (
-    <div>
-      <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+    <div style={{ width: '100%', minWidth: 0 }}>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
           Welcome, {user?.first_name}
         </h2>
-        <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>Here's your nursing overview for today.</p>
+        <p style={{ color: '#64748b', margin: '4px 0 0 0', fontSize: '0.88rem' }}>Here's your nursing overview for today.</p>
       </div>
 
       <div className="nurse-stat-grid">
         {statCards.map(c => (
-          <div className="nurse-stat-card" key={c.label}>
+          <div className="nurse-stat-card hover-card" key={c.label}>
             <div className="nurse-stat-icon" style={{ background: c.bg, color: c.color }}>{c.icon}</div>
             <div className="nurse-stat-content">
               <h3>{c.value}</h3>
-              <p>{c.label}</p>
+              <p title={c.label}>{c.label}</p>
             </div>
           </div>
         ))}
