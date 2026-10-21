@@ -597,21 +597,33 @@ export default function PrescriptionManagement() {
       {success && <div style={{ padding: '12px 16px', background: '#dcfce7', color: '#166534', borderRadius: 8, marginBottom: 16, fontWeight: 600 }}>{success}</div>}
 
       <div className="id-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem', color: '#1e293b' }}><FileSignature size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />Prescription Management</h3>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 14 }}>
+          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FileSignature size={20} style={{ color: '#3b82f6' }} />
+            Prescription Management
+          </h3>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 480px', justifyContent: 'flex-end' }}>
             {dateFilter === 'recent' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', color: '#22c55e', padding: '6px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', color: '#22c55e', padding: '8px 14px', borderRadius: 8, fontSize: '0.88rem', fontWeight: 600, minHeight: 42 }}>
                 Showing Last 7 Days
                 <button onClick={() => setDateFilter('')} style={{ background: 'transparent', border: 'none', color: '#22c55e', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={14} /></button>
               </div>
             )}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flex: '1 1 180px', minWidth: 150 }}>
               <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)}
-                style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 200 }} />
+              <input
+                placeholder="Search prescriptions..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ padding: '10px 14px 10px 38px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', width: '100%', minHeight: 42, boxSizing: 'border-box', background: '#fff' }}
+              />
             </div>
-            <select value={sortOption} onChange={e => setSortOption(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', outline: 'none', background: '#fff', color: '#0f172a' }}>
+            <select
+              value={sortOption}
+              onChange={e => setSortOption(e.target.value)}
+              style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', outline: 'none', background: '#fff', color: '#0f172a', minHeight: 42, flex: '1 1 170px', minWidth: 150, cursor: 'pointer' }}
+            >
               <option value="recent-old">Sort by: Newest First</option>
               <option value="old-recent">Sort by: Oldest First</option>
               <option value="a-z">Sort by: Patient (A-Z)</option>
@@ -627,50 +639,32 @@ export default function PrescriptionManagement() {
               <Send size={16} /> Handover ({handoverCount})
               {handoverCount > 0 && (
                 <span style={{
-                  position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%',
-                  background: '#ef4444', color: '#fff', fontSize: '0.7rem', fontWeight: 700,
+                  position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%',
+                  background: '#ef4444', color: '#fff', fontSize: '0.72rem', fontWeight: 700,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 2px 4px rgba(239,68,68,0.4)'
+                  boxShadow: '0 2px 6px rgba(239,68,68,0.4)'
                 }}>{handoverCount}</span>
               )}
             </button>
           </div>
         </div>
 
-        <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', gap: '4px', width: 'fit-content', margin: '0 24px 16px' }}>
+        <div className="id-tabs-row">
           <button
             onClick={() => setActiveTab('all')}
-            style={{
-              padding: '6px 16px', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-              background: activeTab === 'all' ? '#fff' : 'transparent',
-              color: activeTab === 'all' ? '#0f172a' : '#64748b',
-              boxShadow: activeTab === 'all' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.2s'
-            }}
+            className={`id-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
           >
             All ({allCount})
           </button>
           <button
             onClick={() => setActiveTab('outpatient')}
-            style={{
-              padding: '6px 16px', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-              background: activeTab === 'outpatient' ? '#fff' : 'transparent',
-              color: activeTab === 'outpatient' ? '#0f172a' : '#64748b',
-              boxShadow: activeTab === 'outpatient' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.2s'
-            }}
+            className={`id-tab-btn ${activeTab === 'outpatient' ? 'active' : ''}`}
           >
             Outpatient ({outpatientCount})
           </button>
           <button
             onClick={() => setActiveTab('inpatient')}
-            style={{
-              padding: '6px 16px', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-              background: activeTab === 'inpatient' ? '#fff' : 'transparent',
-              color: activeTab === 'inpatient' ? '#0f172a' : '#64748b',
-              boxShadow: activeTab === 'inpatient' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.2s'
-            }}
+            className={`id-tab-btn ${activeTab === 'inpatient' ? 'active' : ''}`}
           >
             Admitted ({inpatientCount})
           </button>
@@ -678,12 +672,38 @@ export default function PrescriptionManagement() {
 
         <div className="id-table-container">
           <table className="id-table">
-            <thead><tr><th>Patient</th><th>Doctor</th><th>Type</th><th>Items</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Type</th>
+                <th>Items</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
+                <tr><td colSpan="7" style={{ textAlign: 'center', padding: 48, color: '#64748b' }}>Loading prescriptions...</td></tr>
               ) : sortedAndFiltered.length === 0 ? (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>No prescriptions found</td></tr>
+                <tr>
+                  <td colSpan="7" style={{ padding: 0 }}>
+                    <div className="id-empty-state">
+                      <div className="id-empty-icon-wrap">
+                        <FileSignature size={28} />
+                      </div>
+                      <h4 className="id-empty-title">
+                        {search || dateFilter || activeTab !== 'all' ? 'No Matching Prescriptions' : 'No Prescriptions Recorded'}
+                      </h4>
+                      <p className="id-empty-subtitle">
+                        {search || dateFilter || activeTab !== 'all'
+                          ? 'No prescription records match your current search query or active filters. Try resetting the filters.'
+                          : 'Prescriptions issued by physicians will appear here for outpatient dispensing and inpatient encoding.'}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
               ) : sortedAndFiltered.map(rx => (
                 <tr key={rx.id}>
                   <td><strong>{rx.patient?.first_name} {rx.patient?.last_name}</strong></td>
@@ -691,18 +711,20 @@ export default function PrescriptionManagement() {
                   <td><span className={`badge ${rx.type === 'discharge' ? 'discharged' : 'active'}`}>{rx.type?.replace('_', ' ')}</span></td>
                   <td>{rx.items?.length || 0} items</td>
                   <td><span className={`badge ${rx.status === 'pending_encoding' ? 'pending' : rx.status}`}>{rx.status === 'pending_encoding' ? 'Pending Encoding' : rx.status}</span></td>
-                  <td style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                  <td style={{ fontSize: '0.88rem', color: '#64748b' }}>
                     {new Date(rx.created_at || rx.createdAt).toLocaleDateString()}
                     {rx.prescribed_time && <div>{rx.prescribed_time}</div>}
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {rx.status === 'pending_encoding' ? (
-                        <button className="action-btn primary" onClick={() => openEncodeForPending(rx)} title="Encode Items" style={{ fontSize: '0.75rem', padding: '4px 8px' }}>Encode Items</button>
+                        <button className="action-btn primary" onClick={() => openEncodeForPending(rx)} title="Encode Items" style={{ fontSize: '0.8rem', padding: '6px 12px', minHeight: 34 }}>
+                          Encode Items
+                        </button>
                       ) : (
-                        <>
-                          <button className="action-btn outline" onClick={() => openView(rx.id)} title="View Record"><Eye size={14} style={{ marginRight: 6 }} /> View Record</button>
-                        </>
+                        <button className="action-btn outline" onClick={() => openView(rx.id)} title="View Record" style={{ minHeight: 34, padding: '6px 12px' }}>
+                          <Eye size={14} style={{ marginRight: 6 }} /> View Record
+                        </button>
                       )}
                     </div>
                   </td>

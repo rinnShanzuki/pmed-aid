@@ -399,19 +399,27 @@ export default function AdmissionManagement() {
       <div className="id-card">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
               {dateFilter === 'today' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eff6ff', color: '#3b82f6', padding: '6px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#eff6ff', color: '#3b82f6', padding: '8px 14px', borderRadius: 8, fontSize: '0.88rem', fontWeight: 600, minHeight: 42 }}>
                   Showing Today Only
                   <button onClick={() => setDateFilter('')} style={{ background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={14} /></button>
                 </div>
               )}
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
                 <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-                <input placeholder="Search patient..." value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 200 }} />
+                <input
+                  placeholder="Search patient..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{ padding: '10px 14px 10px 38px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', width: '100%', minHeight: 42, boxSizing: 'border-box', background: '#fff' }}
+                />
               </div>
-              <select value={sortOption} onChange={e => setSortOption(e.target.value)} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', outline: 'none', background: '#fff', color: '#0f172a' }}>
+              <select
+                value={sortOption}
+                onChange={e => setSortOption(e.target.value)}
+                style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', outline: 'none', background: '#fff', color: '#0f172a', minHeight: 42, flex: '1 1 170px', minWidth: 150, cursor: 'pointer' }}
+              >
                 <option value="recent-old">Sort by: Newest First</option>
                 <option value="old-recent">Sort by: Oldest First</option>
                 <option value="a-z">Sort by: Patient (A-Z)</option>
@@ -425,7 +433,7 @@ export default function AdmissionManagement() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', gap: '4px', alignSelf: 'flex-start' }}>
+          <div className="id-tabs-row">
             {[
               { id: 'arrivals', label: 'Consultation Queue' },
               { id: 'pending_admissions', label: 'Pending Admissions' },
@@ -436,13 +444,7 @@ export default function AdmissionManagement() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                style={{
-                  padding: '6px 16px', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
-                  background: activeTab === tab.id ? '#fff' : 'transparent',
-                  color: activeTab === tab.id ? '#0f172a' : '#64748b',
-                  boxShadow: activeTab === tab.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  transition: 'all 0.2s'
-                }}
+                className={`id-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
               >
                 {tab.label} {tabCounts[tab.id] !== undefined ? `(${tabCounts[tab.id]})` : ''}
               </button>
@@ -464,9 +466,25 @@ export default function AdmissionManagement() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: 32 }}>Loading...</td></tr>
+                <tr><td colSpan="6" style={{ textAlign: 'center', padding: 48, color: '#64748b' }}>Loading records...</td></tr>
               ) : sortedAndFiltered.length === 0 ? (
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>No records found</td></tr>
+                <tr>
+                  <td colSpan="6" style={{ padding: 0 }}>
+                    <div className="id-empty-state">
+                      <div className="id-empty-icon-wrap">
+                        <BedDouble size={28} />
+                      </div>
+                      <h4 className="id-empty-title">
+                        {search || dateFilter ? 'No Matching Patient Records' : 'No Records in this Queue'}
+                      </h4>
+                      <p className="id-empty-subtitle">
+                        {search || dateFilter
+                          ? 'No patients match your search criteria. Try clearing the search query or changing filters.'
+                          : 'Patients queued for consultation, admission, or discharge will be listed here.'}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
               ) : sortedAndFiltered.map(item => (
                 <tr key={item.id}>
                   <td><strong>{item.patient?.first_name} {item.patient?.last_name}</strong></td>

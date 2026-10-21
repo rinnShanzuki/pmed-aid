@@ -197,7 +197,7 @@
   padding: 4px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .mobile-menu-btn { display: flex; }
   .sidebar-close-btn { display: flex; }
 
@@ -206,18 +206,29 @@
     top: 0;
     left: 0;
     height: 100vh;
+    width: 280px;
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.35);
   }
 
   .nurse-sidebar.open {
     transform: translateX(0);
   }
 
-  .nurse-sidebar-overlay { display: block; }
+  .nurse-sidebar-overlay {
+    display: block;
+    z-index: 999;
+  }
 
-  .nurse-main .topbar { padding: 0 16px; }
-  .content-area { padding: 16px; }
+  .nurse-main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .nurse-main .topbar { padding: 0 16px; height: 60px; }
+  .content-area { padding: 20px 16px; }
 
   .user-info { display: none; }
 }
