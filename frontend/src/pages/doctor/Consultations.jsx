@@ -30,7 +30,7 @@ export default function Consultations() {
 
   // Prescription form states
   const [prescriptionItems, setPrescriptionItems] = useState([]);
-  const [newMedication, setNewMedication] = useState({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
+  const [newMedication, setNewMedication] = useState({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '24' });
   const [medications, setMedications] = useState([]);
   const [showPrescriptionForm, setShowPrescriptionForm] = useState(false);
 
@@ -105,7 +105,7 @@ export default function Consultations() {
     setAssessment(consultation.assessment || '');
     setFollowUpDate(consultation.follow_up_date ? consultation.follow_up_date.split('T')[0] : '');
     setPrescriptionItems([]);
-    setNewMedication({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
+    setNewMedication({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '24' });
     setError(''); setSuccess(''); setShowPrescriptionForm(false);
     setActionDialog(null); setPendingSubmitAction(null);
     setModal('consultation');
@@ -126,7 +126,7 @@ export default function Consultations() {
   function handleMedicationChange(field, value) {
     let updates = { [field]: value };
     if (field === 'frequency' || field === 'frequency_unit') {
-      const freq = field === 'frequency' ? value : newMedication.frequency;
+      const freq = field === 'frequency' ? parseFloat(value) : parseFloat(newMedication.frequency);
       const unit = field === 'frequency_unit' ? value : newMedication.frequency_unit;
       if (unit === 'hourly') updates.interval_hours = '';
       else if (unit === 'daily' && freq > 0) updates.interval_hours = (24 / freq).toString();
@@ -153,7 +153,7 @@ export default function Consultations() {
       return;
     }
     setPrescriptionItems([...prescriptionItems, { ...newMedication, dosage: `${newMedication.dosage} ${newMedication.dosage_unit}`, id: Date.now() }]);
-    setNewMedication({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' });
+    setNewMedication({ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '24' });
     setError('');
   }
 
@@ -267,7 +267,7 @@ export default function Consultations() {
               </select>
             </div>
             <div><label style={lbl}>Start Time</label><input type="time" style={inp} value={newMedication.start_time || ''} onChange={e => handleMedicationChange('start_time', e.target.value)} /></div>
-            <div><label style={lbl}>Interval (hrs)</label><input type="number" step="0.5" style={inp} value={newMedication.interval_hours || ''} onChange={e => handleMedicationChange('interval_hours', e.target.value)} placeholder="e.g. 8" /></div>
+            <div><label style={lbl}>Interval (hrs)</label><input type="number" step="0.5" style={inp} value={newMedication.interval_hours || ''} onChange={e => handleMedicationChange('interval_hours', e.target.value)} placeholder="e.g. 24" /></div>
             <div style={{ gridColumn: 'span 1' }}><label style={lbl}>Instructions</label><input style={inp} value={newMedication.instructions} onChange={e => handleMedicationChange('instructions', e.target.value)} placeholder="Take after meals" /></div>
           </div>
 

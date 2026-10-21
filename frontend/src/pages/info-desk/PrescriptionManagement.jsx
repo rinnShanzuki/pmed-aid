@@ -61,7 +61,7 @@ export default function PrescriptionManagement() {
   const [viewData, setViewData] = useState(null);
   const [encodingPrescriptionId, setEncodingPrescriptionId] = useState(null);
   const [form, setForm] = useState({ patient_id: '', admission_id: '', doctor_id: '', type: 'in_hospital', notes: '' });
-  const [items, setItems] = useState([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
+  const [items, setItems] = useState([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '24' }]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -127,7 +127,7 @@ export default function PrescriptionManagement() {
   }, [location.state, prescriptions]);
 
   function addItem() {
-    setItems([...items, { medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
+    setItems([...items, { medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '24' }]);
   }
 
   function removeItem(idx) { if (items.length > 1) setItems(items.filter((_, i) => i !== idx)); }
@@ -136,7 +136,7 @@ export default function PrescriptionManagement() {
       if (i !== idx) return it;
       let updates = { [field]: value };
       if (field === 'frequency' || field === 'frequency_unit') {
-        const freq = field === 'frequency' ? value : it.frequency;
+        const freq = field === 'frequency' ? parseFloat(value) : parseFloat(it.frequency);
         const unit = field === 'frequency_unit' ? value : it.frequency_unit;
         if (unit === 'hourly') updates.interval_hours = '';
         else if (unit === 'daily' && freq > 0) updates.interval_hours = (24 / freq).toString();
@@ -148,7 +148,7 @@ export default function PrescriptionManagement() {
 
   function openAdd() {
     setForm({ patient_id: '', admission_id: '', doctor_id: '', type: 'in_hospital', notes: '' });
-    setItems([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
+    setItems([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '24' }]);
     setError('');
     setEncodeStep(1);
     setGeneratedQR('');
@@ -158,7 +158,30 @@ export default function PrescriptionManagement() {
 
   function openEncodeForPending(rx) {
     setForm({ patient_id: rx.patient_id, admission_id: rx.admission_id, doctor_id: rx.doctor_id, type: rx.type, notes: rx.notes || '' });
-    setItems([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '' }]);
+    if (rx.items && rx.items.length > 0) {
+      setItems(rx.items.map(it => {
+        const freq = it.frequency || 1;
+        const unit = it.frequency_unit || 'daily';
+        let calculatedInterval = it.interval_hours;
+        if (!calculatedInterval && unit === 'daily' && freq > 0) {
+          calculatedInterval = (24 / freq).toString();
+        }
+        return {
+          medication_name: it.medication_name || '',
+          dosage: it.dosage ? it.dosage.split(' ')[0] : '',
+          dosage_unit: it.dosage_unit || (it.dosage && it.dosage.split(' ')[1]) || 'mg',
+          frequency: freq,
+          frequency_unit: unit,
+          duration: it.duration || '',
+          route: it.route || 'oral',
+          instructions: it.instructions || '',
+          start_time: it.start_time || '',
+          interval_hours: calculatedInterval ? String(calculatedInterval) : (unit === 'daily' ? '24' : '')
+        };
+      }));
+    } else {
+      setItems([{ medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '24' }]);
+    }
     setError('');
     setEncodeStep(1);
     setGeneratedQR('');
@@ -789,7 +812,7 @@ export default function PrescriptionManagement() {
                             <div><label style={lbl}>Start Time</label>
                               <input type="time" style={inp} value={it.start_time || ''} onChange={e => updateItem(idx, 'start_time', e.target.value)} /></div>
                             <div><label style={lbl}>Interval (hrs)</label>
-                              <input type="number" step="0.5" style={inp} value={it.interval_hours || ''} onChange={e => updateItem(idx, 'interval_hours', e.target.value)} placeholder="e.g. 8" /></div>
+                              <input type="number" step="0.5" style={inp} value={it.interval_hours || ''} onChange={e => updateItem(idx, 'interval_hours', e.target.value)} placeholder="e.g. 24" /></div>
                             <div style={{ gridColumn: 'span 1' }}><label style={lbl}>Instructions</label><input style={inp} value={it.instructions} onChange={e => updateItem(idx, 'instructions', e.target.value)} placeholder="Take after meals" /></div>
                           </div>
                         </div>
