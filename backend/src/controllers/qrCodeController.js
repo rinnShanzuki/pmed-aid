@@ -38,7 +38,7 @@ exports.scan = async (req, res, next) => {
       include: [{ model: Patient, as: 'patient' }],
     });
     if (!qrCode) return res.status(404).json({ success: false, message: 'QR code not found.' });
-    if (qrCode.status !== 'active') return res.status(400).json({ success: false, message: 'QR code is no longer active.' });
+    if (qrCode.status === 'inactive') return res.status(400).json({ success: false, message: 'QR code is no longer active.' });
 
     // Get today's pending/upcoming schedules
     const now = new Date();
