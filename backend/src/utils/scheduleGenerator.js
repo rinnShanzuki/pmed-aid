@@ -23,32 +23,41 @@ function generateSchedule(item, startDate = new Date()) {
   const entries = [];
 
   // Calculate total days
+  let numDuration = parseInt(item.duration, 10) || 1;
+  let durUnit = item.duration_unit;
+  if (!durUnit && typeof item.duration === 'string') {
+    if (item.duration.toLowerCase().includes('week')) durUnit = 'weeks';
+    else if (item.duration.toLowerCase().includes('month')) durUnit = 'months';
+    else durUnit = 'days';
+  }
+
   let totalDays;
-  switch (item.duration_unit) {
+  switch (durUnit) {
     case 'weeks':
-      totalDays = item.duration * 7;
+      totalDays = numDuration * 7;
       break;
     case 'months':
-      totalDays = item.duration * 30;
+      totalDays = numDuration * 30;
       break;
     case 'days':
     default:
-      totalDays = item.duration;
+      totalDays = numDuration;
       break;
   }
 
   // Calculate doses per day
+  let freq = parseInt(item.frequency, 10) || 1;
   let dosesPerDay;
   switch (item.frequency_unit) {
     case 'hourly':
-      dosesPerDay = Math.min(item.frequency, 16); // Cap at waking hours
+      dosesPerDay = Math.min(freq, 16); // Cap at waking hours
       break;
     case 'weekly':
-      dosesPerDay = item.frequency / 7;
+      dosesPerDay = freq / 7;
       break;
     case 'daily':
     default:
-      dosesPerDay = item.frequency;
+      dosesPerDay = freq;
       break;
   }
 
@@ -95,6 +104,9 @@ function generateSchedule(item, startDate = new Date()) {
     }
   }
 
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
   // Generate entries for each day
   for (let day = 0; day < totalDays; day++) {
     for (const time of doseTimes) {
@@ -102,13 +114,13 @@ function generateSchedule(item, startDate = new Date()) {
       scheduledTime.setDate(scheduledTime.getDate() + day);
       scheduledTime.setHours(time.hour, time.minute, 0, 0);
 
-      // Skip if the scheduled time is in the past
-      if (scheduledTime <= new Date()) continue;
+      // Only skip if scheduled time is from a past calendar day
+      if (scheduledTime < startOfToday) continue;
 
       entries.push({
         prescription_item_id: item.id,
         prescription_id: item.prescription_id,
-        admission_id: item.admission_id,
+        admission_id: item.admission_id || null,
         patient_id: item.patient_id,
         scheduled_time: scheduledTime,
       });
