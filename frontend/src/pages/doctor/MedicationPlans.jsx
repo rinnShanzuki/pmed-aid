@@ -29,12 +29,11 @@ export default function MedicationPlans() {
 
   return (
     <div className="id-card">
-      <div className="doc-section-header">
-        <h3><Pill size={18} /> Medication Plans</h3>
-        <div style={{ position: 'relative' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
+        <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
           <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input placeholder="Search patient..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 220 }} />
+            style={{ padding: '10px 14px 10px 38px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', width: '100%', minHeight: 42, boxSizing: 'border-box' }} />
         </div>
       </div>
 

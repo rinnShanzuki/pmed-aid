@@ -109,44 +109,37 @@ export default function PatientRegistration() {
       {success && <div style={{ padding: '12px 16px', background: '#dcfce7', color: '#166534', borderRadius: 8, marginBottom: 16, fontWeight: 600 }}>{success}</div>}
 
       <div className="id-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <UserPlus size={20} style={{ color: '#3b82f6' }} />
-            Patient Records
-          </h3>
-
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 480px', justifyContent: 'flex-end' }}>
-            <div style={{ position: 'relative', flex: '1 1 180px', minWidth: 150 }}>
-              <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input
-                placeholder="Search patients..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ padding: '10px 14px 10px 38px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', width: '100%', minHeight: 42, boxSizing: 'border-box', background: '#fff' }}
-              />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', outline: 'none', background: '#fff', color: '#0f172a', minHeight: 42, flex: '1 1 140px', minWidth: 130, cursor: 'pointer' }}
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active Only</option>
-              <option value="inactive">Inactive Only</option>
-            </select>
-            <select
-              value={sortOption}
-              onChange={e => setSortOption(e.target.value)}
-              style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', outline: 'none', background: '#fff', color: '#0f172a', minHeight: 42, flex: '1 1 160px', minWidth: 140, cursor: 'pointer' }}
-            >
-              <option value="recent-old">Sort by: Newest First</option>
-              <option value="old-recent">Sort by: Oldest First</option>
-              <option value="a-z">Sort by: Patient (A-Z)</option>
-              <option value="z-a">Sort by: Patient (Z-A)</option>
-              <option value="id-asc">Sort by: ID (Low to High)</option>
-              <option value="id-desc">Sort by: ID (High to Low)</option>
-            </select>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
+            <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              placeholder="Search patients..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ padding: '10px 14px 10px 38px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', width: '100%', minHeight: 42, boxSizing: 'border-box', background: '#fff' }}
+            />
           </div>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', outline: 'none', background: '#fff', color: '#0f172a', minHeight: 42, flex: '0 1 150px', minWidth: 130, cursor: 'pointer' }}
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
+          <select
+            value={sortOption}
+            onChange={e => setSortOption(e.target.value)}
+            style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', outline: 'none', background: '#fff', color: '#0f172a', minHeight: 42, flex: '0 1 180px', minWidth: 140, cursor: 'pointer' }}
+          >
+            <option value="recent-old">Sort by: Newest First</option>
+            <option value="old-recent">Sort by: Oldest First</option>
+            <option value="a-z">Sort by: Patient (A-Z)</option>
+            <option value="z-a">Sort by: Patient (Z-A)</option>
+            <option value="id-asc">Sort by: ID (Low to High)</option>
+            <option value="id-desc">Sort by: ID (High to Low)</option>
+          </select>
         </div>
 
         <div className="id-table-container">

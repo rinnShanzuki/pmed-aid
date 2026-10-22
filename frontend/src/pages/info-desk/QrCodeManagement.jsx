@@ -62,18 +62,15 @@ export default function QrCodeManagement() {
       {success && <div style={{ padding: '12px 16px', background: '#dcfce7', color: '#166534', borderRadius: 8, marginBottom: 16, fontWeight: 600 }}>{success}</div>}
 
       <div className="id-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-          <h3 style={{ margin: 0, fontSize: '1.1rem' }}><QrCode size={18} style={{ display: 'inline', marginRight: 8, verticalAlign: 'text-bottom' }} />QR Code Management</h3>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input placeholder="Search patient..." value={search} onChange={e => setSearch(e.target.value)}
-                style={{ padding: '10px 12px 10px 36px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.9rem', width: 200 }} />
-            </div>
-            <button className="action-btn primary" onClick={() => { setForm({ patient_id: '', admission_id: '', type: 'discharge' }); setError(''); setModal('generate'); }}>
-              <QrCode size={16} /> Generate QR
-            </button>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
+            <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input placeholder="Search patient..." value={search} onChange={e => setSearch(e.target.value)}
+              style={{ padding: '10px 14px 10px 38px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', width: '100%', minHeight: 42, boxSizing: 'border-box' }} />
           </div>
+          <button className="action-btn primary" onClick={() => { setForm({ patient_id: '', admission_id: '', type: 'discharge' }); setError(''); setModal('generate'); }} style={{ minHeight: 42 }}>
+            <QrCode size={16} /> Generate QR
+          </button>
         </div>
 
         <div className="id-table-container">

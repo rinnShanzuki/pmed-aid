@@ -620,56 +620,49 @@ export default function PrescriptionManagement() {
       {success && <div style={{ padding: '12px 16px', background: '#dcfce7', color: '#166534', borderRadius: 8, marginBottom: 16, fontWeight: 600 }}>{success}</div>}
 
       <div className="id-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 14 }}>
-          <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <FileSignature size={20} style={{ color: '#3b82f6' }} />
-            Prescription Management
-          </h3>
-
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', flex: '1 1 480px', justifyContent: 'flex-end' }}>
-            {dateFilter === 'recent' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', color: '#22c55e', padding: '8px 14px', borderRadius: 8, fontSize: '0.88rem', fontWeight: 600, minHeight: 42 }}>
-                Showing Last 7 Days
-                <button onClick={() => setDateFilter('')} style={{ background: 'transparent', border: 'none', color: '#22c55e', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={14} /></button>
-              </div>
-            )}
-            <div style={{ position: 'relative', flex: '1 1 180px', minWidth: 150 }}>
-              <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input
-                placeholder="Search prescriptions..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                style={{ padding: '10px 14px 10px 38px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', width: '100%', minHeight: 42, boxSizing: 'border-box', background: '#fff' }}
-              />
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
+          {dateFilter === 'recent' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f0fdf4', color: '#22c55e', padding: '8px 14px', borderRadius: 8, fontSize: '0.88rem', fontWeight: 600, minHeight: 42 }}>
+              Showing Last 7 Days
+              <button onClick={() => setDateFilter('')} style={{ background: 'transparent', border: 'none', color: '#22c55e', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={14} /></button>
             </div>
-            <select
-              value={sortOption}
-              onChange={e => setSortOption(e.target.value)}
-              style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', outline: 'none', background: '#fff', color: '#0f172a', minHeight: 42, flex: '1 1 170px', minWidth: 150, cursor: 'pointer' }}
-            >
-              <option value="recent-old">Sort by: Newest First</option>
-              <option value="old-recent">Sort by: Oldest First</option>
-              <option value="a-z">Sort by: Patient (A-Z)</option>
-              <option value="z-a">Sort by: Patient (Z-A)</option>
-              <option value="id-asc">Sort by: ID (Low to High)</option>
-              <option value="id-desc">Sort by: ID (High to Low)</option>
-            </select>
-            <button
-              className="action-btn primary"
-              onClick={() => setModal('handover')}
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              <Send size={16} /> Handover ({handoverCount})
-              {handoverCount > 0 && (
-                <span style={{
-                  position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%',
-                  background: '#ef4444', color: '#fff', fontSize: '0.72rem', fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 2px 6px rgba(239,68,68,0.4)'
-                }}>{handoverCount}</span>
-              )}
-            </button>
+          )}
+          <div style={{ position: 'relative', flex: '1 1 200px', minWidth: 160 }}>
+            <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <input
+              placeholder="Search prescriptions..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ padding: '10px 14px 10px 38px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', width: '100%', minHeight: 42, boxSizing: 'border-box', background: '#fff' }}
+            />
           </div>
+          <select
+            value={sortOption}
+            onChange={e => setSortOption(e.target.value)}
+            style={{ padding: '10px 14px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.92rem', outline: 'none', background: '#fff', color: '#0f172a', minHeight: 42, flex: '0 1 180px', minWidth: 150, cursor: 'pointer' }}
+          >
+            <option value="recent-old">Sort by: Newest First</option>
+            <option value="old-recent">Sort by: Oldest First</option>
+            <option value="a-z">Sort by: Patient (A-Z)</option>
+            <option value="z-a">Sort by: Patient (Z-A)</option>
+            <option value="id-asc">Sort by: ID (Low to High)</option>
+            <option value="id-desc">Sort by: ID (High to Low)</option>
+          </select>
+          <button
+            className="action-btn primary"
+            onClick={() => setModal('handover')}
+            style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8, minHeight: 42 }}
+          >
+            <Send size={16} /> Handover ({handoverCount})
+            {handoverCount > 0 && (
+              <span style={{
+                position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: '50%',
+                background: '#ef4444', color: '#fff', fontSize: '0.72rem', fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 2px 6px rgba(239,68,68,0.4)'
+              }}>{handoverCount}</span>
+            )}
+          </button>
         </div>
 
         <div className="id-tabs-row">
