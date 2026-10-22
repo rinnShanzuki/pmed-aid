@@ -81,7 +81,7 @@ exports.verify = async (req, res, next) => {
     }
     const qrCode = await QrCode.findOne({
       where: { code },
-      include: [{ model: Patient, as: 'patient', attributes: ['first_name', 'last_name', 'email'] }],
+      include: [{ model: Patient, as: 'patient', attributes: ['first_name', 'last_name'] }],
     });
     if (!qrCode) return res.status(404).json({ success: false, message: 'QR code not found.' });
 
@@ -94,11 +94,10 @@ exports.verify = async (req, res, next) => {
         admission_id: qrCode.admission_id,
         is_bound: qrCode.status === 'bound',
         is_active: qrCode.status === 'active',
-        patient_name: `${qrCode.patient.first_name} ${qrCode.patient.last_name}`,
+        patient_name: `${qrCode.patient?.first_name || ''} ${qrCode.patient?.last_name || ''}`.trim(),
         patient: {
-          first_name: qrCode.patient.first_name,
-          last_name: qrCode.patient.last_name,
-          email: qrCode.patient.email || null,
+          first_name: qrCode.patient?.first_name || '',
+          last_name: qrCode.patient?.last_name || '',
         },
       },
     });
