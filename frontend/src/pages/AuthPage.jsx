@@ -67,10 +67,17 @@ export default function AuthPage() {
           setQrError('This QR code has already been used. Each code can only bind one account.');
           setQrStep(null);
         } else {
+          const patientData = data.data.patient || {};
+          const patientName = data.data.patient_name || `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
           setPatientInfo({
-            name: `${data.data.patient.first_name} ${data.data.patient.last_name}`,
-            email: data.data.patient.email
+            name: patientName || 'Patient',
+            email: patientData.email || ''
           });
+          setRegForm(f => ({
+            ...f,
+            first_name: patientData.first_name || f.first_name,
+            last_name: patientData.last_name || f.last_name,
+          }));
           setQrStep(QR_STEPS.CHOOSE);
         }
       } catch (err) {

@@ -276,7 +276,9 @@ exports.qrBind = async (req, res, next) => {
     });
 
     // Link the patient record to the user account
-    await qrCode.patient.update({ user_id: user.id });
+    if (qrCode.patient) {
+      await qrCode.patient.update({ user_id: user.id });
+    }
 
     user.last_login = new Date();
     await user.save();
