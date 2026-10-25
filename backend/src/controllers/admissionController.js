@@ -8,7 +8,7 @@ exports.create = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
 
-    const { patient_id, room_id, attending_doctor_id, assigned_nurse_id, notes, consultation_id, department, reason_for_admission, treatment_plan, progress_notes, nurse_notes, final_diagnosis, condition_at_discharge, discharge_summary, discharge_assessment, follow_up_date, follow_up_instructions } = req.body;
+    const { patient_id, room_id, attending_doctor_id, assigned_nurse_id, notes, consultation_id, treatment_plan, progress_notes, nurse_notes, final_diagnosis, condition_at_discharge, discharge_summary, discharge_assessment, follow_up_date, follow_up_instructions } = req.body;
 
     const room = await Room.findByPk(room_id);
     if (!room) return res.status(404).json({ success: false, message: 'Room not found.' });
@@ -24,8 +24,6 @@ exports.create = async (req, res, next) => {
       assigned_nurse_id: assigned_nurse_id || null,
       admission_date: new Date(),
       notes,
-      department,
-      reason_for_admission,
       treatment_plan,
       progress_notes,
       nurse_notes,

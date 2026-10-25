@@ -32,8 +32,6 @@ Admission.init(
       defaultValue: 'admitted',
     },
     notes: { type: DataTypes.TEXT, allowNull: true },
-    department: { type: DataTypes.STRING(255), allowNull: true },
-    reason_for_admission: { type: DataTypes.TEXT, allowNull: true },
     treatment_plan: { type: DataTypes.TEXT, allowNull: true },
     progress_notes: { type: DataTypes.TEXT, allowNull: true },
     nurse_notes: { type: DataTypes.TEXT, allowNull: true },

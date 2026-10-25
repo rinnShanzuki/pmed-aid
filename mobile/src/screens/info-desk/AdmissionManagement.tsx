@@ -192,8 +192,6 @@ export default function AdmissionManagement() {
     room_id: '',
     attending_doctor_id: '',
     assigned_nurse_id: '',
-    department: '',
-    reason_for_admission: '',
     notes: '',
   });
 
@@ -384,8 +382,6 @@ export default function AdmissionManagement() {
       room_id: '',
       attending_doctor_id: consultation.doctor_id.toString(),
       assigned_nurse_id: '',
-      department: '',
-      reason_for_admission: '',
       notes: consultation.notes || '',
     });
     setModal('assign-room');
@@ -402,8 +398,6 @@ export default function AdmissionManagement() {
         room_id: admissionForm.room_id,
         attending_doctor_id: admissionForm.attending_doctor_id,
         assigned_nurse_id: admissionForm.assigned_nurse_id || null,
-        department: admissionForm.department,
-        reason_for_admission: admissionForm.reason_for_admission,
         notes: admissionForm.notes,
         consultation_id: selectedConsultation.id,
       });
@@ -1113,25 +1107,6 @@ export default function AdmissionManagement() {
                   </TouchableOpacity>
                 ))}
               </View>
-
-              <Text style={styles.modalLabel}>Department</Text>
-              <TextInput
-                style={styles.formInput}
-                placeholder="e.g. ICU, General Ward"
-                value={admissionForm.department}
-                onChangeText={v => setAdmissionForm({ ...admissionForm, department: v })}
-                placeholderTextColor={theme.colors.textTertiary}
-              />
-
-              <Text style={styles.modalLabel}>Reason for Admission</Text>
-              <TextInput
-                style={[styles.formInput, { minHeight: 100 }]}
-                placeholder="Enter reason…"
-                value={admissionForm.reason_for_admission}
-                onChangeText={v => setAdmissionForm({ ...admissionForm, reason_for_admission: v })}
-                multiline
-                placeholderTextColor={theme.colors.textTertiary}
-              />
 
               <Text style={styles.modalLabel}>Notes (optional)</Text>
               <TextInput

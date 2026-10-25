@@ -235,7 +235,7 @@ function TabAdmissions({ admissions }) {
               <p><strong>Discharged:</strong> {a.discharge_date ? new Date(a.discharge_date).toLocaleString() : 'Ongoing'}</p>
               <p><strong>Room:</strong> {a.room?.room_number || 'Unassigned'}</p>
               <p><strong>Attending Doctor:</strong> Dr. {a.doctor?.first_name} {a.doctor?.last_name}</p>
-              <p><strong>Reason for Admission:</strong> {a.reason_for_admission || '—'}</p>
+              {a.notes && <p><strong>Admission Notes:</strong> {a.notes}</p>}
             </div>
           </div>
         ))}

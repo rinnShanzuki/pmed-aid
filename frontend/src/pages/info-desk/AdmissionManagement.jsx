@@ -74,7 +74,7 @@ export default function AdmissionManagement() {
   const [selectedConsultation, setSelectedConsultation] = useState(null);
 
   const [consultationForm, setConsultationForm] = useState({ doctor_id: '', scheduled_time: '', notes: '' });
-  const [admissionForm, setAdmissionForm] = useState({ room_id: '', attending_doctor_id: '', assigned_nurse_id: '', department: '', reason_for_admission: '', notes: '' });
+  const [admissionForm, setAdmissionForm] = useState({ room_id: '', attending_doctor_id: '', assigned_nurse_id: '', notes: '' });
 
   const [patientSearch, setPatientSearch] = useState('');
   const [error, setError] = useState('');
@@ -229,7 +229,7 @@ export default function AdmissionManagement() {
 
   function openAssignRoom(consultation) {
     setSelectedConsultation(consultation);
-    setAdmissionForm({ room_id: '', attending_doctor_id: consultation.doctor_id, assigned_nurse_id: '', department: '', reason_for_admission: '', notes: consultation.notes || '' });
+    setAdmissionForm({ room_id: '', attending_doctor_id: consultation.doctor_id, assigned_nurse_id: '', notes: consultation.notes || '' });
     setError(''); setModal('assign-room');
   }
 
@@ -241,8 +241,6 @@ export default function AdmissionManagement() {
         room_id: admissionForm.room_id,
         attending_doctor_id: admissionForm.attending_doctor_id,
         assigned_nurse_id: admissionForm.assigned_nurse_id || null,
-        department: admissionForm.department,
-        reason_for_admission: admissionForm.reason_for_admission,
         notes: admissionForm.notes,
         consultation_id: selectedConsultation.id
       });
@@ -787,19 +785,9 @@ export default function AdmissionManagement() {
                     {nurses.map(n => <option key={n.id} value={n.id}>{n.first_name} {n.last_name}</option>)}
                   </select>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-                  <div>
-                    <label style={lbl}>Department</label>
-                    <input style={inp} value={admissionForm.department} onChange={e => setAdmissionForm({ ...admissionForm, department: e.target.value })} placeholder="e.g. Internal Medicine" />
-                  </div>
-                  <div>
-                    <label style={lbl}>Reason for Admission</label>
-                    <input style={inp} value={admissionForm.reason_for_admission} onChange={e => setAdmissionForm({ ...admissionForm, reason_for_admission: e.target.value })} placeholder="e.g. Chest pain, observation" />
-                  </div>
-                </div>
                 <div>
                   <label style={lbl}>Admission Notes</label>
-                  <textarea style={{ ...inp, minHeight: 90, resize: 'vertical' }} value={admissionForm.notes} onChange={e => setAdmissionForm({ ...admissionForm, notes: e.target.value })} placeholder="Reason for admission..." />
+                  <textarea style={{ ...inp, minHeight: 90, resize: 'vertical' }} value={admissionForm.notes} onChange={e => setAdmissionForm({ ...admissionForm, notes: e.target.value })} placeholder="Additional admission notes..." />
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, padding: '16px 32px 24px', borderTop: '1px solid #e2e8f0' }}>
