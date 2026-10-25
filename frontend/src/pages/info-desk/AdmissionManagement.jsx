@@ -54,6 +54,7 @@ export default function AdmissionManagement() {
   const location = useLocation();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [sortOption, setSortOption] = useState('recent-old');
   const [dateFilter, setDateFilter] = useState('');
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
