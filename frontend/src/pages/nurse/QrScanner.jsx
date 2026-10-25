@@ -4,7 +4,6 @@ import { Scan, CheckCircle, AlertCircle, Pill, Camera, X, Clock } from 'lucide-r
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export default function QrScanner() {
-  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null); // { patient, schedules }
   const [error, setError] = useState('');
@@ -75,7 +74,6 @@ export default function QrScanner() {
       }
 
       setResult({ patient: data.data.patient, schedules: targetSchedules });
-      setCode('');
 
       // Pause scanner while modal is displayed if camera is currently scanning
       try {
@@ -95,7 +93,6 @@ export default function QrScanner() {
 
   function closeModal() {
     setResult(null);
-    setCode('');
     try {
       if (scannerRef.current?.getState && scannerRef.current.getState() === 3) {
         scannerRef.current.resume();
@@ -136,13 +133,6 @@ export default function QrScanner() {
       }
     };
   }, []);
-
-  async function handleManualScan(e) {
-    e?.preventDefault();
-    if (isProcessingRef.current || resultRef.current) return;
-    isProcessingRef.current = true;
-    await processQrCode(code);
-  }
 
   async function handleAdminister(id, medName = '') {
     try {
@@ -336,27 +326,6 @@ export default function QrScanner() {
           <div id="qr-reader" style={{ width: '100%', background: '#f8fafc', borderRadius: 16 }}></div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', margin: '32px auto', maxWidth: 450, color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '1px' }}>
-          <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(226,232,240,0) 0%, rgba(226,232,240,1) 100%)' }}></div>
-          <span style={{ padding: '0 16px' }}>OR MANUAL INPUT</span>
-          <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, rgba(226,232,240,1) 0%, rgba(226,232,240,0) 100%)' }}></div>
-        </div>
-
-        {/* Manual Input Form */}
-        <form onSubmit={handleManualScan} style={{ maxWidth: 450, margin: '0 auto' }}>
-          <div className="input-group">
-            <input
-              type="text"
-              placeholder="Enter wristband code..."
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              disabled={loading}
-            />
-            <button type="submit" disabled={loading || !code.trim()}>
-              {loading ? 'Verifying...' : 'Verify'}
-            </button>
-          </div>
-        </form>
 
         {error && (
           <div style={{ maxWidth: 450, margin: '24px auto 0', padding: '16px 20px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 12, display: 'flex', alignItems: 'flex-start', gap: 12, textAlign: 'left', boxShadow: '0 4px 6px -1px rgba(220, 38, 38, 0.1)' }}>
