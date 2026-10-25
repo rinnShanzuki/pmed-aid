@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
-import { Scan, CheckCircle, AlertCircle, Pill, Camera } from 'lucide-react';
+import { Scan, CheckCircle, AlertCircle, Pill, Camera, X, Clock } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
 export default function QrScanner() {
@@ -8,6 +8,16 @@ export default function QrScanner() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null); // { patient, schedules }
   const [error, setError] = useState('');
+  const [successToast, setSuccessToast] = useState('');
+  const [administeringId, setAdministeringId] = useState(null);
+
+  const scannerRef = useRef(null);
+  const isProcessingRef = useRef(false);
+  const resultRef = useRef(null);
+
+  useEffect(() => {
+    resultRef.current = result;
+  }, [result]);
 
   async function processQrCode(qrString) {
     if (!qrString || !qrString.trim()) return;
@@ -25,39 +35,59 @@ export default function QrScanner() {
       setResult(null);
       const { data } = await api.post('/qr-codes/scan', { code: cleanCode });
 
-      // We got the patient, now fetch their pending schedules for today
+      // Fetch pending schedules for this patient
       const schedRes = await api.get('/schedules/patient/' + data.data.patient.id, { params: { status: 'pending' } });
 
       setResult({ patient: data.data.patient, schedules: schedRes.data.data });
       setCode('');
+
+      // Pause scanner while modal is displayed if camera is currently scanning
+      try {
+        if (scannerRef.current?.getState && scannerRef.current.getState() === 2) {
+          scannerRef.current.pause(true);
+        }
+      } catch (_) {}
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid or unassigned QR code.');
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 2000);
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    let scanner = null;
-    let isProcessing = false;
+  function closeModal() {
+    setResult(null);
+    setCode('');
+    try {
+      if (scannerRef.current?.getState && scannerRef.current.getState() === 3) {
+        scannerRef.current.resume();
+      }
+    } catch (_) {}
+    setTimeout(() => {
+      isProcessingRef.current = false;
+    }, 1500);
+  }
 
+  useEffect(() => {
     const timer = setTimeout(() => {
       const el = document.getElementById("qr-reader");
       if (!el) return;
 
-      scanner = new Html5QrcodeScanner("qr-reader", {
+      const scanner = new Html5QrcodeScanner("qr-reader", {
         fps: 10,
         qrbox: { width: 250, height: 250 }
       }, false);
+      scannerRef.current = scanner;
 
       scanner.render(
         async (decodedText) => {
-          if (isProcessing) return;
-          isProcessing = true;
+          if (isProcessingRef.current || resultRef.current) return;
+          isProcessingRef.current = true;
           await processQrCode(decodedText);
-          setTimeout(() => { isProcessing = false; }, 2500);
         },
-        (err) => {
+        () => {
           // ignore frame scan errors
         }
       );
@@ -65,32 +95,40 @@ export default function QrScanner() {
 
     return () => {
       clearTimeout(timer);
-      if (scanner) {
-        scanner.clear().catch(() => { });
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(() => { });
       }
     };
   }, []);
 
   async function handleManualScan(e) {
     e?.preventDefault();
+    if (isProcessingRef.current || resultRef.current) return;
+    isProcessingRef.current = true;
     await processQrCode(code);
   }
 
-  async function handleAdminister(id) {
+  async function handleAdminister(id, medName = '') {
     try {
+      setAdministeringId(id);
       await api.post(`/schedules/${id}/administer`, { notes: 'Administered via QR scan' });
-      setResult(prev => ({
-        ...prev,
-        schedules: prev.schedules.filter(s => s.id !== id)
-      }));
+
+      const patientName = result?.patient ? `${result.patient.first_name} ${result.patient.last_name}` : 'Patient';
+      setSuccessToast(`${medName ? `${medName} dose` : 'Dose'} administered successfully for ${patientName}!`);
+      setTimeout(() => setSuccessToast(''), 4000);
+
+      // Close the modal and reset scanner immediately
+      closeModal();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to administer dose.');
+    } finally {
+      setAdministeringId(null);
     }
   }
 
   return (
     <div style={{ maxWidth: 850, margin: '0 auto', padding: '24px 16px' }}>
-      {/* Custom Styles to Override html5-qrcode's ugly defaults */}
+      {/* Custom Styles */}
       <style>{`
         #qr-reader {
           border: none !important;
@@ -130,7 +168,7 @@ export default function QrScanner() {
           cursor: pointer !important;
         }
         #qr-reader img {
-          display: none !important; /* Hide default scan image icon */
+          display: none !important;
         }
         #qr-reader__dashboard_section_swaplink {
           color: #3b82f6 !important;
@@ -189,7 +227,45 @@ export default function QrScanner() {
           background: #94a3b8;
           cursor: not-allowed;
         }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes modalSlideUp {
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
       `}</style>
+
+      {/* Success Notification */}
+      {successToast && (
+        <div style={{
+          maxWidth: 500,
+          margin: '0 auto 24px',
+          padding: '14px 20px',
+          background: '#ecfdf5',
+          color: '#065f46',
+          border: '1px solid #a7f3d0',
+          borderRadius: 12,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          textAlign: 'left',
+          boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)',
+          animation: 'fadeIn 0.3s ease-out'
+        }}>
+          <CheckCircle size={22} color="#10b981" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1, fontWeight: 600, fontSize: '0.95rem' }}>
+            {successToast}
+          </div>
+          <button
+            onClick={() => setSuccessToast('')}
+            style={{ background: 'transparent', border: 'none', color: '#065f46', cursor: 'pointer', padding: 4 }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       <div className="id-card" style={{ textAlign: 'center', padding: '48px 32px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)' }}>
 
@@ -253,116 +329,197 @@ export default function QrScanner() {
         )}
       </div>
 
+      {/* POPUP MODAL FOR ADMINISTERING MEDICATION */}
       {result && (
-        <div style={{ animation: 'slideUp 0.4s ease-out forwards' }}>
-          <style>{`
-            @keyframes slideUp {
-              from { opacity: 0; transform: translateY(20px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-          `}</style>
-          <div className="id-card" style={{ border: 'none', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)', overflow: 'hidden', padding: 0 }}>
-
-            <div style={{ background: '#f0fdf4', padding: '24px 32px', borderBottom: '1px solid #bbf7d0', display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 48, height: 48, background: '#10b981', color: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }}>
-                <CheckCircle size={28} />
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(5px)',
+            WebkitBackdropFilter: 'blur(5px)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            animation: 'fadeIn 0.2s ease-out',
+            boxSizing: 'border-box'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 20,
+              width: '100%',
+              maxWidth: 540,
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden',
+              animation: 'modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{
+              background: '#f0fdf4',
+              padding: '18px 24px',
+              borderBottom: '1px solid #bbf7d0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 44,
+                  height: 44,
+                  background: '#10b981',
+                  color: 'white',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 6px rgba(16, 185, 129, 0.25)',
+                  flexShrink: 0
+                }}>
+                  <CheckCircle size={26} />
+                </div>
+                <div>
+                  <div style={{ color: '#166534', fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Patient Verified
+                  </div>
+                  <h3 style={{ margin: '2px 0 0', color: '#14532d', fontSize: '1.35rem', fontWeight: 800 }}>
+                    {result.patient.first_name} {result.patient.last_name}
+                  </h3>
+                </div>
               </div>
-              <div>
-                <div style={{ color: '#166534', fontSize: '0.85rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Patient Verified</div>
-                <h3 style={{ margin: 0, color: '#14532d', fontSize: '1.5rem', fontWeight: 800 }}>{result.patient.first_name} {result.patient.last_name}</h3>
-              </div>
+              <button
+                onClick={closeModal}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  padding: 8,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#e2e8f0'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                title="Close"
+              >
+                <X size={22} />
+              </button>
             </div>
 
-            <div style={{ padding: '32px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-                <div style={{ padding: 8, background: '#f1f5f9', borderRadius: 8, color: '#475569' }}>
-                  <Pill size={20} />
+            {/* Modal Body */}
+            <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{ padding: '6px 8px', background: '#f1f5f9', borderRadius: 8, color: '#475569' }}>
+                  <Pill size={18} />
                 </div>
-                <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.25rem', fontWeight: 700 }}>Pending Medications</h4>
+                <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: 700 }}>
+                  Pending Medications
+                </h4>
               </div>
 
               {result.schedules.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: 16, border: '2px dashed #e2e8f0' }}>
-                  <div style={{ width: 64, height: 64, background: '#f1f5f9', color: '#94a3b8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                    <CheckCircle size={32} />
+                <div style={{ textAlign: 'center', padding: '36px 20px', background: '#f8fafc', borderRadius: 16, border: '2px dashed #e2e8f0' }}>
+                  <div style={{ width: 56, height: 56, background: '#f1f5f9', color: '#94a3b8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                    <CheckCircle size={28} />
                   </div>
-                  <h5 style={{ margin: '0 0 8px', fontSize: '1.1rem', color: '#334155' }}>All Clear!</h5>
-                  <p style={{ color: '#64748b', margin: 0 }}>There are no pending medications for this patient at the moment.</p>
+                  <h5 style={{ margin: '0 0 6px', fontSize: '1.05rem', color: '#334155' }}>All Clear!</h5>
+                  <p style={{ color: '#64748b', margin: 0, fontSize: '0.9rem' }}>There are no pending medications for this patient at the moment.</p>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gap: 16 }}>
+                <div style={{ display: 'grid', gap: 12 }}>
                   {result.schedules.map(s => (
-                    <div key={s.id} style={{
-                      padding: 20,
-                      background: 'white',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: 16,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-                      transition: 'all 0.2s ease'
-                    }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = '#cbd5e1';
-                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025)';
+                    <div
+                      key={s.id}
+                      style={{
+                        padding: '16px',
+                        background: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 14,
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12
                       }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = '#e2e8f0';
-                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
-                      }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                          <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1.15rem' }}>{s.prescriptionItem?.medication_name}</div>
-                          <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 10px', borderRadius: 9999, fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.5px' }}>
-                            {s.prescriptionItem?.route?.replace('_', ' ')}
-                          </span>
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                            <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '1.1rem', wordBreak: 'break-word' }}>
+                              {s.prescriptionItem?.medication_name}
+                            </span>
+                            <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: 9999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                              {s.prescriptionItem?.route?.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <div style={{ color: '#475569', fontSize: '0.92rem' }}>
+                            <strong style={{ color: '#334155' }}>Dosage:</strong> {s.prescriptionItem?.dosage}
+                          </div>
                         </div>
 
-                        <div style={{ color: '#475569', fontSize: '1rem', fontWeight: 500, marginBottom: 8 }}>
-                          <strong style={{ color: '#334155' }}>Dosage:</strong> {s.prescriptionItem?.dosage}
-                        </div>
-
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f1f5f9', padding: '4px 12px', borderRadius: 8, color: '#64748b', fontSize: '0.85rem', fontWeight: 500 }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                          Scheduled: {new Date(s.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
+                        <button
+                          style={{
+                            background: '#10b981',
+                            color: 'white',
+                            border: 'none',
+                            padding: '10px 16px',
+                            borderRadius: 10,
+                            fontWeight: 600,
+                            fontSize: '0.88rem',
+                            cursor: administeringId === s.id ? 'not-allowed' : 'pointer',
+                            opacity: administeringId === s.id ? 0.7 : 1,
+                            boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            flexShrink: 0
+                          }}
+                          disabled={administeringId === s.id}
+                          onClick={() => handleAdminister(s.id, s.prescriptionItem?.medication_name)}
+                        >
+                          <CheckCircle size={16} />
+                          {administeringId === s.id ? 'Administering...' : 'Administer Dose'}
+                        </button>
                       </div>
 
-                      <button
-                        style={{
-                          background: '#10b981',
-                          color: 'white',
-                          border: 'none',
-                          padding: '12px 24px',
-                          borderRadius: 12,
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)',
-                          transition: 'all 0.2s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.background = '#059669';
-                          e.currentTarget.style.transform = 'translateY(-2px)';
-                          e.currentTarget.style.boxShadow = '0 6px 8px -1px rgba(16, 185, 129, 0.4)';
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.background = '#10b981';
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(16, 185, 129, 0.3)';
-                        }}
-                        onClick={() => handleAdminister(s.id)}
-                      >
-                        <CheckCircle size={18} />
-                        Administer Dose
-                      </button>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f8fafc', padding: '4px 10px', borderRadius: 6, color: '#64748b', fontSize: '0.82rem', width: 'fit-content' }}>
+                        <Clock size={13} />
+                        Scheduled: {new Date(s.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* Modal Footer */}
+            <div style={{
+              padding: '14px 24px',
+              borderTop: '1px solid #f1f5f9',
+              background: '#f8fafc',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 12
+            }}>
+              <button
+                className="action-btn outline"
+                onClick={closeModal}
+                style={{ fontSize: '0.88rem', padding: '8px 18px', background: '#fff' }}
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -370,3 +527,4 @@ export default function QrScanner() {
     </div>
   );
 }
+
