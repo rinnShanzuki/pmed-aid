@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { Search, Plus, Printer, X, FileSignature, Eye, QrCode, ArrowLeft, Send, Stethoscope, Clock, User, Copy, Check, ExternalLink } from 'lucide-react';
 
@@ -51,10 +51,17 @@ export default function PrescriptionManagement() {
   const [search, setSearch] = useState('');
   const [sortOption, setSortOption] = useState('recent-old');
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('all');
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') || 'all';
+  });
   const [dateFilter, setDateFilter] = useState('');
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(null); // 'add' | 'view' | 'handover' | null
+  const [modal, setModal] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('modal') || null;
+  }); // 'add' | 'view' | 'handover' | null
   const [encodeStep, setEncodeStep] = useState(1); // 1: Form, 2: Review, 3: QR
   const [generatedQR, setGeneratedQR] = useState('');
   const [generatedQRImage, setGeneratedQRImage] = useState('');
@@ -93,16 +100,33 @@ export default function PrescriptionManagement() {
   useEffect(() => { fetchPrescriptions(); fetchDropdowns(); }, []);
 
   useEffect(() => {
-    if (location.state?.tab) {
-      setActiveTab(location.state.tab);
+    const params = new URLSearchParams(location.search);
+    const queryTab = params.get('tab');
+    const targetTab = queryTab || location.state?.tab;
+    if (targetTab && ['all', 'outpatient', 'inpatient'].includes(targetTab)) {
+      setActiveTab(targetTab);
     }
-    if (location.state?.filter === 'recent') {
+
+    const queryFilter = params.get('filter');
+    const targetFilter = queryFilter !== null ? queryFilter : location.state?.filter;
+    if (targetFilter === 'recent') {
       setDateFilter('recent');
-    } else {
+    } else if (targetFilter === '') {
       setDateFilter('');
     }
 
-    if ((location.state?.viewConsultationId || location.state?.viewPatientId) && prescriptions.length > 0) {
+    const modalParam = params.get('modal') || location.state?.modal;
+    if (modalParam === 'handover') {
+      setModal('handover');
+    }
+
+    const targetPrescriptionId = params.get('viewPrescriptionId') || location.state?.viewPrescriptionId;
+    if (targetPrescriptionId) {
+      api.get(`/prescriptions/${targetPrescriptionId}`).then(({ data: rxData }) => {
+        setViewData(rxData.data);
+        setModal('view');
+      }).catch(console.error);
+    } else if ((location.state?.viewConsultationId || location.state?.viewPatientId) && prescriptions.length > 0) {
       const targetRx = prescriptions.find(rx =>
         (location.state.viewConsultationId && String(rx.consultation_id) === String(location.state.viewConsultationId)) ||
         (location.state.viewPatientId && String(rx.patient_id) === String(location.state.viewPatientId))
@@ -111,20 +135,10 @@ export default function PrescriptionManagement() {
         api.get(`/prescriptions/${targetRx.id}`).then(({ data: rxData }) => {
           setViewData(rxData.data);
           setModal('view');
-          window.history.replaceState({}, document.title);
-        });
+        }).catch(console.error);
       }
     }
-
-    if (location.state?.viewPrescriptionId) {
-      api.get(`/prescriptions/${location.state.viewPrescriptionId}`).then(({ data: rxData }) => {
-        setViewData(rxData.data);
-        setModal('view');
-        window.history.replaceState({}, document.title);
-      });
-    }
-
-  }, [location.state, prescriptions]);
+  }, [location.search, location.state, prescriptions]);
 
   function addItem() {
     setItems([...items, { medication_name: '', dosage: '', dosage_unit: 'mg', frequency: 1, frequency_unit: 'daily', duration: '', route: 'oral', instructions: '', start_time: '', interval_hours: '24' }]);
@@ -430,7 +444,11 @@ export default function PrescriptionManagement() {
     return (
       <div style={{ maxWidth: 850, margin: '0 auto', paddingBottom: 40 }}>
         <button
-          onClick={() => setModal(null)}
+          onClick={() => {
+            setModal(null);
+            setViewData(null);
+            navigate('/info-desk/prescriptions' + (activeTab !== 'all' ? `?tab=${activeTab}` : ''), { replace: true });
+          }}
           style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '12px 0', fontSize: '0.95rem', fontWeight: 600, marginBottom: 16 }}
         >
           <ArrowLeft size={18} /> Back to Prescriptions
@@ -540,7 +558,10 @@ export default function PrescriptionManagement() {
     return (
       <div style={{ maxWidth: 900, margin: '0 auto', paddingBottom: 40 }}>
         <button
-          onClick={() => setModal(null)}
+          onClick={() => {
+            setModal(null);
+            navigate('/info-desk/prescriptions' + (activeTab !== 'all' ? `?tab=${activeTab}` : ''), { replace: true });
+          }}
           style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '12px 0', fontSize: '0.95rem', fontWeight: 600, marginBottom: 16 }}
         >
           <ArrowLeft size={18} /> Back to Prescriptions
@@ -650,7 +671,10 @@ export default function PrescriptionManagement() {
           </select>
           <button
             className="action-btn primary"
-            onClick={() => setModal('handover')}
+            onClick={() => {
+              setModal('handover');
+              navigate('/info-desk/prescriptions?modal=handover', { replace: true });
+            }}
             style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 8, minHeight: 42 }}
           >
             <Send size={16} /> Handover ({handoverCount})
@@ -667,19 +691,28 @@ export default function PrescriptionManagement() {
 
         <div className="id-tabs-row">
           <button
-            onClick={() => setActiveTab('all')}
+            onClick={() => {
+              setActiveTab('all');
+              navigate('/info-desk/prescriptions?tab=all', { replace: true });
+            }}
             className={`id-tab-btn ${activeTab === 'all' ? 'active' : ''}`}
           >
             All ({allCount})
           </button>
           <button
-            onClick={() => setActiveTab('outpatient')}
+            onClick={() => {
+              setActiveTab('outpatient');
+              navigate('/info-desk/prescriptions?tab=outpatient', { replace: true });
+            }}
             className={`id-tab-btn ${activeTab === 'outpatient' ? 'active' : ''}`}
           >
             Outpatient ({outpatientCount})
           </button>
           <button
-            onClick={() => setActiveTab('inpatient')}
+            onClick={() => {
+              setActiveTab('inpatient');
+              navigate('/info-desk/prescriptions?tab=inpatient', { replace: true });
+            }}
             className={`id-tab-btn ${activeTab === 'inpatient' ? 'active' : ''}`}
           >
             Admitted ({inpatientCount})

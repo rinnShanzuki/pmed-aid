@@ -5,6 +5,155 @@ import api from '../../services/api';
 import { useSocket } from '../../contexts/SocketContext';
 import { useAuth } from '../../hooks/useAuth';
 
+export function getNotificationRoute(notification, role = 'patient') {
+  if (!notification) return { path: role === 'info_desk' ? '/info-desk' : `/${role}`, state: {} };
+
+  const title = (notification.title || '').toLowerCase();
+  const message = (notification.message || '').toLowerCase();
+  const type = (notification.type || '').toLowerCase();
+  const pId = notification.related_prescription_id;
+  const aId = notification.related_admission_id;
+  const cId = notification.related_consultation_id;
+  const sId = notification.related_schedule_id;
+
+  // 1. Admission Required / Admission Request
+  if (
+    title.includes('admission required') ||
+    title.includes('admission request') ||
+    title.includes('admission') ||
+    message.includes('requested admission') ||
+    message.includes('assign a room') ||
+    message.includes('requires admission')
+  ) {
+    if (!title.includes('discharge') && !message.includes('discharge')) {
+      if (role === 'info_desk' || role === 'admin') {
+        return {
+          path: '/info-desk/admissions?tab=pending_admissions',
+          state: { tab: 'pending_admissions', targetConsultationId: cId, targetAdmissionId: aId }
+        };
+      }
+      if (role === 'doctor') return { path: '/doctor/patients', state: {} };
+      if (role === 'nurse') return { path: '/nurse/patients', state: {} };
+      return { path: '/patient', state: {} };
+    }
+  }
+
+  // 2. Discharge requested / approved
+  if (title.includes('discharge') || message.includes('discharge')) {
+    if (role === 'info_desk' || role === 'admin') {
+      return {
+        path: '/info-desk/admissions?tab=admitted',
+        state: { tab: 'admitted', targetAdmissionId: aId }
+      };
+    }
+    if (role === 'patient') {
+      return { path: '/patient/qr', state: {} };
+    }
+    if (role === 'doctor') return { path: '/doctor/patients', state: {} };
+    if (role === 'nurse') return { path: '/nurse/patients', state: {} };
+  }
+
+  // 3. Outpatient Consultation Completed
+  if (title.includes('outpatient consultation completed') || message.includes('outpatient consultation')) {
+    if (role === 'info_desk' || role === 'admin') {
+      return {
+        path: '/info-desk/admissions?tab=outpatient',
+        state: { tab: 'outpatient', targetConsultationId: cId }
+      };
+    }
+    if (role === 'doctor') return { path: '/doctor/consultations', state: {} };
+  }
+
+  // 4. Consultation Queue / Arrivals / New Consultation / Assigned Doctor
+  if (title.includes('consultation') || title.includes('queue') || title.includes('assigned')) {
+    if (role === 'doctor') return { path: '/doctor/consultations', state: {} };
+    if (role === 'nurse') return { path: '/nurse/patients', state: {} };
+    if (role === 'info_desk' || role === 'admin') {
+      return {
+        path: '/info-desk/admissions?tab=arrivals',
+        state: { tab: 'arrivals', targetConsultationId: cId }
+      };
+    }
+  }
+
+  // 5. Prescription Handover
+  if (title.includes('handover') || message.includes('handover') || message.includes('handed over')) {
+    if (role === 'info_desk' || role === 'admin') {
+      return {
+        path: '/info-desk/prescriptions?modal=handover',
+        state: { modal: 'handover', viewPrescriptionId: pId }
+      };
+    }
+    if (role === 'doctor') return { path: '/doctor/prescriptions', state: {} };
+  }
+
+  // 6. Prescriptions (ready for QR, take-home, updated, created)
+  if (title.includes('prescription') || message.includes('prescription')) {
+    if (role === 'info_desk' || role === 'admin') {
+      const isOutpatient = title.includes('take-home') || message.includes('take-home') || message.includes('outpatient');
+      const tab = isOutpatient ? 'outpatient' : 'inpatient';
+      const q = pId ? `?tab=${tab}&viewPrescriptionId=${pId}` : `?tab=${tab}`;
+      return {
+        path: `/info-desk/prescriptions${q}`,
+        state: { tab, viewPrescriptionId: pId }
+      };
+    }
+    if (role === 'doctor') {
+      return { path: '/doctor/prescriptions', state: { viewPrescriptionId: pId } };
+    }
+    if (role === 'patient') {
+      return { path: '/patient/prescriptions', state: { viewPrescriptionId: pId } };
+    }
+    if (role === 'nurse') {
+      return { path: '/nurse/administration', state: {} };
+    }
+  }
+
+  // 7. Medication administered / Patient confirmed medication
+  if (
+    title.includes('medication administered') ||
+    title.includes('confirmed medication') ||
+    message.includes('received') ||
+    message.includes('dose confirmed') ||
+    message.includes('confirmed taking')
+  ) {
+    if (role === 'nurse') return { path: '/nurse/monitoring', state: { scheduleId: sId } };
+    if (role === 'info_desk' || role === 'admin') return { path: '/info-desk/monitoring', state: { scheduleId: sId } };
+    if (role === 'patient') return { path: '/patient/history', state: {} };
+    if (role === 'doctor') return { path: '/doctor/patients', state: {} };
+  }
+
+  // 8. Missed Medication, Overdue, Alerts
+  if (
+    type === 'missed_dose' ||
+    type === 'overdue' ||
+    title.includes('missed') ||
+    title.includes('overdue') ||
+    title.includes('escalation')
+  ) {
+    if (role === 'nurse') return { path: '/nurse/alerts', state: { scheduleId: sId } };
+    if (role === 'info_desk' || role === 'admin') return { path: '/info-desk/monitoring', state: { scheduleId: sId } };
+    if (role === 'doctor') return { path: '/doctor/patients', state: {} };
+    if (role === 'patient') return { path: '/patient/schedule', state: {} };
+  }
+
+  // 9. Staff User / Patient Registration / System Settings
+  if (title.includes('user') || title.includes('staff')) {
+    if (role === 'admin') return { path: '/admin/users', state: {} };
+  }
+  if (title.includes('patient registered') || title.includes('new patient')) {
+    if (role === 'admin') return { path: '/admin/patients', state: {} };
+    if (role === 'info_desk') return { path: '/info-desk/registration', state: {} };
+  }
+  if (title.includes('system settings') || title.includes('settings')) {
+    if (role === 'admin') return { path: '/admin/settings', state: {} };
+  }
+
+  // Fallback by role
+  const prefix = role === 'info_desk' ? '/info-desk' : `/${role}`;
+  return { path: prefix, state: {} };
+}
+
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -75,6 +224,7 @@ const NotificationBell = () => {
     }
   };
 
+
   const handleNotificationClick = (n) => {
     if (!n.is_read) {
       handleMarkAsRead(n.id);
@@ -82,20 +232,9 @@ const NotificationBell = () => {
     setIsOpen(false);
 
     const role = user?.role || 'patient';
-    const prefix = role === 'info_desk' ? '/info-desk' : `/${role}`;
-
-    if (n.title.includes('Consultation') || n.title.includes('Assigned')) {
-      if (role === 'doctor') navigate('/doctor/consultations');
-      else navigate(prefix);
-    } else if (n.title.includes('Admission')) {
-      if (role === 'info_desk') navigate('/info-desk/admissions');
-      else navigate(prefix);
-    } else if (n.type === 'overdue' || n.type === 'missed_dose' || n.title.includes('Overdue') || n.title.includes('Missed')) {
-      if (role === 'nurse') navigate('/nurse/monitoring');
-      else if (role === 'info_desk') navigate('/info-desk/monitoring');
-      else navigate(prefix);
-    } else {
-      navigate(prefix);
+    const target = getNotificationRoute(n, role);
+    if (target?.path) {
+      navigate(target.path, { state: { ...(target.state || {}), _ts: Date.now() } });
     }
   };
 
@@ -190,6 +329,12 @@ const NotificationBell = () => {
                     transition: 'background-color 0.2s',
                     position: 'relative',
                     cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = notification.is_read ? '#f8fafc' : '#dbeafe';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = notification.is_read ? '#fff' : '#eff6ff';
                   }}
                 >
                   <div style={{ flexShrink: 0, marginTop: '2px' }}>

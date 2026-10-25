@@ -55,8 +55,10 @@ export default function AdmissionManagement() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [dateFilter, setDateFilter] = useState('');
-  const [sortOption, setSortOption] = useState('recent-old');
-  const [activeTab, setActiveTab] = useState('arrivals'); // arrivals, pending_admissions, admitted, outpatient, discharged
+  const [activeTab, setActiveTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') || 'arrivals';
+  }); // arrivals, pending_admissions, admitted, outpatient, discharged
   const [loading, setLoading] = useState(true);
   const [tabCounts, setTabCounts] = useState({});
 
@@ -78,7 +80,8 @@ export default function AdmissionManagement() {
   const [success, setSuccess] = useState('');
   const [dischargeData, setDischargeData] = useState(null);
 
-  async function fetchData() {
+  async function fetchData(overrideTab) {
+    const currentTab = overrideTab || activeTab;
     setLoading(true);
     try {
       const [adm, dis, arr, pend, out] = await Promise.all([
@@ -97,11 +100,11 @@ export default function AdmissionManagement() {
         outpatient: out.data.data.length
       });
 
-      if (activeTab === 'admitted') setAdmissions(adm.data.data);
-      else if (activeTab === 'discharged') setAdmissions(dis.data.data);
-      else if (activeTab === 'arrivals') setConsultations(arr.data.data);
-      else if (activeTab === 'pending_admissions') setConsultations(pend.data.data);
-      else if (activeTab === 'outpatient') setConsultations(out.data.data);
+      if (currentTab === 'admitted') setAdmissions(adm.data.data);
+      else if (currentTab === 'discharged') setAdmissions(dis.data.data);
+      else if (currentTab === 'arrivals') setConsultations(arr.data.data);
+      else if (currentTab === 'pending_admissions') setConsultations(pend.data.data);
+      else if (currentTab === 'outpatient') setConsultations(out.data.data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }
@@ -147,15 +150,31 @@ export default function AdmissionManagement() {
   useEffect(() => { fetchDropdowns(); }, []);
 
   useEffect(() => {
-    if (location.state?.tab) {
-      setActiveTab(location.state.tab);
+    const params = new URLSearchParams(location.search);
+    const queryTab = params.get('tab');
+    const targetTab = queryTab || location.state?.tab;
+    if (targetTab && ['arrivals', 'pending_admissions', 'outpatient', 'admitted', 'discharged'].includes(targetTab)) {
+      if (activeTab !== targetTab) {
+        setActiveTab(targetTab);
+      } else if (location.state?._ts) {
+        fetchData(targetTab);
+      }
+    } else if (location.state?._ts) {
+      fetchData(activeTab);
     }
-    if (location.state?.filter === 'today') {
+
+    const queryFilter = params.get('filter');
+    const targetFilter = queryFilter !== null ? queryFilter : location.state?.filter;
+    if (targetFilter === 'today') {
       setDateFilter('today');
-    } else {
+    } else if (targetFilter === '') {
       setDateFilter('');
     }
-  }, [location.state]);
+
+    if (location.state?._ts) {
+      setSearch('');
+    }
+  }, [location.search, location.state]);
 
   function openNewConsultation() {
     setPatientSearch(''); setSelectedPatient(null); setError(''); setModal('search-patient');
@@ -443,7 +462,10 @@ export default function AdmissionManagement() {
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  navigate(`/info-desk/admissions?tab=${tab.id}`, { replace: true });
+                }}
                 className={`id-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
               >
                 {tab.label} {tabCounts[tab.id] !== undefined ? `(${tabCounts[tab.id]})` : ''}
@@ -485,9 +507,13 @@ export default function AdmissionManagement() {
                     </div>
                   </td>
                 </tr>
-              ) : sortedAndFiltered.map(item => (
-                <tr key={item.id}>
-                  <td><strong>{item.patient?.first_name} {item.patient?.last_name}</strong></td>
+              ) : sortedAndFiltered.map(item => {
+                const isTarget =
+                  (location.state?.targetConsultationId && String(item.id) === String(location.state.targetConsultationId)) ||
+                  (location.state?.targetAdmissionId && String(item.id) === String(location.state.targetAdmissionId));
+                return (
+                  <tr key={item.id} style={isTarget ? { backgroundColor: '#eff6ff', transition: 'background-color 0.5s' } : undefined}>
+                    <td><strong>{item.patient?.first_name} {item.patient?.last_name}</strong></td>
 
                   {['arrivals', 'pending_admissions', 'outpatient'].includes(activeTab) && (
                     <td>{item.doctor?.first_name} {item.doctor?.last_name}</td>
@@ -549,8 +575,9 @@ export default function AdmissionManagement() {
                       )}
                     </div>
                   </td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

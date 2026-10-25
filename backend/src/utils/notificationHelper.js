@@ -18,6 +18,7 @@ async function notifyRole(role, payload) {
       related_schedule_id: payload.related_schedule_id || null,
       related_prescription_id: payload.related_prescription_id || null,
       related_admission_id: payload.related_admission_id || null,
+      related_consultation_id: payload.related_consultation_id || null,
     }))
   );
 }
@@ -40,6 +41,7 @@ async function createNotification(payload) {
     related_schedule_id: payload.related_schedule_id || null,
     related_prescription_id: payload.related_prescription_id || null,
     related_admission_id: payload.related_admission_id || null,
+    related_consultation_id: payload.related_consultation_id || null,
   });
 }
 
