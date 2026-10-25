@@ -13,6 +13,7 @@ import NotificationBell from '../common/NotificationBell';
 import { useAuth } from '../../hooks/useAuth';
 import '../../styles/admin.css';
 import '../../styles/doctor.css';
+import '../../styles/infoDesk.css';
 
 export default function DoctorLayout() {
   const { user, logout } = useAuth();

@@ -23,12 +23,13 @@ exports.getAll = async (req, res, next) => {
     let scheduleIncludes = [...SCHEDULE_INCLUDES];
 
     if (req.user.role === 'nurse') {
-      const { Admission } = require('../models');
+      const { Admission, Room } = require('../models');
       scheduleIncludes.push({
         model: Admission,
         as: 'admission',
         where: { assigned_nurse_id: req.user.id },
-        attributes: ['id', 'assigned_nurse_id']
+        attributes: ['id', 'assigned_nurse_id', 'room_id'],
+        include: [{ model: Room, as: 'room', attributes: ['id', 'room_number', 'type'] }]
       });
     }
 
