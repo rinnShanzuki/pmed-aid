@@ -37,8 +37,44 @@ export default function QrScanner() {
 
       // Fetch pending schedules for this patient
       const schedRes = await api.get('/schedules/patient/' + data.data.patient.id, { params: { status: 'pending' } });
+      const allPending = schedRes.data?.data || [];
 
-      setResult({ patient: data.data.patient, schedules: schedRes.data.data });
+      let targetSchedules = [];
+      if (allPending.length > 0) {
+        const now = Date.now();
+
+        // Find the schedule with the minimum time difference to the current time (nearest or current)
+        let nearestSchedule = allPending[0];
+        let minDiff = Math.abs(new Date(allPending[0].scheduled_time).getTime() - now);
+
+        for (let i = 1; i < allPending.length; i++) {
+          const diff = Math.abs(new Date(allPending[i].scheduled_time).getTime() - now);
+          if (diff < minDiff) {
+            minDiff = diff;
+            nearestSchedule = allPending[i];
+          }
+        }
+
+        const nearestTime = new Date(nearestSchedule.scheduled_time).getTime();
+
+        // Include the nearest schedule, plus any other medications scheduled in the same round (within 30 mins)
+        // Deduplicate so at most one dose per distinct medication / prescription item is shown
+        const seenItems = new Set();
+        targetSchedules = allPending
+          .filter(s => {
+            const sTime = new Date(s.scheduled_time).getTime();
+            const isSameRound = Math.abs(sTime - nearestTime) <= 30 * 60 * 1000;
+            const itemId = s.prescription_item_id || s.prescriptionItem?.id || s.id;
+            if (isSameRound && !seenItems.has(itemId)) {
+              seenItems.add(itemId);
+              return true;
+            }
+            return false;
+          })
+          .sort((a, b) => new Date(a.scheduled_time) - new Date(b.scheduled_time));
+      }
+
+      setResult({ patient: data.data.patient, schedules: targetSchedules });
       setCode('');
 
       // Pause scanner while modal is displayed if camera is currently scanning
@@ -117,8 +153,12 @@ export default function QrScanner() {
       setSuccessToast(`${medName ? `${medName} dose` : 'Dose'} administered successfully for ${patientName}!`);
       setTimeout(() => setSuccessToast(''), 4000);
 
-      // Close the modal and reset scanner immediately
-      closeModal();
+      const remaining = (result?.schedules || []).filter(s => s.id !== id);
+      if (remaining.length > 0) {
+        setResult(prev => ({ ...prev, schedules: remaining }));
+      } else {
+        closeModal();
+      }
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to administer dose.');
     } finally {
@@ -426,7 +466,7 @@ export default function QrScanner() {
                   <Pill size={18} />
                 </div>
                 <h4 style={{ margin: 0, color: '#0f172a', fontSize: '1.1rem', fontWeight: 700 }}>
-                  Pending Medications
+                  Current / Nearest Schedule
                 </h4>
               </div>
 
@@ -440,66 +480,83 @@ export default function QrScanner() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: 12 }}>
-                  {result.schedules.map(s => (
-                    <div
-                      key={s.id}
-                      style={{
-                        padding: '16px',
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: 14,
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 12
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                            <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '1.1rem', wordBreak: 'break-word' }}>
-                              {s.prescriptionItem?.medication_name}
-                            </span>
-                            <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: 9999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>
-                              {s.prescriptionItem?.route?.replace('_', ' ')}
-                            </span>
+                  {result.schedules.map(s => {
+                    const isDueNow = Math.abs(new Date(s.scheduled_time).getTime() - Date.now()) <= 60 * 60 * 1000;
+                    return (
+                      <div
+                        key={s.id}
+                        style={{
+                          padding: '16px',
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: 14,
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 12
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                              <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '1.1rem', wordBreak: 'break-word' }}>
+                                {s.prescriptionItem?.medication_name}
+                              </span>
+                              <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: 9999, fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                                {s.prescriptionItem?.route?.replace('_', ' ')}
+                              </span>
+                            </div>
+                            <div style={{ color: '#475569', fontSize: '0.92rem' }}>
+                              <strong style={{ color: '#334155' }}>Dosage:</strong> {s.prescriptionItem?.dosage}
+                            </div>
                           </div>
-                          <div style={{ color: '#475569', fontSize: '0.92rem' }}>
-                            <strong style={{ color: '#334155' }}>Dosage:</strong> {s.prescriptionItem?.dosage}
-                          </div>
+
+                          <button
+                            style={{
+                              background: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              padding: '10px 16px',
+                              borderRadius: 10,
+                              fontWeight: 600,
+                              fontSize: '0.88rem',
+                              cursor: administeringId === s.id ? 'not-allowed' : 'pointer',
+                              opacity: administeringId === s.id ? 0.7 : 1,
+                              boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              flexShrink: 0
+                            }}
+                            disabled={administeringId === s.id}
+                            onClick={() => handleAdminister(s.id, s.prescriptionItem?.medication_name)}
+                          >
+                            <CheckCircle size={16} />
+                            {administeringId === s.id ? 'Administering...' : 'Administer Dose'}
+                          </button>
                         </div>
 
-                        <button
-                          style={{
-                            background: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            padding: '10px 16px',
-                            borderRadius: 10,
-                            fontWeight: 600,
-                            fontSize: '0.88rem',
-                            cursor: administeringId === s.id ? 'not-allowed' : 'pointer',
-                            opacity: administeringId === s.id ? 0.7 : 1,
-                            boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.3)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            flexShrink: 0
-                          }}
-                          disabled={administeringId === s.id}
-                          onClick={() => handleAdminister(s.id, s.prescriptionItem?.medication_name)}
-                        >
-                          <CheckCircle size={16} />
-                          {administeringId === s.id ? 'Administering...' : 'Administer Dose'}
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f8fafc', padding: '4px 10px', borderRadius: 6, color: '#64748b', fontSize: '0.82rem', width: 'fit-content' }}>
+                            <Clock size={13} />
+                            Scheduled: {new Date(s.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          <span style={{
+                            background: isDueNow ? '#ecfdf5' : '#f0f9ff',
+                            color: isDueNow ? '#059669' : '#0284c7',
+                            border: `1px solid ${isDueNow ? '#a7f3d0' : '#bae6fd'}`,
+                            padding: '2px 8px',
+                            borderRadius: 9999,
+                            fontSize: '0.72rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase'
+                          }}>
+                            {isDueNow ? 'Due Now' : 'Nearest Schedule'}
+                          </span>
+                        </div>
                       </div>
-
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f8fafc', padding: '4px 10px', borderRadius: 6, color: '#64748b', fontSize: '0.82rem', width: 'fit-content' }}>
-                        <Clock size={13} />
-                        Scheduled: {new Date(s.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
